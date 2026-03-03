@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STEAM CITY</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+
+  :root {
+    --bg: #050a05;
+    --green: #00ff41;
+    --green-dim: #00aa2a;
+    --green-dark: #003010;
+    --gold: #ffd700;
+    --gold-dim: #b8960a;
+    --red: #ff3030;
+    --panel-bg: rgba(0, 20, 5, 0.92);
+    --border: rgba(0, 255, 65, 0.25);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  /* ── CANVAS ── */
+  #cityCanvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    cursor: grab;
+  }
+  #cityCanvas:active { cursor: grabbing; }
+
+  /* ── SCANLINES overlay ── */
+  #scanlines {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.07) 2px,
+      rgba(0,0,0,0.07) 4px
+    );
+    z-index: 10;
+  }
+
+  /* ── HEADER ── */
+  #header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 20;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(to bottom, rgba(5,10,5,0.95) 0%, transparent 100%);
+  }
+
+  .logo {
+    font-family: 'Orbitron', monospace;
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: 8px;
+    color: var(--gold);
+    text-shadow: 0 0 20px rgba(255,215,0,0.6), 0 0 40px rgba(255,215,0,0.2);
+  }
+
+  .logo span {
+    color: var(--green);
+    text-shadow: 0 0 20px rgba(0,255,65,0.8);
+  }
+
+  .tagline {
+    font-size: 10px;
+    color: var(--green-dim);
+    letter-spacing: 3px;
+    margin-top: 2px;
+  }
+
+  /* ── SEARCH PANEL ── */
+  #searchPanel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 30;
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    padding: 40px;
+    width: 480px;
+    max-width: 95vw;
+    box-shadow: 0 0 60px rgba(0,255,65,0.1), inset 0 0 60px rgba(0,0,0,0.5);
+    backdrop-filter: blur(10px);
+  }
+
+  #searchPanel h2 {
+    font-family: 'Orbitron', monospace;
+    font-size: 13px;
+    letter-spacing: 4px;
+    color: var(--gold);
+    margin-bottom: 6px;
+  }
+
+  #searchPanel p {
+    font-size: 11px;
+    color: var(--green-dim);
+    margin-bottom: 28px;
+    line-height: 1.6;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  input[type="text"] {
+    flex: 1;
+    background: rgba(0, 30, 10, 0.8);
+    border: 1px solid var(--border);
+    color: var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 14px;
+    padding: 12px 16px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input[type="text"]:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 10px rgba(0,255,65,0.2);
+  }
+
+  input[type="text"]::placeholder { color: rgba(0,255,65,0.3); }
+
+  .btn {
+    background: var(--gold);
+    color: #000;
+    border: none;
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    padding: 12px 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .btn:hover {
+    background: #fff;
+    box-shadow: 0 0 20px rgba(255,215,0,0.5);
+  }
+
+  .btn:disabled {
+    background: var(--green-dark);
+    color: var(--green-dim);
+    cursor: not-allowed;
+  }
+
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--green-dim);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    padding: 10px 16px;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.15s;
+    margin-top: 8px;
+  }
+
+  .btn-ghost:hover {
+    border-color: var(--green);
+    color: var(--green);
+  }
+
+  .hint {
+    font-size: 10px;
+    color: rgba(0,255,65,0.35);
+    margin-top: 12px;
+    line-height: 1.7;
+  }
+
+  .hint a {
+    color: var(--gold-dim);
+    text-decoration: none;
+  }
+
+  .hint a:hover { color: var(--gold); }
+
+  /* ── LOADING ── */
+  #loadingOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    display: none;
+  }
+
+  .loading-text {
+    font-family: 'Orbitron', monospace;
+    font-size: 12px;
+    letter-spacing: 4px;
+    color: var(--green);
+    animation: blink 1s infinite;
+  }
+
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .loading-bar {
+    width: 300px;
+    height: 2px;
+    background: var(--green-dark);
+    overflow: hidden;
+  }
+
+  .loading-fill {
+    height: 100%;
+    background: var(--green);
+    animation: loadAnim 2s ease-in-out infinite;
+    box-shadow: 0 0 8px var(--green);
+  }
+
+  @keyframes loadAnim {
+    0% { width: 0%; margin-left: 0; }
+    50% { width: 60%; margin-left: 20%; }
+    100% { width: 0%; margin-left: 100%; }
+  }
+
+  /* ── PROFILE CARD ── */
+  #profileCard {
+    position: fixed;
+    top: 80px;
+    right: 24px;
+    z-index: 20;
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    padding: 20px;
+    width: 260px;
+    display: none;
+    backdrop-filter: blur(10px);
+  }
+
+  .profile-header {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .avatar-wrap {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+  }
+
+  .avatar-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border: 1px solid var(--green-dim);
+  }
+
+  .avatar-glow {
+    position: absolute;
+    inset: -2px;
+    border: 1px solid var(--green);
+    animation: pulse 2s infinite;
+    pointer-events: none;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity: 1; box-shadow: 0 0 6px var(--green); }
+    50% { opacity: 0.4; box-shadow: 0 0 12px var(--green); }
+  }
+
+  .profile-name {
+    font-family: 'Orbitron', monospace;
+    font-size: 12px;
+    color: var(--gold);
+    margin-bottom: 4px;
+  }
+
+  .profile-level {
+    font-size: 10px;
+    color: var(--green-dim);
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .stat-box {
+    background: rgba(0,255,65,0.05);
+    border: 1px solid rgba(0,255,65,0.1);
+    padding: 10px 8px;
+    text-align: center;
+  }
+
+  .stat-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 16px;
+    color: var(--gold);
+    display: block;
+    margin-bottom: 2px;
+  }
+
+  .stat-label {
+    font-size: 9px;
+    color: var(--green-dim);
+    letter-spacing: 1px;
+  }
+
+  .building-preview {
+    width: 100%;
+    height: 80px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px;
+    background: rgba(0,255,65,0.03);
+    border: 1px solid rgba(0,255,65,0.08);
+    margin-bottom: 10px;
+  }
+
+  .btn-sm {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--gold-dim);
+    color: var(--gold);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    padding: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-sm:hover {
+    background: rgba(255,215,0,0.1);
+    border-color: var(--gold);
+  }
+
+  /* ── BUILDING TOOLTIP ── */
+  #tooltip {
+    position: fixed;
+    z-index: 25;
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    padding: 14px 18px;
+    font-size: 11px;
+    pointer-events: none;
+    display: none;
+    max-width: 200px;
+    backdrop-filter: blur(8px);
+  }
+
+  #tooltip .tt-name {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    color: var(--gold);
+    margin-bottom: 6px;
+  }
+
+  #tooltip .tt-row {
+    color: var(--green-dim);
+    margin-bottom: 2px;
+  }
+
+  #tooltip .tt-row span {
+    color: var(--green);
+  }
+
+  /* ── BOTTOM HUD ── */
+  #hud {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    display: none;
+    gap: 2px;
+    align-items: center;
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    padding: 10px 20px;
+    font-size: 10px;
+    color: var(--green-dim);
+    letter-spacing: 2px;
+  }
+
+  #hud span { color: var(--green); }
+
+  /* ── ERROR ── */
+  #errorMsg {
+    font-size: 11px;
+    color: var(--red);
+    margin-top: 10px;
+    display: none;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="cityCanvas"></canvas>
+<div id="scanlines"></div>
+
+<!-- HEADER -->
+<div id="header">
+  <div>
+    <div class="logo">STEAM<span>CITY</span></div>
+    <div class="tagline">YOUR GAMING LIBRARY. VISUALIZED.</div>
+  </div>
+</div>
+
+<!-- SEARCH PANEL -->
+<div id="searchPanel">
+  <h2>ENTER THE CITY</h2>
+  <p>Insira seu Steam Username ou SteamID64 para gerar seu prédio na cidade.</p>
+  <div class="input-row">
+    <input type="text" id="steamInput" placeholder="username ou SteamID64" />
+    <button class="btn" id="searchBtn" onclick="loadProfile()">BUILD</button>
+  </div>
+  <button class="btn-ghost" onclick="loadDemo()">▶ DEMO — carregar exemplo</button>
+  <div id="errorMsg"></div>
+  <div class="hint">
+    Como encontrar seu SteamID64: acesse
+    <a href="https://steamid.io" target="_blank">steamid.io</a> e cole seu perfil URL.<br>
+    Perfil deve estar <strong style="color:var(--green)">público</strong> para mostrar dados.
+  </div>
+</div>
+
+<!-- LOADING -->
+<div id="loadingOverlay">
+  <div class="loading-text" id="loadingText">CONECTANDO AOS SERVIDORES...</div>
+  <div class="loading-bar"><div class="loading-fill"></div></div>
+</div>
+
+<!-- PROFILE CARD -->
+<div id="profileCard">
+  <div class="profile-header">
+    <div class="avatar-wrap">
+      <img id="avatarImg" src="" alt="">
+      <div class="avatar-glow"></div>
+    </div>
+    <div>
+      <div class="profile-name" id="profileName">-</div>
+      <div class="profile-level" id="profileLevel">LVL -</div>
+    </div>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-box">
+      <span class="stat-value" id="statGames">-</span>
+      <span class="stat-label">GAMES</span>
+    </div>
+    <div class="stat-box">
+      <span class="stat-value" id="statHours">-</span>
+      <span class="stat-label">HOURS</span>
+    </div>
+    <div class="stat-box">
+      <span class="stat-value" id="statFloors">-</span>
+      <span class="stat-label">FLOORS</span>
+    </div>
+    <div class="stat-box">
+      <span class="stat-value" id="statDistrict">-</span>
+      <span class="stat-label">DISTRICT</span>
+    </div>
+  </div>
+  <div class="building-preview" id="buildingPreview"></div>
+  <button class="btn-sm" onclick="resetSearch()">◀ NEW SEARCH</button>
+</div>
+
+<!-- TOOLTIP -->
+<div id="tooltip">
+  <div class="tt-name" id="ttName"></div>
+  <div class="tt-row">HOURS: <span id="ttHours"></span></div>
+  <div class="tt-row">RANK: <span id="ttRank"></span></div>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+  DRAG to rotate &nbsp;|&nbsp; SCROLL to zoom &nbsp;|&nbsp; HOVER buildings
+</div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────────────────
+const PROXY = 'https://api.allorigins.win/get?url=';
+const STEAM_API_KEY = ''; // Key not needed for proxy approach — uses public endpoints
+
+// ── CANVAS SETUP ────────────────────────────────────────────────────────────
+const canvas = document.getElementById('cityCanvas');
+const ctx = canvas.getContext('2d');
+
+let W, H;
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ── SCENE STATE ──────────────────────────────────────────────────────────────
+let buildings = [];
+let playerBuilding = null;
+let camAngle = 0.55;    // radians — horizontal rotation
+let camTilt = 0.42;     // vertical tilt
+let camZoom = 1;
+let isDragging = false;
+let lastMouse = { x: 0, y: 0 };
+let hoveredBuilding = null;
+let animFrame = 0;
+
+// ── ISOMETRIC HELPERS ────────────────────────────────────────────────────────
+function isoProject(x, y, z) {
+  // Rotate around Y
+  const rx = x * Math.cos(camAngle) - y * Math.sin(camAngle);
+  const ry = x * Math.sin(camAngle) + y * Math.cos(camAngle);
+  // Tilt
+  const screenX = rx * camZoom;
+  const screenY = (ry * Math.sin(camTilt) - z * Math.cos(camTilt)) * camZoom;
+  return {
+    x: W / 2 + screenX,
+    y: H / 2 + screenY + H * 0.05
+  };
+}
+
+// ── GENERATE CITY ────────────────────────────────────────────────────────────
+function generateCity(playerData) {
+  buildings = [];
+
+  const GRID = 28;
+  const SPACING = 90;
+
+  // Seeded random for consistent city layout
+  let seed = 42;
+  function rand() {
+    seed = (seed * 1664525 + 1013904223) & 0xffffffff;
+    return ((seed >>> 0) / 0xffffffff);
+  }
+
+  for (let gx = -GRID / 2; gx < GRID / 2; gx++) {
+    for (let gy = -GRID / 2; gy < GRID / 2; gy++) {
+      const dist = Math.sqrt(gx * gx + gy * gy);
+      if (rand() < 0.12) continue; // some empty lots
+
+      const baseH = Math.max(20, 200 - dist * 12) * (0.5 + rand() * 0.8);
+      const w = 28 + rand() * 28;
+      const d = 28 + rand() * 28;
+
+      const lit = rand();
+      const r = rand();
+
+      buildings.push({
+        x: gx * SPACING + (rand() - 0.5) * 20,
+        y: gy * SPACING + (rand() - 0.5) * 20,
+        z: 0,
+        w, d,
+        h: baseH,
+        lit,
+        r,
+        isPlayer: false,
+        name: '',
+        hours: 0,
+        rank: 0,
+      });
+    }
+  }
+
+  // Player building — center
+  if (playerData) {
+    const floors = playerData.floors;
+    const ph = Math.max(180, Math.min(800, floors * 18));
+    const pw = Math.max(50, Math.min(120, 40 + playerData.games * 0.3));
+
+    playerBuilding = {
+      x: 0, y: 0, z: 0,
+      w: pw, d: pw,
+      h: ph,
+      lit: 0.85,
+      r: 0,
+      isPlayer: true,
+      name: playerData.name,
+      hours: playerData.hours,
+      rank: playerData.rank,
+      avatar: playerData.avatar,
+      games: playerData.games,
+    };
+    buildings.push(playerBuilding);
+  }
+
+  // Sort by distance from camera (painter's algorithm)
+  sortBuildings();
+}
+
+function sortBuildings() {
+  buildings.sort((a, b) => {
+    const da = a.x * Math.sin(camAngle) + a.y * Math.cos(camAngle);
+    const db = b.x * Math.sin(camAngle) + b.y * Math.cos(camAngle);
+    return da - db;
+  });
+}
+
+// ── DRAW ─────────────────────────────────────────────────────────────────────
+function hexToRgb(hex) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `${r},${g},${b}`;
+}
+
+function drawBuilding(b, isHovered) {
+  const hw = b.w / 2;
+  const hd = b.d / 2;
+
+  // 8 corners of box
+  const pts = [
+    isoProject(b.x - hw, b.y - hd, b.z),         // 0 bottom-front-left
+    isoProject(b.x + hw, b.y - hd, b.z),         // 1 bottom-front-right
+    isoProject(b.x + hw, b.y + hd, b.z),         // 2 bottom-back-right
+    isoProject(b.x - hw, b.y + hd, b.z),         // 3 bottom-back-left
+    isoProject(b.x - hw, b.y - hd, b.z + b.h),  // 4 top-front-left
+    isoProject(b.x + hw, b.y - hd, b.z + b.h),  // 5 top-front-right
+    isoProject(b.x + hw, b.y + hd, b.z + b.h),  // 6 top-back-right
+    isoProject(b.x - hw, b.y + hd, b.z + b.h),  // 7 top-back-left
+  ];
+
+  const isPlayer = b.isPlayer;
+  const glow = isHovered || isPlayer;
+
+  // Color palette
+  let faceLeft, faceRight, faceTop;
+
+  if (isPlayer) {
+    faceLeft  = `rgba(0, 180, 60, ${0.7 + Math.sin(animFrame * 0.05) * 0.1})`;
+    faceRight = `rgba(0, 120, 40, ${0.7 + Math.sin(animFrame * 0.05) * 0.1})`;
+    faceTop   = `rgba(0, 255, 100, ${0.85 + Math.sin(animFrame * 0.07) * 0.1})`;
+  } else {
+    const v = 0.25 + b.r * 0.3;
+    faceLeft  = `rgba(0, ${Math.floor(80 * v)}, ${Math.floor(20 * v)}, 0.9)`;
+    faceRight = `rgba(0, ${Math.floor(55 * v)}, ${Math.floor(15 * v)}, 0.9)`;
+    faceTop   = `rgba(0, ${Math.floor(140 * v)}, ${Math.floor(50 * v)}, 0.95)`;
+  }
+
+  // Left face
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  ctx.lineTo(pts[4].x, pts[4].y);
+  ctx.lineTo(pts[7].x, pts[7].y);
+  ctx.lineTo(pts[3].x, pts[3].y);
+  ctx.closePath();
+  ctx.fillStyle = faceLeft;
+  ctx.fill();
+  if (glow) {
+    ctx.strokeStyle = isPlayer ? 'rgba(0,255,65,0.8)' : 'rgba(0,255,65,0.5)';
+    ctx.lineWidth = isPlayer ? 1.5 : 1;
+    ctx.stroke();
+  }
+
+  // Right face
+  ctx.beginPath();
+  ctx.moveTo(pts[1].x, pts[1].y);
+  ctx.lineTo(pts[5].x, pts[5].y);
+  ctx.lineTo(pts[6].x, pts[6].y);
+  ctx.lineTo(pts[2].x, pts[2].y);
+  ctx.closePath();
+  ctx.fillStyle = faceRight;
+  ctx.fill();
+  if (glow) {
+    ctx.strokeStyle = isPlayer ? 'rgba(0,255,65,0.6)' : 'rgba(0,255,65,0.3)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // Top face
+  ctx.beginPath();
+  ctx.moveTo(pts[4].x, pts[4].y);
+  ctx.lineTo(pts[5].x, pts[5].y);
+  ctx.lineTo(pts[6].x, pts[6].y);
+  ctx.lineTo(pts[7].x, pts[7].y);
+  ctx.closePath();
+  ctx.fillStyle = faceTop;
+  ctx.fill();
+  if (glow) {
+    ctx.strokeStyle = isPlayer ? 'rgba(0,255,130,0.9)' : 'rgba(0,255,65,0.4)';
+    ctx.lineWidth = isPlayer ? 2 : 1;
+    ctx.stroke();
+  }
+
+  // Windows on faces
+  if (b.h > 30) drawWindows(b, pts);
+
+  // Player beacon
+  if (isPlayer) {
+    const top = pts[5]; // use front-right top
+    const topCenter = {
+      x: (pts[4].x + pts[5].x + pts[6].x + pts[7].x) / 4,
+      y: (pts[4].y + pts[5].y + pts[6].y + pts[7].y) / 4,
+    };
+    const pulse = 8 + Math.sin(animFrame * 0.08) * 5;
+    ctx.beginPath();
+    ctx.arc(topCenter.x, topCenter.y, pulse, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255, 215, 0, ${0.4 + Math.sin(animFrame * 0.08) * 0.3})`;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(topCenter.x, topCenter.y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffd700';
+    ctx.fill();
+  }
+}
+
+function drawWindows(b, pts) {
+  const cols = Math.max(2, Math.floor(b.w / 14));
+  const rows = Math.max(2, Math.floor(b.h / 22));
+
+  // Windows on left face
+  for (let c = 0; c < cols; c++) {
+    for (let r = 0; r < rows; r++) {
+      const t = (c + 0.5) / cols;
+      const s = (r + 0.3) / (rows + 0.5);
+      const lit = (Math.sin(b.x * 0.1 + c * 1.3 + r * 2.1 + animFrame * 0.003) > 0.2 + (1 - b.lit) * 0.8);
+
+      // Interpolate on left face: pts 0,3,7,4
+      const bx = lerp(lerp(pts[0].x, pts[3].x, t), lerp(pts[4].x, pts[7].x, t), s);
+      const by = lerp(lerp(pts[0].y, pts[3].y, t), lerp(pts[4].y, pts[7].y, t), s);
+
+      if (lit) {
+        ctx.beginPath();
+        ctx.rect(bx - 2, by - 3, 4, 5);
+        ctx.fillStyle = b.isPlayer
+          ? `rgba(0, 255, 150, ${0.6 + Math.random() * 0.3})`
+          : `rgba(150, 255, 100, ${0.4 + Math.random() * 0.3})`;
+        ctx.fill();
+      }
+    }
+  }
+}
+
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+function drawGround() {
+  // Draw grid floor
+  const SIZE = 30;
+  const STEP = 90;
+
+  ctx.globalAlpha = 0.15;
+  ctx.strokeStyle = '#004010';
+  ctx.lineWidth = 0.5;
+
+  for (let i = -SIZE; i <= SIZE; i++) {
+    const a = isoProject(i * STEP, -SIZE * STEP, 0);
+    const b = isoProject(i * STEP, SIZE * STEP, 0);
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.stroke();
+
+    const c = isoProject(-SIZE * STEP, i * STEP, 0);
+    const d = isoProject(SIZE * STEP, i * STEP, 0);
+    ctx.beginPath();
+    ctx.moveTo(c.x, c.y);
+    ctx.lineTo(d.x, d.y);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawSky() {
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, '#001a08');
+  grad.addColorStop(0.5, '#000d04');
+  grad.addColorStop(1, '#050a05');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Stars
+  ctx.fillStyle = 'rgba(0,255,65,0.4)';
+  for (let i = 0; i < 80; i++) {
+    const sx = ((i * 137 + 17) % 1000) / 1000 * W;
+    const sy = ((i * 251 + 33) % 1000) / 1000 * (H * 0.4);
+    const ss = 0.5 + (i % 3) * 0.5;
+    const blink = 0.2 + Math.sin(animFrame * 0.02 + i) * 0.2;
+    ctx.globalAlpha = blink;
+    ctx.beginPath();
+    ctx.arc(sx, sy, ss, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+let lastSort = 0;
+function draw() {
+  animFrame++;
+
+  ctx.clearRect(0, 0, W, H);
+  drawSky();
+  drawGround();
+
+  if (animFrame - lastSort > 60) {
+    sortBuildings();
+    lastSort = animFrame;
+  }
+
+  for (const b of buildings) {
+    drawBuilding(b, b === hoveredBuilding);
+  }
+
+  requestAnimationFrame(draw);
+}
+
+// ── HIT TESTING ──────────────────────────────────────────────────────────────
+function getBuildingCenter2D(b) {
+  const top = isoProject(b.x, b.y, b.z + b.h);
+  const bot = isoProject(b.x, b.y, b.z);
+  return { x: (top.x + bot.x) / 2, y: (top.y + bot.y) / 2, screenH: bot.y - top.y };
+}
+
+canvas.addEventListener('mousemove', e => {
+  if (isDragging) return;
+  const mx = e.clientX, my = e.clientY;
+  let found = null;
+  let minDist = 40;
+
+  for (const b of buildings) {
+    const c = getBuildingCenter2D(b);
+    const dx = mx - c.x, dy = my - c.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < Math.max(minDist, c.screenH * 0.5)) {
+      minDist = dist;
+      found = b;
+    }
+  }
+
+  hoveredBuilding = found;
+  const tt = document.getElementById('tooltip');
+  if (found && found.isPlayer) {
+    tt.style.display = 'block';
+    tt.style.left = (mx + 16) + 'px';
+    tt.style.top = (my - 20) + 'px';
+    document.getElementById('ttName').textContent = found.name;
+    document.getElementById('ttHours').textContent = found.hours.toLocaleString() + 'h';
+    document.getElementById('ttRank').textContent = '#' + found.rank;
+  } else {
+    tt.style.display = 'none';
+  }
+});
+
+// ── DRAG / ZOOM ───────────────────────────────────────────────────────────────
+canvas.addEventListener('mousedown', e => {
+  isDragging = true;
+  lastMouse = { x: e.clientX, y: e.clientY };
+});
+
+window.addEventListener('mouseup', () => isDragging = false);
+
+window.addEventListener('mousemove', e => {
+  if (!isDragging) return;
+  const dx = e.clientX - lastMouse.x;
+  const dy = e.clientY - lastMouse.y;
+  camAngle += dx * 0.008;
+  camTilt = Math.max(0.15, Math.min(0.75, camTilt + dy * 0.004));
+  lastMouse = { x: e.clientX, y: e.clientY };
+});
+
+canvas.addEventListener('wheel', e => {
+  camZoom = Math.max(0.3, Math.min(3, camZoom - e.deltaY * 0.001));
+});
+
+// Touch support
+let lastTouchDist = 0;
+canvas.addEventListener('touchstart', e => {
+  if (e.touches.length === 1) {
+    isDragging = true;
+    lastMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  }
+  if (e.touches.length === 2) {
+    lastTouchDist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+  }
+});
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (e.touches.length === 1 && isDragging) {
+    const dx = e.touches[0].clientX - lastMouse.x;
+    const dy = e.touches[0].clientY - lastMouse.y;
+    camAngle += dx * 0.008;
+    camTilt = Math.max(0.15, Math.min(0.75, camTilt + dy * 0.004));
+    lastMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  }
+  if (e.touches.length === 2) {
+    const d = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    camZoom = Math.max(0.3, Math.min(3, camZoom * (d / lastTouchDist)));
+    lastTouchDist = d;
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', () => isDragging = false);
+
+// ── STEAM DATA ────────────────────────────────────────────────────────────────
+// Strategy: try multiple CORS proxies for Steam Community XML (public, no key needed).
+
+function setLoadingText(t) {
+  const el = document.getElementById('loadingText');
+  if (el) el.textContent = t;
+}
+
+async function loadProfile() {
+  const input = document.getElementById('steamInput').value.trim();
+  if (!input) return;
+  showError('');
+  showLoading(true);
+
+  try {
+    let steamId = input;
+
+    // Resolve vanity URL if not a numeric ID
+    if (!/^\d{17}$/.test(input)) {
+      setLoadingText('RESOLVENDO USERNAME...');
+      const r = await fetch(`/api/steam?vanity=${encodeURIComponent(input)}`);
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      steamId = d.steamid;
+    }
+
+    setLoadingText('BUSCANDO PERFIL...');
+    const res = await fetch(`/api/steam?steamid=${steamId}`);
+    const data = await res.json();
+
+    if (data.error) throw new Error(data.error);
+
+    setLoadingText('CONSTRUINDO O PRÉDIO...');
+
+    const floors = Math.max(3, Math.floor(data.totalHours / 50) + Math.floor(data.gameCount / 5));
+
+    buildCity({
+      name: data.name,
+      avatar: data.avatar,
+      steamId,
+      hours: data.totalHours,
+      games: data.gameCount,
+      floors,
+      rank: Math.max(1, Math.floor(10000 / (floors + 1))),
+      level: '?',
+      top3: data.top3 || [],
+      privateLibrary: data.privateLibrary,
+    });
+
+  } catch (err) {
+    showLoading(false);
+    showError('Erro: ' + (err.message || 'Tente novamente.'));
+  }
+}
+
+// ── DEMO DATA ─────────────────────────────────────────────────────────────────
+function loadDemo() {
+  showLoading(true);
+  setTimeout(() => {
+    buildCity({
+      name: 'DEMO_PLAYER',
+      avatar: 'https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_medium.jpg',
+      steamId: '76561198000000000',
+      hours: 2840,
+      games: 187,
+      floors: 93,
+      rank: 107,
+      level: 42,
+    });
+  }, 1200);
+}
+
+// ── BUILD & SHOW ──────────────────────────────────────────────────────────────
+function buildCity(playerData) {
+  generateCity(playerData);
+  showLoading(false);
+  document.getElementById('searchPanel').style.display = 'none';
+
+  // Update profile card
+  document.getElementById('avatarImg').src = playerData.avatar;
+  document.getElementById('profileName').textContent = playerData.name;
+  document.getElementById('profileLevel').textContent = 'LVL ' + (playerData.level || '?');
+  document.getElementById('statGames').textContent = playerData.privateLibrary ? '🔒' : playerData.games;
+  document.getElementById('statHours').textContent = playerData.privateLibrary ? '🔒' : (
+    playerData.hours >= 1000 ? Math.floor(playerData.hours / 1000) + 'k' : playerData.hours
+  );
+  document.getElementById('statFloors').textContent = playerData.floors;
+  document.getElementById('statDistrict').textContent = playerData.privateLibrary ? 'PRIVATE' : getDistrict(playerData.hours);
+  if (playerData.privateLibrary) {
+    showError('Biblioteca privada — nome carregado, mas horas/jogos não visíveis. Torne seu perfil público para dados completos.');
+    document.getElementById('errorMsg').style.color = 'var(--gold-dim)';
+  }
+  document.getElementById('profileCard').style.display = 'block';
+  document.getElementById('hud').style.display = 'flex';
+
+  drawBuildingPreview(playerData);
+
+  // Fly to center
+  camAngle = 0.55;
+  camTilt = 0.42;
+  camZoom = 1.2;
+}
+
+function getDistrict(hours) {
+  if (hours > 5000) return 'DOWNTOWN';
+  if (hours > 2000) return 'MIDTOWN';
+  if (hours > 500) return 'UPTOWN';
+  return 'SUBURBS';
+}
+
+function drawBuildingPreview(playerData) {
+  const prev = document.getElementById('buildingPreview');
+  prev.innerHTML = '';
+  const cvs = document.createElement('canvas');
+  cvs.width = prev.offsetWidth || 220;
+  cvs.height = 74;
+  prev.appendChild(cvs);
+  const c = cvs.getContext('2d');
+
+  const floors = playerData.floors;
+  const ph = Math.min(64, Math.max(20, floors * 0.7));
+  const pw = Math.max(12, Math.min(30, 10 + playerData.games * 0.05));
+  const cx = cvs.width / 2;
+  const cy = cvs.height - 4;
+
+  // Building silhouette
+  c.fillStyle = '#003a15';
+  c.fillRect(cx - pw, cy - ph, pw * 2, ph);
+  c.fillStyle = '#00ff41';
+  c.fillRect(cx - pw, cy - ph, pw * 2, 3);
+
+  // Windows
+  const rows = Math.floor(ph / 8);
+  const cols = Math.max(2, Math.floor(pw / 5));
+  for (let r = 0; r < rows; r++) {
+    for (let col = 0; col < cols; col++) {
+      if (Math.random() > 0.35) {
+        c.fillStyle = 'rgba(0,255,100,0.7)';
+        c.fillRect(cx - pw + 3 + col * (pw * 2 / cols), cy - ph + 6 + r * 8, 3, 4);
+      }
+    }
+  }
+
+  // Beacon
+  c.beginPath();
+  c.arc(cx, cy - ph - 5, 3, 0, Math.PI * 2);
+  c.fillStyle = '#ffd700';
+  c.fill();
+}
+
+function showLoading(show) {
+  document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg;
+  el.style.display = msg ? 'block' : 'none';
+}
+
+function resetSearch() {
+  document.getElementById('profileCard').style.display = 'none';
+  document.getElementById('hud').style.display = 'none';
+  document.getElementById('searchPanel').style.display = 'block';
+  document.getElementById('steamInput').value = '';
+  buildings = [];
+  playerBuilding = null;
+  generateCity(null);
+}
+
+// ── ENTER KEY ─────────────────────────────────────────────────────────────────
+document.getElementById('steamInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') loadProfile();
+});
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+generateCity(null);
+draw();
+</script>
+</body>
+</html>

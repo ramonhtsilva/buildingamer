@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/api/steam", "destination": "/api/steam.js" }
+  ]
+}
