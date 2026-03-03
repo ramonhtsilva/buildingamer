@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/steam",
+      "destination": "/api/steam.js"
+    },
+    {
+      "source": "/api/city",
+      "destination": "/api/city.js"
+    }
+  ]
+}
