@@ -1,9 +1,4 @@
 {
-  "functions": {
-    "api/steam.js": {
-      "runtime": "nodejs24.x"
-    }
-  },
   "rewrites": [
     { "source": "/api/steam", "destination": "/api/steam.js" }
   ]
