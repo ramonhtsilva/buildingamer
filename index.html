@@ -682,10 +682,11 @@ function updateWASD(){
   if(mode==='welcome'||mode==='register')return;
   const speed=5/camZoom;
   let dx=0,dy=0;
-  if(keys['w']||keys['arrowup'])    { dx+=Math.sin(camAngle)*speed; dy-=Math.cos(camAngle)*speed; }
-  if(keys['s']||keys['arrowdown'])  { dx-=Math.sin(camAngle)*speed; dy+=Math.cos(camAngle)*speed; }
-  if(keys['a']||keys['arrowleft'])  { dx-=Math.cos(camAngle)*speed; dy-=Math.sin(camAngle)*speed; }
-  if(keys['d']||keys['arrowright']) { dx+=Math.cos(camAngle)*speed; dy+=Math.sin(camAngle)*speed; }
+  // W=forward into city, S=back, A=strafe left, D=strafe right
+  if(keys['w']||keys['arrowup'])    { dx-=Math.sin(camAngle)*speed; dy+=Math.cos(camAngle)*speed; }
+  if(keys['s']||keys['arrowdown'])  { dx+=Math.sin(camAngle)*speed; dy-=Math.cos(camAngle)*speed; }
+  if(keys['a']||keys['arrowleft'])  { dx+=Math.cos(camAngle)*speed; dy+=Math.sin(camAngle)*speed; }
+  if(keys['d']||keys['arrowright']) { dx-=Math.cos(camAngle)*speed; dy-=Math.sin(camAngle)*speed; }
   if(dx||dy){ camX+=dx; camY+=dy; }
 }
 
@@ -734,8 +735,8 @@ window.addEventListener('mouseup',e=>{
 
 window.addEventListener('mousemove',e=>{
   if(!isRotating||mode==='welcome')return;
-  camAngle+=(e.clientX-lastMouse.x)*.006;
-  camTilt=Math.max(.12,Math.min(.65,camTilt+(e.clientY-lastMouse.y)*.003));
+  camAngle-=(e.clientX-lastMouse.x)*.006;
+  camTilt=Math.max(.12,Math.min(.65,camTilt-(e.clientY-lastMouse.y)*.003));
   lastMouse={x:e.clientX,y:e.clientY};
 });
 
@@ -796,7 +797,7 @@ function selectBuilding(b){
   document.getElementById('pcName').textContent=b.name;
   document.getElementById('pcDistrict').textContent=(b.district||'UNKNOWN')+' DISTRICT';
   document.getElementById('pcGames').textContent=b.games||'?';
-  document.getElementById('pcHours').textContent=b.hours>=1000?Math.floor(b.hours/1000)+'k':(b.hours||'?');
+  document.getElementById('pcHours').textContent=b.hours>0?(b.hours>=1000?Math.floor(b.hours/1000)+'k':b.hours):'—';
   document.getElementById('pcFloors').textContent=b.floors||'?';
   document.getElementById('pcRank').textContent='#'+(b.rank||'?');
 
@@ -812,7 +813,8 @@ function selectBuilding(b){
       </div>`).join('');
     document.getElementById('pcGamesWrap').style.display='block';
   } else {
-    document.getElementById('pcGamesWrap').style.display='none';
+    document.getElementById('pcGamesList').innerHTML='<div style="font-size:10px;color:var(--muted);padding:4px 0;line-height:1.6">Dados de jogos não disponíveis.<br><span style="color:rgba(155,92,246,0.6)">Re-registre seu SteamID para atualizar.</span></div>';
+    document.getElementById('pcGamesWrap').style.display='block';
   }
   document.getElementById('playerCard').style.display='block';
 }
@@ -831,7 +833,7 @@ function openProfilePage(){
   document.getElementById('ppDistrict').textContent=(b.district||'UNKNOWN')+' DISTRICT';
   document.getElementById('ppSince').textContent='Na cidade desde '+new Date(b.created_at||Date.now()).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
   document.getElementById('ppGames').textContent=b.games||'?';
-  document.getElementById('ppHours').textContent=b.hours>=1000?Math.floor(b.hours/1000)+'k':(b.hours||'?');
+  document.getElementById('ppHours').textContent=b.hours>0?(b.hours>=1000?Math.floor(b.hours/1000)+'k':b.hours):'—';
   document.getElementById('ppFloors').textContent=b.floors||'?';
   document.getElementById('ppRank').textContent='#'+(b.rank||'?');
 
