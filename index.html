@@ -27,6 +27,18 @@ body { background:var(--bg); color:var(--text); font-family:'Rajdhani',sans-seri
 #cityCanvas { position:fixed; inset:0; width:100%; height:100%; cursor:grab; }
 #cityCanvas:active { cursor:grabbing; }
 
+/* Search bar */
+#searchBar { position:fixed; top:12px; left:50%; transform:translateX(-50%); z-index:20; display:none; align-items:center; gap:8px; }
+#searchInput { background:rgba(6,4,15,0.92); border:1px solid var(--border); color:var(--text); font-family:'Rajdhani',sans-serif; font-size:13px; letter-spacing:1px; padding:7px 14px; width:240px; outline:none; }
+#searchInput:focus { border-color:var(--cyan); box-shadow:0 0 12px rgba(34,211,238,0.15); }
+#searchInput::placeholder { color:var(--muted); }
+#searchResults { position:absolute; top:36px; left:0; width:240px; background:rgba(6,4,15,0.97); border:1px solid var(--border); z-index:21; display:none; }
+.search-item { padding:8px 14px; cursor:pointer; font-size:12px; letter-spacing:1px; border-bottom:1px solid rgba(155,92,246,0.08); display:flex; align-items:center; gap:10px; }
+.search-item:hover { background:rgba(155,92,246,0.1); }
+.search-item img { width:24px; height:24px; border-radius:2px; }
+.search-item-name { color:var(--text); }
+.search-item-district { font-size:9px; color:var(--cyan); opacity:0.7; margin-top:1px; }
+
 #scanlines { position:fixed; inset:0; pointer-events:none; z-index:6; background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.03) 3px,rgba(0,0,0,0.03) 4px); }
 
 .corner { position:fixed; z-index:15; width:32px; height:32px; pointer-events:none; opacity:0.2; }
@@ -289,6 +301,20 @@ input[type="text"]::placeholder { color:rgba(226,217,243,0.2); font-weight:400; 
     <div class="tagline">YOUR GAMING LIBRARY, VISUALIZED</div>
   </div>
   <div id="cityCount"><span id="gamerCount">0</span> GAMERS IN THE CITY</div>
+
+<div id="searchBar" style="position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:20;display:none;align-items:center;">
+  <div style="position:relative">
+    <input id="searchInput" style="background:rgba(6,4,15,0.92);border:1px solid rgba(155,92,246,0.3);color:#e2d9f3;font-family:'Rajdhani',sans-serif;font-size:13px;letter-spacing:1px;padding:7px 14px;width:240px;outline:none;" placeholder="🔍  BUSCAR GAMER..." autocomplete="off" oninput="onSearch(this.value)" onblur="setTimeout(()=>{const r=document.getElementById('searchResults');if(r)r.style.display='none'},200)"/>
+    <div id="searchResults" style="position:absolute;top:36px;left:0;width:240px;background:rgba(6,4,15,0.97);border:1px solid rgba(155,92,246,0.2);z-index:21;display:none;"></div>
+  </div>
+</div>
+
+<div id="searchBar">
+  <div style="position:relative">
+    <input id="searchInput" placeholder="🔍  BUSCAR GAMER..." autocomplete="off" oninput="onSearch(this.value)" onblur="setTimeout(()=>document.getElementById('searchResults').style.display='none',200)"/>
+    <div id="searchResults"></div>
+  </div>
+</div>
 </div>
 
 <!-- MY BUILDING BTN -->
@@ -463,25 +489,58 @@ function iso(x, y, z) {
   };
 }
 
-// ── POSITION FROM STEAMID ─────────────────────────────────────────────────────
-function idToPos(id) {
+// ── DISTRICT SYSTEM ──────────────────────────────────────────────────────────
+// Each unique district (game name) gets a fixed center position and color
+const districtMap = {}; // name → {cx, cy, color, appid}
+
+function hashStr(s) {
   let h = 0;
-  for (let i=0;i<id.length;i++) h = (Math.imul(31,h)+id.charCodeAt(i))|0;
-  const SPACING=200, GRID=10;
-  const idx = Math.abs(h) % (GRID*GRID);
-  const gx = (idx%GRID) - GRID/2 + 0.5;
-  const gy = Math.floor(idx/GRID) - GRID/2 + 0.5;
+  for (let i=0;i<s.length;i++) h = (Math.imul(31,h)+s.charCodeAt(i))|0;
+  return h;
+}
+
+function getDistrictColor(name) {
+  const h = Math.abs(hashStr(name));
+  const hue = h % 360;
+  return { hue, css: `hsl(${hue},70%,45%)`, glow: `hsla(${hue},70%,55%,0.15)`, dim: `hsla(${hue},50%,25%,0.18)` };
+}
+
+function assignDistricts(gamers) {
+  // Collect unique districts and assign grid positions
+  const names = [...new Set(gamers.map(g => g.district || 'UNKNOWN'))];
+  const cols = Math.ceil(Math.sqrt(names.length));
+  const DIST_SPACING = 1400; // spacing between district centers
+  names.forEach((name, i) => {
+    if (districtMap[name]) return; // already assigned
+    const col = i % cols, row = Math.floor(i / cols);
+    const cx = (col - cols/2 + 0.5) * DIST_SPACING;
+    const cy = (row - Math.ceil(names.length/cols)/2 + 0.5) * DIST_SPACING;
+    districtMap[name] = { cx, cy, color: getDistrictColor(name), appid: null };
+  });
+}
+
+function idToPos(id, district) {
+  // Position within district cluster
+  let h = hashStr(id);
+  const d = districtMap[district || 'UNKNOWN'];
+  const cx = d ? d.cx : 0, cy = d ? d.cy : 0;
+  // Spiral-ish grid within district: up to 20x20 slots, 160px spacing
+  const SPACING = 180, SLOTS = 16;
+  const idx = Math.abs(h) % (SLOTS*SLOTS);
+  const gx = (idx % SLOTS) - SLOTS/2 + 0.5;
+  const gy = Math.floor(idx / SLOTS) - SLOTS/2 + 0.5;
   return {
-    x: gx*SPACING + ((Math.abs(h*7)%60)-30),
-    y: gy*SPACING + ((Math.abs(h*13)%60)-30)
+    x: cx + gx*SPACING + ((Math.abs(h*7) % 50) - 25),
+    y: cy + gy*SPACING + ((Math.abs(h*13) % 50) - 25)
   };
 }
 
 // ── BUILD CITY ────────────────────────────────────────────────────────────────
 function buildCity(gamers) {
   buildings = [];
+  assignDistricts(gamers);
   gamers.forEach((g,i) => {
-    const pos = idToPos(g.steamid);
+    const pos = idToPos(g.steamid, g.district);
     const isMe = g.steamid === mySteamId;
     const h = Math.max(50, Math.min(480, g.floors * 14));
     const w = Math.max(55, Math.min(130, 44 + g.games * 0.65));
@@ -527,25 +586,82 @@ function drawGround() {
   gg.addColorStop(0,'rgba(100,40,200,0.06)'); gg.addColorStop(0.5,'rgba(34,211,238,0.02)'); gg.addColorStop(1,'transparent');
   ctx.fillStyle=gg; ctx.fillRect(0,0,W,H);
 
+  // ── District floor tiles ──────────────────────────────────────────────────
+  const DSIZE = 700; // half-width of each district floor
+  Object.entries(districtMap).forEach(([name, d]) => {
+    // Filled isometric floor quad
+    const c0=iso(d.cx-DSIZE,d.cy-DSIZE,0), c1=iso(d.cx+DSIZE,d.cy-DSIZE,0);
+    const c2=iso(d.cx+DSIZE,d.cy+DSIZE,0), c3=iso(d.cx-DSIZE,d.cy+DSIZE,0);
+    ctx.beginPath(); ctx.moveTo(c0.x,c0.y); ctx.lineTo(c1.x,c1.y);
+    ctx.lineTo(c2.x,c2.y); ctx.lineTo(c3.x,c3.y); ctx.closePath();
+    ctx.fillStyle=d.color.dim; ctx.fill();
+    ctx.strokeStyle=d.color.css.replace('hsl','hsla').replace(')',',0.35)'); ctx.lineWidth=1.2; ctx.stroke();
+  });
+
   const SIZE=14, STEP=200;
   // Major grid
-  ctx.globalAlpha=0.1; ctx.strokeStyle='#9b5cf6'; ctx.lineWidth=0.6;
+  ctx.globalAlpha=0.08; ctx.strokeStyle='#9b5cf6'; ctx.lineWidth=0.6;
   for(let i=-SIZE;i<=SIZE;i++){
     const a=iso(i*STEP,-SIZE*STEP,0),b=iso(i*STEP,SIZE*STEP,0);
     ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
     const c=iso(-SIZE*STEP,i*STEP,0),d=iso(SIZE*STEP,i*STEP,0);
     ctx.beginPath(); ctx.moveTo(c.x,c.y); ctx.lineTo(d.x,d.y); ctx.stroke();
   }
-  // Sub-grid
-  ctx.globalAlpha=0.04; ctx.lineWidth=0.3;
-  for(let i=-SIZE*2;i<=SIZE*2;i++){
-    const s=STEP/2;
-    const a=iso(i*s,-SIZE*STEP,0),b=iso(i*s,SIZE*STEP,0);
-    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
-    const c=iso(-SIZE*STEP,i*s,0),d=iso(SIZE*STEP,i*s,0);
-    ctx.beginPath(); ctx.moveTo(c.x,c.y); ctx.lineTo(d.x,d.y); ctx.stroke();
-  }
   ctx.globalAlpha=1;
+}
+
+// ── District badges (drawn after buildings, on top) ────────────────────────
+function drawDistrictBadges() {
+  if(!buildings.length) return;
+  Object.entries(districtMap).forEach(([name, d]) => {
+    // Position badge above district center
+    const top = iso(d.cx, d.cy, 520);
+    const pulse = Math.sin(animFrame * 0.025) * 0.15;
+    const alpha = 0.55 + pulse;
+
+    // Badge background — translucent pill
+    const label = name.toUpperCase();
+    ctx.font = '700 12px "Exo 2", Rajdhani';
+    const tw = ctx.measureText(label).width;
+    const bw = tw + 28, bh = 22;
+    const bx = top.x - bw/2, by = top.y - bh/2;
+
+    // Glow behind badge
+    const glowR = ctx.createRadialGradient(top.x, top.y, 0, top.x, top.y, bw*0.9);
+    glowR.addColorStop(0, d.color.css.replace('hsl','hsla').replace(')',`,${0.12+pulse})`));
+    glowR.addColorStop(1, 'transparent');
+    ctx.fillStyle = glowR; ctx.beginPath(); ctx.ellipse(top.x, top.y, bw, bh*1.8, 0, 0, Math.PI*2); ctx.fill();
+
+    // Badge pill
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = `rgba(6,4,15,0.72)`;
+    ctx.strokeStyle = d.color.css.replace('hsl','hsla').replace(')',',0.7)');
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 4); ctx.fill(); ctx.stroke();
+
+    // Animated side bars (scanner lines)
+    const barW = 3 + Math.sin(animFrame*0.04)*2;
+    ctx.fillStyle = d.color.css.replace('hsl','hsla').replace(')',',0.6)');
+    ctx.fillRect(bx - barW - 4, by + bh/2 - 1, barW, 2);
+    ctx.fillRect(bx + bw + 4, by + bh/2 - 1, barW, 2);
+
+    // Text
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.fillText(label, top.x, top.y + 4);
+    ctx.textAlign = 'left';
+    ctx.globalAlpha = 1;
+
+    // Vertical beam from badge down to ground
+    const ground = iso(d.cx, d.cy, 0);
+    const beamGrad = ctx.createLinearGradient(top.x, ground.y, top.x, top.y);
+    beamGrad.addColorStop(0, d.color.css.replace('hsl','hsla').replace(')',',0)'));
+    beamGrad.addColorStop(0.6, d.color.css.replace('hsl','hsla').replace(')',`,${0.06+pulse})`));
+    beamGrad.addColorStop(1, d.color.css.replace('hsl','hsla').replace(')',`,${0.2+pulse})`));
+    ctx.beginPath(); ctx.moveTo(top.x-1, ground.y); ctx.lineTo(top.x+1, ground.y);
+    ctx.lineTo(top.x, top.y); ctx.closePath();
+    ctx.fillStyle = beamGrad; ctx.fill();
+  });
 }
 
 // ── BUILDING ──────────────────────────────────────────────────────────────────
@@ -728,6 +844,7 @@ function draw(){
   drawSky(); drawGround();
   if(animFrame-lastSort>90){sortBuildings();lastSort=animFrame;}
   for(const b of buildings) drawBuilding(b,b===hoveredBuilding);
+  drawDistrictBadges();
   if(buildings.length===0&&mode==='explore'){
     ctx.font='300 13px "Exo 2"';ctx.fillStyle='rgba(155,92,246,0.2)';ctx.textAlign='center';
     ctx.fillText('A CIDADE ESTÁ VAZIA. SEJA O PRIMEIRO.',W/2,H/2+80);ctx.textAlign='left';
@@ -914,7 +1031,7 @@ function selectBuilding(b){
   selectedBuilding=b;
   document.getElementById('pcAvatar').src=b.avatar||'';
   document.getElementById('pcName').textContent=b.name;
-  document.getElementById('pcDistrict').textContent=(b.district||'UNKNOWN')+' DISTRICT';
+  document.getElementById('pcDistrict').textContent=(b.district||'UNKNOWN').toUpperCase();
   document.getElementById('pcGames').textContent=b.games||'?';
   document.getElementById('pcHours').textContent=b.hours>0?(b.hours>=1000?Math.floor(b.hours/1000)+'k':b.hours):'—';
   document.getElementById('pcFloors').textContent=b.floors||'?';
@@ -974,7 +1091,7 @@ function openProfilePage(){
   const b=selectedBuilding;
   document.getElementById('ppAvatar').src=b.avatar||'';
   document.getElementById('ppName').textContent=b.name;
-  document.getElementById('ppDistrict').textContent=(b.district||'UNKNOWN')+' DISTRICT';
+  document.getElementById('ppDistrict').textContent=(b.district||'UNKNOWN').toUpperCase();
   document.getElementById('ppSince').textContent='Na cidade desde '+new Date(b.created_at||Date.now()).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
   document.getElementById('ppGames').textContent=b.games||'?';
   document.getElementById('ppHours').textContent=b.hours>0?(b.hours>=1000?Math.floor(b.hours/1000)+'k':b.hours):'—';
@@ -1003,6 +1120,7 @@ function closeProfilePage(){
 
 // ── NAVIGATION ────────────────────────────────────────────────────────────────
 async function enterExplore(){
+  showSearchBar(true);
   mode='explore';
   document.getElementById('welcomeScreen').style.display='none';
   showLoading(true,'CARREGANDO A CIDADE...');
@@ -1026,6 +1144,12 @@ function backToWelcome(){
 }
 
 function focusMyBuilding(){
+  // Update URL with steamid for easy sharing
+  if(mySteamId) {
+    const url = new URL(window.location);
+    url.searchParams.set('steamid', mySteamId);
+    window.history.replaceState({}, '', url);
+  }
   if(!mySteamId)return;
   const b=buildings.find(b=>b.steamid===mySteamId);
   if(b){
@@ -1050,7 +1174,10 @@ async function loadProfile(){
 
     showLoading(true,'REGISTRANDO NA CIDADE...');
     const floors=Math.max(3,Math.floor((data.totalHours||0)/50)+Math.floor((data.gameCount||0)/5));
-    const district=(data.totalHours||0)>5000?'DOWNTOWN':(data.totalHours||0)>2000?'MIDTOWN':(data.totalHours||0)>500?'UPTOWN':'SUBURBS';
+    // District = game most played in last 2 weeks (fallback: all-time top game)
+    const recentGame = data.recentGame || data.top3?.[0]?.name || 'INDEPENDENT';
+    const district = recentGame;
+    const districtAppid = data.recentAppid || null;
 
     // Save to Supabase with top3
     await sbFetch('gamers?on_conflict=steamid',{
@@ -1058,7 +1185,7 @@ async function loadProfile(){
       headers:{'Prefer':'resolution=merge-duplicates,return=representation'},
       body:JSON.stringify({
         steamid:data.steamid, name:data.name, avatar:data.avatar||'',
-        hours:data.totalHours||0, games:data.gameCount||0, floors, district,
+        hours:data.totalHours||0, games:data.gameCount||0, floors, district, district_appid:districtAppid,
         top3:JSON.stringify(data.top3||[]),
       })
     });
@@ -1074,6 +1201,7 @@ async function loadProfile(){
     showLoading(false);
     document.getElementById('registerPanel').style.display='none';
     document.getElementById('hud').style.display='flex';
+    showSearchBar(true);
     document.getElementById('addBuildingBtn').style.display='none';
     document.getElementById('myBuildingBtn').style.display='block';
 
@@ -1118,6 +1246,48 @@ function showError(msg){
 }
 
 document.getElementById('steamInput').addEventListener('keydown',e=>{if(e.key==='Enter')loadProfile();});
+
+// ── URL: ?steamid=XXXX → auto-focus building ─────────────────────────────────
+(function handleURL(){
+  const params = new URLSearchParams(window.location.search);
+  const sid = params.get('steamid') || params.get('id');
+  if(sid) {
+    mySteamId = sid;
+    localStorage.setItem('bg_steamid', sid);
+  }
+})();
+
+// ── SEARCH ────────────────────────────────────────────────────────────────────
+function onSearch(val) {
+  const q = val.trim().toLowerCase();
+  const el = document.getElementById('searchResults');
+  if(!q || q.length < 2) { el.style.display='none'; return; }
+  const matches = buildings.filter(b =>
+    b.name && b.name.toLowerCase().includes(q)
+  ).slice(0, 8);
+  if(!matches.length) { el.style.display='none'; return; }
+  el.innerHTML = matches.map(b => `
+    <div class="search-item" onmousedown="searchFly('${b.steamid}')" style="padding:8px 14px;cursor:pointer;font-size:12px;letter-spacing:1px;border-bottom:1px solid rgba(155,92,246,0.08);display:flex;align-items:center;gap:10px;">
+      <img src="${b.avatar||''}" style="width:24px;height:24px;border-radius:2px;" onerror="this.style.display='none'"/>
+      <div>
+        <div style="color:#e2d9f3">${b.name}</div>
+        <div style="font-size:9px;color:#22d3ee;opacity:0.7;margin-top:1px">${(b.district||'').toUpperCase()}</div>
+      </div>
+    </div>`).join('');
+  el.style.display = 'block';
+}
+
+function searchFly(steamid) {
+  document.getElementById('searchResults').style.display='none';
+  document.getElementById('searchInput').value='';
+  const b = buildings.find(b=>b.steamid===steamid);
+  if(b) selectBuilding(b);
+}
+
+// Show/hide search bar when in city mode
+function showSearchBar(show) {
+  document.getElementById('searchBar').style.display = show ? 'flex' : 'none';
+}
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 // Pre-load city in background while showing welcome
