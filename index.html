@@ -622,19 +622,78 @@ function drawBuilding(b, hovered) {
     ctx.beginPath();ctx.moveTo(tc.x,tc.y);ctx.lineTo(tc.x,tc.y-70);ctx.strokeStyle=bg2;ctx.lineWidth=1;ctx.stroke();
   }
 
-  // Selected ring
-  if(selected&&!isMe){
-    const tc={x:(p[4].x+p[5].x+p[6].x+p[7].x)/4,y:(p[4].y+p[5].y+p[6].y+p[7].y)/4};
-    ctx.beginPath();ctx.arc(tc.x,tc.y,6+Math.sin(animFrame*.07)*3,0,Math.PI*2);
-    ctx.strokeStyle='rgba(34,211,238,0.7)';ctx.lineWidth=1.5;ctx.stroke();
+  // ── PINÁCULO ──────────────────────────────────────────────────────────────
+  // roof center = avg of top 4 corners
+  const rc = {
+    x: (p[4].x+p[5].x+p[6].x+p[7].x)/4,
+    y: (p[4].y+p[5].y+p[6].y+p[7].y)/4
+  };
+  // pináculo height proportional to building, min 12px max 40px
+  const pinH = Math.max(12, Math.min(40, b.h * camZoom * 0.18));
+  // pináculo tip (top of spire in screen space)
+  const tipX = rc.x;
+  const tipY = rc.y - pinH;
+
+  // base corners of pináculo (diamond on roof)
+  const pinW = Math.max(5, b.w * camZoom * 0.13);
+  const pb = [
+    { x: rc.x - pinW * 0.9, y: rc.y + pinW * 0.3 }, // left
+    { x: rc.x,               y: rc.y - pinW * 0.2 }, // front
+    { x: rc.x + pinW * 0.9, y: rc.y + pinW * 0.3 }, // right
+    { x: rc.x,               y: rc.y + pinW * 0.8 }, // back
+  ];
+
+  const pinColor = isMe ? '155,92,246' : selected ? '34,211,238' : '130,80,220';
+  const pinAlpha = isMe ? 0.9 : selected ? 1.0 : 0.7;
+
+  // left face
+  ctx.beginPath(); ctx.moveTo(tipX,tipY); ctx.lineTo(pb[0].x,pb[0].y); ctx.lineTo(pb[3].x,pb[3].y); ctx.closePath();
+  ctx.fillStyle=`rgba(${pinColor},${pinAlpha*0.55})`; ctx.fill();
+  // right face
+  ctx.beginPath(); ctx.moveTo(tipX,tipY); ctx.lineTo(pb[2].x,pb[2].y); ctx.lineTo(pb[3].x,pb[3].y); ctx.closePath();
+  ctx.fillStyle=`rgba(${pinColor},${pinAlpha*0.4})`; ctx.fill();
+  // front face
+  ctx.beginPath(); ctx.moveTo(tipX,tipY); ctx.lineTo(pb[0].x,pb[0].y); ctx.lineTo(pb[1].x,pb[1].y); ctx.lineTo(pb[2].x,pb[2].y); ctx.closePath();
+  ctx.fillStyle=`rgba(${pinColor},${pinAlpha*0.8})`; ctx.fill();
+  // outline
+  ctx.beginPath(); ctx.moveTo(tipX,tipY);
+  pb.forEach(pt=>ctx.lineTo(pt.x,pt.y));
+  ctx.lineTo(tipX,tipY);
+  ctx.strokeStyle=`rgba(${pinColor},${pinAlpha*0.6})`; ctx.lineWidth=0.6; ctx.stroke();
+
+  // Store tip position on building object for camera focus
+  b._tipX = tipX; b._tipY = tipY;
+
+  // ── SELEÇÃO: efeito ao redor do pináculo ─────────────────────────────────
+  if(selected){
+    const pulse = Math.sin(animFrame*.08);
+    // Anel pulsante ao redor da base do pináculo
+    const ringR = pinW * 1.4 + pulse * 3;
+    ctx.beginPath(); ctx.arc(rc.x, rc.y, ringR, 0, Math.PI*2);
+    ctx.strokeStyle=`rgba(34,211,238,${0.55+pulse*0.2})`; ctx.lineWidth=1.5; ctx.stroke();
+    // Segundo anel mais largo e transparente
+    ctx.beginPath(); ctx.arc(rc.x, rc.y, ringR*1.7, 0, Math.PI*2);
+    ctx.strokeStyle=`rgba(34,211,238,${0.2+pulse*0.1})`; ctx.lineWidth=0.8; ctx.stroke();
+    // Raio de luz subindo da ponta
+    const beamLen = 60 + pulse * 15;
+    const beamGrad = ctx.createLinearGradient(tipX, tipY, tipX, tipY - beamLen);
+    beamGrad.addColorStop(0, `rgba(34,211,238,${0.6+pulse*0.2})`);
+    beamGrad.addColorStop(1, 'rgba(34,211,238,0)');
+    ctx.beginPath(); ctx.moveTo(tipX-1, tipY); ctx.lineTo(tipX+1, tipY); ctx.lineTo(tipX, tipY-beamLen); ctx.closePath();
+    ctx.fillStyle=beamGrad; ctx.fill();
+    // Brilho na ponta
+    ctx.beginPath(); ctx.arc(tipX, tipY, 2.5+pulse*1.5, 0, Math.PI*2);
+    ctx.fillStyle=`rgba(34,211,238,${0.8+pulse*0.2})`; ctx.fill();
   }
 
-  // Name on hover/selected (not my own)
+  // ── NOME no hover/selecionado ─────────────────────────────────────────────
   if((hovered||selected)&&!isMe){
-    const topY=Math.min(...[p[4],p[5],p[6],p[7]].map(pt=>pt.y));
-    const cx=(p[4].x+p[5].x+p[6].x+p[7].x)/4;
-    ctx.font='600 11px Rajdhani';ctx.fillStyle='rgba(34,211,238,0.85)';ctx.textAlign='center';
-    ctx.fillText(b.name,cx,topY-6);ctx.textAlign='left';
+    ctx.font='600 11px Rajdhani'; ctx.fillStyle='rgba(34,211,238,0.9)'; ctx.textAlign='center';
+    ctx.fillText(b.name, tipX, tipY-8); ctx.textAlign='left';
+  }
+  if(isMe){
+    ctx.font='700 11px Rajdhani'; ctx.fillStyle='rgba(155,92,246,0.9)'; ctx.textAlign='center';
+    ctx.fillText(b.name, tipX, tipY-8); ctx.textAlign='left';
   }
 }
 
@@ -886,17 +945,24 @@ function selectBuilding(b){
     document.getElementById('pcGamesWrap').style.display='block';
   }
   document.getElementById('playerCard').style.display='block';
-  // Smooth focus: lerp camera target to this building over ~40 frames
+  // Smooth focus: lerp camera to building, tip of pináculo at screen center
   const focusX=b.x, focusY=b.y;
+  // Compensate for building height so the TIP (not base) centers:
+  // In world space, move target slightly "back" along camera axis to counter tipZ offset
+  const tipZ = b.h + Math.max(12, Math.min(40, b.h * 0.18)); // approx world height of tip
+  const vertOffset = (tipZ * Math.cos(camTilt)) / Math.sin(camTilt); // world Y to center tip
+  const offX = Math.sin(camAngle) * vertOffset * 0.5;
+  const offY = -Math.cos(camAngle) * vertOffset * 0.5;
+
   let t=0;
   const startX=targetX, startY=targetY;
   const startDist=camDist;
-  const targetDist=Math.min(camDist, 500);
+  const targetDist=Math.min(camDist, 480);
   function focusLerp(){
-    t+=0.06;
+    t+=0.055;
     const k=1-Math.pow(1-Math.min(t,1),3); // ease-out cubic
-    targetX=startX+(focusX-startX)*k;
-    targetY=startY+(focusY-startY)*k;
+    targetX=startX+(focusX+offX-startX)*k;
+    targetY=startY+(focusY+offY-startY)*k;
     camDist=startDist+(targetDist-startDist)*k;
     velX=0; velY=0;
     if(t<1) requestAnimationFrame(focusLerp);
