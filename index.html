@@ -432,10 +432,17 @@ let buildings     = [];
 let mySteamId     = localStorage.getItem('bg_steamid') || null;
 let selectedBuilding = null;
 let camAngle = 0.55, camTilt = 0.36, camZoom = 0.9;
-let isDragging = false, lastMouse = {x:0,y:0};
+let lastMouse = {x:0,y:0};
 let hoveredBuilding = null;
-let animFrame = 0;
+let animFrame = 0, lastSort = 0;
 let mode = 'welcome'; // welcome | explore | city
+// Camera orbit state
+let targetX=0, targetY=0;
+let camDist=900;
+let velX=0, velY=0;
+let rotVelX=0;
+let isDragging=false;
+let clickStartX=0, clickStartY=0;
 
 // ── CANVAS ────────────────────────────────────────────────────────────────────
 const canvas = document.getElementById('cityCanvas');
@@ -646,35 +653,6 @@ function draw(){
   requestAnimationFrame(draw);
 }
 
-// ── CAMERA STATE ─────────────────────────────────────────────────────────────
-// Orbit-style camera: rotates AROUND the city center (target)
-// targetX/Y = what we're looking at; camAngle/Tilt/Dist = spherical coords
-let targetX=0, targetY=0;         // orbit pivot point
-let camDist=900;                   // distance from target (zoom)
-let velX=0, velY=0;               // pan inertia
-let rotVelX=0, rotVelY=0;         // rotation inertia (damping)
-let isDragging=false;
-let clickStartX=0, clickStartY=0;
-
-// ── HIT TEST ─────────────────────────────────────────────────────────────────
-function getBuildingAt(mx,my){
-  let found=null, minScore=999999;
-  for(const b of [...buildings].reverse()){
-    const p=getScreenBounds(b);
-    const minX=Math.min(...p.map(pt=>pt.x))-8;
-    const maxX=Math.max(...p.map(pt=>pt.x))+8;
-    const minY=Math.min(...p.map(pt=>pt.y))-8;
-    const maxY=Math.max(...p.map(pt=>pt.y))+8;
-    if(mx>=minX&&mx<=maxX&&my>=minY&&my<=maxY){
-      const cx=(p[4].x+p[5].x+p[6].x+p[7].x)/4;
-      const cy=(p[0].y+p[4].y)/2;
-      const d=Math.sqrt((mx-cx)**2+(my-cy)**2);
-      if(d<minScore){minScore=d;found=b;}
-    }
-  }
-  return found;
-}
-
 // ── CAMERA UPDATE (every frame) ───────────────────────────────────────────────
 function updateCamera(){
   if(mode==='welcome')return;
@@ -695,8 +673,30 @@ function updateCamera(){
   camZoom = 800 / camDist;
 }
 
+
+
+
+// ── HIT TEST ─────────────────────────────────────────────────────────────────
+function getBuildingAt(mx,my){
+  let found=null, minScore=999999;
+  for(const b of [...buildings].reverse()){
+    const p=getScreenBounds(b);
+    const minX=Math.min(...p.map(pt=>pt.x))-8;
+    const maxX=Math.max(...p.map(pt=>pt.x))+8;
+    const minY=Math.min(...p.map(pt=>pt.y))-8;
+    const maxY=Math.max(...p.map(pt=>pt.y))+8;
+    if(mx>=minX&&mx<=maxX&&my>=minY&&my<=maxY){
+      const cx=(p[4].x+p[5].x+p[6].x+p[7].x)/4;
+      const cy=(p[0].y+p[4].y)/2;
+      const d=Math.sqrt((mx-cx)**2+(my-cy)**2);
+      if(d<minScore){minScore=d;found=b;}
+    }
+  }
+  return found;
+}
+
+
 // ── MOUSE ─────────────────────────────────────────────────────────────────────
-let lastMouse = {x:0,y:0};
 canvas.addEventListener('mousemove',e=>{
   if(mode==='welcome')return;
   if(!isDragging){
