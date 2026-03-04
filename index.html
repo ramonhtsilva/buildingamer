@@ -910,7 +910,8 @@ function focusMyBuilding(){
   const b=buildings.find(b=>b.steamid===mySteamId);
   if(b){
     selectBuilding(b);
-    camX=b.x; camY=b.y; camZ=300; camZoom=1.4; velX=0; velY=0; velZ=0;
+    targetX=b.x; targetY=b.y; camDist=400;
+    velX=0; velY=0; rotVelX=0;
   }
 }
 
