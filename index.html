@@ -597,17 +597,40 @@ function drawBuilding(b, hovered) {
   face([1,5,6,2],fR,sC?'rgba(155,92,246,0.3)':null,0.5);
   face([4,5,6,7],fT,sC,sW);
 
-  // Windows
-  if(b.h>45){
-    const cols=Math.max(2,b.w/18|0), rows=Math.max(2,b.h/26|0);
+  // Windows — front face (brighter, denser)
+  {
+    const cols=Math.max(3,b.w/14|0), rows=Math.max(3,b.h/18|0);
     for(let c=0;c<cols;c++) for(let r=0;r<rows;r++){
-      const tx=(c+.5)/cols, sy2=(r+.4)/(rows+.5);
-      if(Math.sin(b.x*.04+c*1.9+r*2.7+animFrame*.0015)>(0.05+(1-b.lit)*.7)){
+      const tx=(c+.5)/cols, sy2=(r+.3)/(rows+.3);
+      const seed = Math.sin(b.x*.031+c*2.1+r*3.3);
+      const flicker = Math.sin(b.x*.04+c*1.9+r*2.7+animFrame*.002);
+      if(seed > -0.35){ // ~67% of windows lit
         const bx=lerp(lerp(p[0].x,p[3].x,tx),lerp(p[4].x,p[7].x,tx),sy2);
         const by=lerp(lerp(p[0].y,p[3].y,tx),lerp(p[4].y,p[7].y,tx),sy2);
-        ctx.beginPath(); ctx.rect(bx-2,by-3,4,5);
-        ctx.fillStyle=isMe?`rgba(200,150,255,${.5+Math.random()*.3})`:`rgba(160,100,240,${.3+Math.random()*.25})`;
-        ctx.fill();
+        const bright = 0.65 + flicker*0.2;
+        // Vary window color: mostly blue-white, some warm yellow, rare green/pink
+        const colorSeed = (b.seed + c*7 + r*13) % 20;
+        let wColor;
+        if(colorSeed < 13)      wColor = `rgba(140,185,255,${bright})`; // blue-white (most)
+        else if(colorSeed < 16) wColor = `rgba(255,220,120,${bright})`; // warm yellow
+        else if(colorSeed < 18) wColor = `rgba(100,255,200,${bright*0.8})`; // cyan-green
+        else                    wColor = `rgba(255,140,200,${bright*0.7})`; // pink (rare)
+        if(isMe) wColor = `rgba(210,160,255,${bright})`;
+        ctx.beginPath(); ctx.rect(bx-1.5,by-2.5,3,4);
+        ctx.fillStyle=wColor; ctx.fill();
+      }
+    }
+    // Side face windows (dimmer, same density)
+    const scols=Math.max(2,b.d/14|0), srows=Math.max(3,b.h/18|0);
+    for(let c=0;c<scols;c++) for(let r=0;r<srows;r++){
+      const tx=(c+.5)/scols, sy2=(r+.3)/(srows+.3);
+      const seed = Math.sin(b.y*.031+c*2.3+r*3.1);
+      if(seed > -0.2){ // ~60% on side
+        const bx=lerp(lerp(p[1].x,p[2].x,1-tx),lerp(p[5].x,p[6].x,1-tx),sy2);
+        const by=lerp(lerp(p[1].y,p[2].y,1-tx),lerp(p[5].y,p[6].y,1-tx),sy2);
+        const bright = 0.4 + Math.sin(b.y*.04+c*2+r*3+animFrame*.002)*0.15;
+        ctx.beginPath(); ctx.rect(bx-1.5,by-2.5,3,4);
+        ctx.fillStyle=`rgba(100,150,220,${bright})`; ctx.fill();
       }
     }
   }
@@ -777,19 +800,10 @@ canvas.addEventListener('mousemove',e=>{
   }
 });
 
-// ── ORBIT PIVOT: inverse-project screen point → world coords (z=0 plane) ─────
-function screenToWorld(sx, sy) {
-  // Invert iso(): screen → rotated → world
-  // iso: screenX = W/2 + rx*zoom, screenY = H/2+40 + (ry*sinTilt)*zoom  (ignoring z=0)
-  const rx = (sx - W/2) / camZoom;
-  const ry = (sy - H/2 - 40) / (camZoom * Math.sin(camTilt));
-  // Inverse rotation by -camAngle
-  const wx = rx*Math.cos(-camAngle) - ry*Math.sin(-camAngle);
-  const wy = rx*Math.sin(-camAngle) + ry*Math.cos(-camAngle);
-  return { x: camX + wx, y: camY + wy };
-}
-
-let orbitPivot = null; // world-space pivot set on mousedown
+// ── MOUSE: ORBIT (left) + PAN (right) ───────────────────────────────────────
+// Pivot is always targetX/Y — the center of the screen.
+// Left drag = orbit: horizontal → azimuth (unlimited 360°), vertical → elevation
+// Right drag = pan: shifts targetX/Y in world space
 
 canvas.addEventListener('mousedown',e=>{
   if(mode==='welcome')return;
@@ -799,8 +813,6 @@ canvas.addEventListener('mousedown',e=>{
   isDragging=true;
   canvas.style.cursor='grabbing';
   document.getElementById('tooltip').style.display='none';
-  // Capture orbit pivot in world space under cursor
-  if(e.button===0) orbitPivot = screenToWorld(e.clientX, e.clientY);
 });
 
 window.addEventListener('mouseup',e=>{
@@ -811,7 +823,6 @@ window.addEventListener('mouseup',e=>{
     else closePlayerCard();
   }
   isDragging=false;
-  orbitPivot=null;
   canvas.style.cursor='default';
 });
 
@@ -820,47 +831,24 @@ window.addEventListener('mousemove',e=>{
   const dx=e.clientX-lastMouse.x;
   const dy=e.clientY-lastMouse.y;
 
-  // Left button = orbit around cursor pivot
-  if(e.buttons===1 && orbitPivot){
-    const oldAngle = camAngle;
-    const oldTilt  = camTilt;
-
-    // Apply rotation
+  if(e.buttons===1){
+    // Horizontal = rotate azimuth around vertical axis (unlimited)
     camAngle -= dx * 0.007;
-    camTilt = Math.max(.08, Math.min(.78, camTilt - dy*.003));
-
-    // After rotating, reproject pivot — it would have moved on screen.
-    // Compensate camX/camY so the pivot stays fixed under the cursor.
-    // pivot in rotated space (old angle):
-    const pivWx = orbitPivot.x - camX;
-    const pivWy = orbitPivot.y - camY;
-
-    // Old rotated coords
-    const oldRx = pivWx*Math.cos(oldAngle) - pivWy*Math.sin(oldAngle);
-    const oldRy = pivWx*Math.sin(oldAngle) + pivWy*Math.cos(oldAngle);
-
-    // New rotated coords (same world point, new angle)
-    const newRx = pivWx*Math.cos(camAngle) - pivWy*Math.sin(camAngle);
-    const newRy = pivWx*Math.sin(camAngle) + pivWy*Math.cos(camAngle);
-
-    // The pivot drifted by (newR - oldR) in screen space — compensate
-    // by shifting camX/camY so it stays put
-    const dRx = newRx - oldRx;
-    const dRy = newRy - oldRy;
-    // Convert back from rotated to world offset
-    camX += dRx*Math.cos(-camAngle) - dRy*Math.sin(-camAngle);
-    camY += dRx*Math.sin(-camAngle) + dRy*Math.cos(-camAngle);
-    targetX=camX; targetY=camY;
+    // Vertical = elevation: drag up → look more from above (increase tilt toward top-down)
+    // clamp: 0.04 = nearly horizontal, 1.52 = nearly straight down
+    camTilt = Math.max(0.04, Math.min(1.52, camTilt - dy * 0.005));
   }
 
-  // Right button or middle = pan
   if(e.buttons===2||e.buttons===4){
+    // Pan: shift the orbit pivot in world space
     const panS = camDist * 0.0015;
     velX -= (dx*Math.cos(camAngle) + dy*Math.sin(camAngle)) * panS;
     velY -= (-dx*Math.sin(camAngle) + dy*Math.cos(camAngle)) * panS;
   }
+
   lastMouse={x:e.clientX,y:e.clientY};
 });
+
 
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 
@@ -892,7 +880,7 @@ canvas.addEventListener('touchmove',e=>{
     const dy=e.touches[0].clientY-lastMouse.y;
     // One finger = orbit rotate
     rotVelX += dx * 0.006;
-    camTilt = Math.max(.08, Math.min(.78, camTilt - dy*.003));
+    camTilt = Math.max(0.04, Math.min(1.52, camTilt - dy*.004));
     lastMouse={x:e.touches[0].clientX,y:e.touches[0].clientY};
   }
   if(e.touches.length===2){
