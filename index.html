@@ -886,6 +886,22 @@ function selectBuilding(b){
     document.getElementById('pcGamesWrap').style.display='block';
   }
   document.getElementById('playerCard').style.display='block';
+  // Smooth focus: lerp camera target to this building over ~40 frames
+  const focusX=b.x, focusY=b.y;
+  let t=0;
+  const startX=targetX, startY=targetY;
+  const startDist=camDist;
+  const targetDist=Math.min(camDist, 500);
+  function focusLerp(){
+    t+=0.06;
+    const k=1-Math.pow(1-Math.min(t,1),3); // ease-out cubic
+    targetX=startX+(focusX-startX)*k;
+    targetY=startY+(focusY-startY)*k;
+    camDist=startDist+(targetDist-startDist)*k;
+    velX=0; velY=0;
+    if(t<1) requestAnimationFrame(focusLerp);
+  }
+  focusLerp();
 }
 
 function closePlayerCard(){
