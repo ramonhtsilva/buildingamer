@@ -374,7 +374,7 @@ input[type="text"]::placeholder { color:rgba(226,217,243,0.2); font-weight:400; 
 </div>
 
 <!-- HUD -->
-<div id="hud">WASD=mover &nbsp;·&nbsp; Q/E=girar &nbsp;·&nbsp; SHIFT=turbo &nbsp;·&nbsp; MOUSE=orbitar &nbsp;·&nbsp; BOTÃO DIR=pan &nbsp;·&nbsp; CLIQUE=perfil</div>
+<div id="hud">ARRASTAR=orbitar &nbsp;·&nbsp; BOTÃO DIR=pan &nbsp;·&nbsp; SCROLL=zoom &nbsp;·&nbsp; CLIQUE=perfil</div>
 
 <!-- ADD BUILDING BTN (explore mode) -->
 <button id="addBuildingBtn" onclick="enterRegister()">+ &nbsp;ADD MEU PRÉDIO</button>
@@ -655,7 +655,6 @@ let velX=0, velY=0;               // pan inertia
 let rotVelX=0, rotVelY=0;         // rotation inertia (damping)
 let isDragging=false;
 let clickStartX=0, clickStartY=0;
-const keys={};
 
 // ── HIT TEST ─────────────────────────────────────────────────────────────────
 function getBuildingAt(mx,my){
@@ -676,48 +675,23 @@ function getBuildingAt(mx,my){
   return found;
 }
 
-// ── KEYBOARD ─────────────────────────────────────────────────────────────────
-window.addEventListener('keydown',e=>{
-  const k=e.key.toLowerCase();
-  keys[k]=true;
-  if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)) e.preventDefault();
-});
-window.addEventListener('keyup',e=>{ keys[e.key.toLowerCase()]=false; });
-
 // ── CAMERA UPDATE (every frame) ───────────────────────────────────────────────
 function updateCamera(){
   if(mode==='welcome')return;
 
-  const boost = keys['shift'] ? 4 : 1;
-  const panSpeed = (camDist * 0.0025) * boost;
-  const rotSpeed = 0.025 * boost;
+  // Apply rotation inertia with damping (from mouse drag release)
+  camAngle += rotVelX;
+  rotVelX *= 0.80;
+  if(Math.abs(rotVelX)<0.0002) rotVelX=0;
 
-  // WASD = pan the orbit TARGET (move what you're looking at)
-  if(keys['w']||keys['arrowup'])    { velX -= Math.sin(camAngle)*panSpeed; velY += Math.cos(camAngle)*panSpeed; }
-  if(keys['s']||keys['arrowdown'])  { velX += Math.sin(camAngle)*panSpeed; velY -= Math.cos(camAngle)*panSpeed; }
-  if(keys['a']||keys['arrowleft'])  { velX -= Math.cos(camAngle)*panSpeed; velY -= Math.sin(camAngle)*panSpeed; }
-  if(keys['d']||keys['arrowright']) { velX += Math.cos(camAngle)*panSpeed; velY += Math.sin(camAngle)*panSpeed; }
-
-  // Q/E = rotate orbit angle (strafe around the city like flying)
-  if(keys['q']) rotVelX -= rotSpeed;
-  if(keys['e']) rotVelX += rotSpeed;
-
-  // Apply pan with damping
+  // Apply pan inertia
   targetX += velX; targetY += velY;
   velX *= 0.80; velY *= 0.80;
-  if(Math.abs(velX)<0.05)velX=0;
-  if(Math.abs(velY)<0.05)velY=0;
+  if(Math.abs(velX)<0.05) velX=0;
+  if(Math.abs(velY)<0.05) velY=0;
 
-  // Apply rotation inertia with damping
-  camAngle += rotVelX;
-  rotVelX *= 0.78;
-  if(Math.abs(rotVelX)<0.0001)rotVelX=0;
-
-  // camX/camY follow target
   camX = targetX;
   camY = targetY;
-
-  // camZoom derived from camDist
   camZoom = 800 / camDist;
 }
 
