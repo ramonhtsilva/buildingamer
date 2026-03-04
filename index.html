@@ -718,6 +718,20 @@ canvas.addEventListener('mousemove',e=>{
   }
 });
 
+// ── ORBIT PIVOT: inverse-project screen point → world coords (z=0 plane) ─────
+function screenToWorld(sx, sy) {
+  // Invert iso(): screen → rotated → world
+  // iso: screenX = W/2 + rx*zoom, screenY = H/2+40 + (ry*sinTilt)*zoom  (ignoring z=0)
+  const rx = (sx - W/2) / camZoom;
+  const ry = (sy - H/2 - 40) / (camZoom * Math.sin(camTilt));
+  // Inverse rotation by -camAngle
+  const wx = rx*Math.cos(-camAngle) - ry*Math.sin(-camAngle);
+  const wy = rx*Math.sin(-camAngle) + ry*Math.cos(-camAngle);
+  return { x: camX + wx, y: camY + wy };
+}
+
+let orbitPivot = null; // world-space pivot set on mousedown
+
 canvas.addEventListener('mousedown',e=>{
   if(mode==='welcome')return;
   e.preventDefault();
@@ -726,6 +740,8 @@ canvas.addEventListener('mousedown',e=>{
   isDragging=true;
   canvas.style.cursor='grabbing';
   document.getElementById('tooltip').style.display='none';
+  // Capture orbit pivot in world space under cursor
+  if(e.button===0) orbitPivot = screenToWorld(e.clientX, e.clientY);
 });
 
 window.addEventListener('mouseup',e=>{
@@ -736,6 +752,7 @@ window.addEventListener('mouseup',e=>{
     else closePlayerCard();
   }
   isDragging=false;
+  orbitPivot=null;
   canvas.style.cursor='default';
 });
 
@@ -744,11 +761,39 @@ window.addEventListener('mousemove',e=>{
   const dx=e.clientX-lastMouse.x;
   const dy=e.clientY-lastMouse.y;
 
-  // Left button = orbit rotation (natural: drag right = rotate right)
-  if(e.buttons===1){
-    rotVelX += dx * 0.007;       // horizontal drag = orbit left/right
-    camTilt = Math.max(.08, Math.min(.78, camTilt - dy*.003)); // vertical drag = tilt up/down
+  // Left button = orbit around cursor pivot
+  if(e.buttons===1 && orbitPivot){
+    const oldAngle = camAngle;
+    const oldTilt  = camTilt;
+
+    // Apply rotation
+    camAngle += dx * 0.007;
+    camTilt = Math.max(.08, Math.min(.78, camTilt - dy*.003));
+
+    // After rotating, reproject pivot — it would have moved on screen.
+    // Compensate camX/camY so the pivot stays fixed under the cursor.
+    // pivot in rotated space (old angle):
+    const pivWx = orbitPivot.x - camX;
+    const pivWy = orbitPivot.y - camY;
+
+    // Old rotated coords
+    const oldRx = pivWx*Math.cos(oldAngle) - pivWy*Math.sin(oldAngle);
+    const oldRy = pivWx*Math.sin(oldAngle) + pivWy*Math.cos(oldAngle);
+
+    // New rotated coords (same world point, new angle)
+    const newRx = pivWx*Math.cos(camAngle) - pivWy*Math.sin(camAngle);
+    const newRy = pivWx*Math.sin(camAngle) + pivWy*Math.cos(camAngle);
+
+    // The pivot drifted by (newR - oldR) in screen space — compensate
+    // by shifting camX/camY so it stays put
+    const dRx = newRx - oldRx;
+    const dRy = newRy - oldRy;
+    // Convert back from rotated to world offset
+    camX += dRx*Math.cos(-camAngle) - dRy*Math.sin(-camAngle);
+    camY += dRx*Math.sin(-camAngle) + dRy*Math.cos(-camAngle);
+    targetX=camX; targetY=camY;
   }
+
   // Right button or middle = pan
   if(e.buttons===2||e.buttons===4){
     const panS = camDist * 0.0015;
