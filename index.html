@@ -374,7 +374,7 @@ input[type="text"]::placeholder { color:rgba(226,217,243,0.2); font-weight:400; 
 </div>
 
 <!-- HUD -->
-<div id="hud">DRAG to rotate &nbsp;·&nbsp; SCROLL to zoom &nbsp;·&nbsp; CLICK buildings</div>
+<div id="hud">WASD=mover &nbsp;·&nbsp; MOUSE=rotacionar &nbsp;·&nbsp; SCROLL=zoom &nbsp;·&nbsp; CLIQUE=perfil</div>
 
 <!-- ADD BUILDING BTN (explore mode) -->
 <button id="addBuildingBtn" onclick="enterRegister()">+ &nbsp;ADD MEU PRÉDIO</button>
@@ -446,8 +446,9 @@ resize(); window.addEventListener('resize', resize);
 
 // ── ISO PROJECTION ────────────────────────────────────────────────────────────
 function iso(x, y, z) {
-  const rx = x*Math.cos(camAngle) - y*Math.sin(camAngle);
-  const ry = x*Math.sin(camAngle) + y*Math.cos(camAngle);
+  const wx = x - camX, wy = y - camY;
+  const rx = wx*Math.cos(camAngle) - wy*Math.sin(camAngle);
+  const ry = wx*Math.sin(camAngle) + wy*Math.cos(camAngle);
   return {
     x: W/2 + rx*camZoom,
     y: H/2 + 40 + (ry*Math.sin(camTilt) - z*Math.cos(camTilt))*camZoom
@@ -633,6 +634,7 @@ function drawBuilding(b, hovered) {
 let lastSort=0;
 function draw(){
   animFrame++;
+  updateWASD();
   ctx.clearRect(0,0,W,H);
   drawSky(); drawGround();
   if(animFrame-lastSort>90){sortBuildings();lastSort=animFrame;}
@@ -644,22 +646,24 @@ function draw(){
   requestAnimationFrame(draw);
 }
 
-// ── INTERACTION ───────────────────────────────────────────────────────────────
+// ── CAMERA STATE ─────────────────────────────────────────────────────────────
+let camX=0, camY=0;
+let isRotating=false;
+let clickStartX=0, clickStartY=0;
+const keys={};
+
+// ── HIT TEST ─────────────────────────────────────────────────────────────────
 function getBuildingAt(mx,my){
-  let found=null,minScore=999999;
+  let found=null, minScore=999999;
   for(const b of [...buildings].reverse()){
     const p=getScreenBounds(b);
-    const cx=(p[4].x+p[5].x+p[6].x+p[7].x)/4;
-    const cy=(p[0].y+p[4].y)/2;
-    const sh=Math.abs(p[0].y-p[4].y);
-    const sw=Math.abs(p[0].x-p[1].x)||50;
-    // Check if point is within building bounding area
-    const allPts=[...p];
-    const minX=Math.min(...allPts.map(pt=>pt.x))-5;
-    const maxX=Math.max(...allPts.map(pt=>pt.x))+5;
-    const minY=Math.min(...allPts.map(pt=>pt.y))-5;
-    const maxY=Math.max(...allPts.map(pt=>pt.y))+5;
+    const minX=Math.min(...p.map(pt=>pt.x))-6;
+    const maxX=Math.max(...p.map(pt=>pt.x))+6;
+    const minY=Math.min(...p.map(pt=>pt.y))-6;
+    const maxY=Math.max(...p.map(pt=>pt.y))+6;
     if(mx>=minX&&mx<=maxX&&my>=minY&&my<=maxY){
+      const cx=(p[4].x+p[5].x+p[6].x+p[7].x)/4;
+      const cy=(p[0].y+p[4].y)/2;
       const d=Math.sqrt((mx-cx)**2+(my-cy)**2);
       if(d<minScore){minScore=d;found=b;}
     }
@@ -667,76 +671,122 @@ function getBuildingAt(mx,my){
   return found;
 }
 
+// ── WASD MOVEMENT ────────────────────────────────────────────────────────────
+window.addEventListener('keydown',e=>{
+  if(['w','a','s','d','W','A','S','D','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))
+    keys[e.key.toLowerCase()]=true;
+});
+window.addEventListener('keyup',e=>{ keys[e.key.toLowerCase()]=false; });
+
+function updateWASD(){
+  if(mode==='welcome'||mode==='register')return;
+  const speed=5/camZoom;
+  let dx=0,dy=0;
+  if(keys['w']||keys['arrowup'])    { dx+=Math.sin(camAngle)*speed; dy-=Math.cos(camAngle)*speed; }
+  if(keys['s']||keys['arrowdown'])  { dx-=Math.sin(camAngle)*speed; dy+=Math.cos(camAngle)*speed; }
+  if(keys['a']||keys['arrowleft'])  { dx-=Math.cos(camAngle)*speed; dy-=Math.sin(camAngle)*speed; }
+  if(keys['d']||keys['arrowright']) { dx+=Math.cos(camAngle)*speed; dy+=Math.sin(camAngle)*speed; }
+  if(dx||dy){ camX+=dx; camY+=dy; }
+}
+
+// ── MOUSE ────────────────────────────────────────────────────────────────────
 canvas.addEventListener('mousemove',e=>{
-  if(isDragging){document.getElementById('tooltip').style.display='none';return;}
   if(mode==='welcome')return;
-  const mx=e.clientX,my=e.clientY;
-  hoveredBuilding=getBuildingAt(mx,my);
-  const tt=document.getElementById('tooltip');
-  if(hoveredBuilding){
-    tt.style.display='block';
-    tt.style.left=(mx+16)+'px';
-    tt.style.top=Math.max(70,my-10)+'px';
-    document.getElementById('ttName').textContent=hoveredBuilding.name;
-    document.getElementById('ttHours').textContent=(hoveredBuilding.hours||0).toLocaleString()+'h';
-    document.getElementById('ttGames').textContent=hoveredBuilding.games||'?';
-    document.getElementById('ttRank').textContent='#'+(hoveredBuilding.rank||'?');
-  } else tt.style.display='none';
+  if(!isRotating){
+    hoveredBuilding=getBuildingAt(e.clientX,e.clientY);
+    const tt=document.getElementById('tooltip');
+    if(hoveredBuilding){
+      tt.style.display='block';
+      tt.style.left=(e.clientX+16)+'px';
+      tt.style.top=Math.max(70,e.clientY-10)+'px';
+      document.getElementById('ttName').textContent=hoveredBuilding.name;
+      document.getElementById('ttHours').textContent=(hoveredBuilding.hours||0).toLocaleString()+'h';
+      document.getElementById('ttGames').textContent=hoveredBuilding.games||'?';
+      document.getElementById('ttRank').textContent='#'+(hoveredBuilding.rank||'?');
+      canvas.style.cursor='pointer';
+    } else {
+      tt.style.display='none';
+      canvas.style.cursor='default';
+    }
+  }
 });
 
-let clickStartX=0,clickStartY=0;
-canvas.addEventListener('mousedown',e=>{isDragging=false;lastMouse={x:e.clientX,y:e.clientY};clickStartX=e.clientX;clickStartY=e.clientY;});
+canvas.addEventListener('mousedown',e=>{
+  if(mode==='welcome')return;
+  e.preventDefault();
+  clickStartX=e.clientX; clickStartY=e.clientY;
+  lastMouse={x:e.clientX,y:e.clientY};
+  isRotating=true;
+  canvas.style.cursor='grabbing';
+  document.getElementById('tooltip').style.display='none';
+});
+
 window.addEventListener('mouseup',e=>{
   const moved=Math.abs(e.clientX-clickStartX)+Math.abs(e.clientY-clickStartY);
-  if(moved<6&&mode!=='welcome'){
+  if(moved<5&&mode!=='welcome'&&e.button===0){
     const b=getBuildingAt(e.clientX,e.clientY);
-    if(b){selectBuilding(b);}
-    else{closePlayerCard();}
+    if(b) selectBuilding(b);
+    else closePlayerCard();
   }
-  isDragging=false;
+  isRotating=false;
+  canvas.style.cursor='default';
 });
+
 window.addEventListener('mousemove',e=>{
-  const moved=Math.abs(e.clientX-lastMouse.x)+Math.abs(e.clientY-lastMouse.y);
-  if(moved>3&&e.buttons>0){
-    isDragging=true;
-    camAngle+=(e.clientX-lastMouse.x)*.006;
-    camTilt=Math.max(.12,Math.min(.65,camTilt+(e.clientY-lastMouse.y)*.003));
-    lastMouse={x:e.clientX,y:e.clientY};
-  }
+  if(!isRotating||mode==='welcome')return;
+  camAngle+=(e.clientX-lastMouse.x)*.006;
+  camTilt=Math.max(.12,Math.min(.65,camTilt+(e.clientY-lastMouse.y)*.003));
+  lastMouse={x:e.clientX,y:e.clientY};
 });
+
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
 
 canvas.addEventListener('wheel',e=>{
   e.preventDefault();
-  // Smooth zoom with reasonable limits to avoid buildings going off screen
-  camZoom=Math.max(0.35,Math.min(2.5,camZoom-e.deltaY*.0007));
+  camZoom=Math.max(0.3,Math.min(3.5,camZoom*(e.deltaY>0?0.92:1.08)));
 },{passive:false});
 
-// Touch
-let lastTD=0,touchMoved=false;
+// ── TOUCH ────────────────────────────────────────────────────────────────────
+let lastTD=0,touchMoved=false,lastTouchCenter={x:0,y:0};
 canvas.addEventListener('touchstart',e=>{
   touchMoved=false;
-  if(e.touches.length===1){lastMouse={x:e.touches[0].clientX,y:e.touches[0].clientY};clickStartX=e.touches[0].clientX;clickStartY=e.touches[0].clientY;}
-  if(e.touches.length===2)lastTD=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
-});
-canvas.addEventListener('touchmove',e=>{
-  e.preventDefault();touchMoved=true;
   if(e.touches.length===1){
-    camAngle+=(e.touches[0].clientX-lastMouse.x)*.006;
-    camTilt=Math.max(.12,Math.min(.65,camTilt+(e.touches[0].clientY-lastMouse.y)*.003));
+    lastMouse={x:e.touches[0].clientX,y:e.touches[0].clientY};
+    clickStartX=e.touches[0].clientX; clickStartY=e.touches[0].clientY;
+  }
+  if(e.touches.length===2){
+    lastTD=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+    lastTouchCenter={x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2};
+  }
+},{passive:true});
+
+canvas.addEventListener('touchmove',e=>{
+  e.preventDefault(); touchMoved=true;
+  if(e.touches.length===1){
+    // One finger = pan
+    const dx=e.touches[0].clientX-lastMouse.x;
+    const dy=e.touches[0].clientY-lastMouse.y;
+    const speed=1/camZoom;
+    camX+=(dx*Math.cos(camAngle)+dy*Math.sin(camAngle))*speed;
+    camY+=(-dx*Math.sin(camAngle)+dy*Math.cos(camAngle))*speed;
     lastMouse={x:e.touches[0].clientX,y:e.touches[0].clientY};
   }
   if(e.touches.length===2){
+    // Two fingers = zoom + rotate
     const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
-    camZoom=Math.max(.35,Math.min(2.5,camZoom*(d/lastTD)));lastTD=d;
+    camZoom=Math.max(.3,Math.min(3.5,camZoom*(d/lastTD))); lastTD=d;
+    const cx=(e.touches[0].clientX+e.touches[1].clientX)/2;
+    camAngle+=(cx-lastTouchCenter.x)*.004;
+    lastTouchCenter={x:cx,y:(e.touches[0].clientY+e.touches[1].clientY)/2};
   }
 },{passive:false});
+
 canvas.addEventListener('touchend',e=>{
   if(!touchMoved&&mode!=='welcome'){
     const t=e.changedTouches[0];
     const b=getBuildingAt(t.clientX,t.clientY);
-    if(b)selectBuilding(b); else closePlayerCard();
+    if(b) selectBuilding(b); else closePlayerCard();
   }
-  isDragging=false;
 });
 
 // ── SELECT BUILDING ───────────────────────────────────────────────────────────
@@ -832,7 +882,11 @@ function backToWelcome(){
 function focusMyBuilding(){
   if(!mySteamId)return;
   const b=buildings.find(b=>b.steamid===mySteamId);
-  if(b){selectBuilding(b);}
+  if(b){
+    selectBuilding(b);
+    // Smoothly center camera on my building
+    camX=b.x; camY=b.y; camZoom=1.4;
+  }
 }
 
 // ── LOAD PROFILE ──────────────────────────────────────────────────────────────
@@ -880,7 +934,7 @@ async function loadProfile(){
     // Auto-select my building
     const myB=buildings.find(b=>b.steamid===mySteamId);
     if(myB)selectBuilding(myB);
-    camZoom=0.9; camAngle=0.55; camTilt=0.36;
+    camZoom=0.9; camAngle=0.55; camTilt=0.36; camX=0; camY=0;
 
   } catch(err){
     showLoading(false);
