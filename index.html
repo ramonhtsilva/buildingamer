@@ -444,7 +444,6 @@ let velX=0, velY=0;
 let rotVelX=0;
 let isDragging=false;
 let clickStartX=0, clickStartY=0;
-let camX=0, camY=0; // set by updateCamera from targetX/Y
 
 // ── CANVAS ────────────────────────────────────────────────────────────────────
 const canvas = document.getElementById('cityCanvas');
@@ -640,7 +639,6 @@ function drawBuilding(b, hovered) {
 }
 
 // ── MAIN LOOP ─────────────────────────────────────────────────────────────────
-let lastSort=0;
 function draw(){
   animFrame++;
   updateCamera();
