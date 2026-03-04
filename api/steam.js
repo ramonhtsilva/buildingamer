@@ -1,67 +1,1311 @@
-const STEAM_KEY = '48218DD7AC23732B4281A771F10F13AF';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BUILDINGAMER — Your Gaming Library, Visualized</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Exo+2:wght@300;400;700;900&display=swap');
 
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET');
+:root {
+  --bg:      #06040f;
+  --purple:  #9b5cf6;
+  --purple2: #7c3aed;
+  --cyan:    #22d3ee;
+  --cyan2:   #0891b2;
+  --pink:    #e879f9;
+  --dark:    #1a1035;
+  --border:  rgba(155,92,246,0.2);
+  --border2: rgba(34,211,238,0.2);
+  --text:    #e2d9f3;
+  --muted:   rgba(226,217,243,0.4);
+}
 
-  const { steamid } = req.query;
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:'Rajdhani',sans-serif; overflow:hidden; height:100vh; width:100vw; }
 
-  if (!steamid || !/^\d{17}$/.test(steamid)) {
-    return res.status(400).json({ error: 'SteamID64 inválido' });
+#cityCanvas { position:fixed; inset:0; width:100%; height:100%; cursor:grab; }
+#cityCanvas:active { cursor:grabbing; }
+
+/* Search bar */
+#searchBar { position:fixed; top:12px; left:50%; transform:translateX(-50%); z-index:20; display:none; align-items:center; gap:8px; }
+#searchInput { background:rgba(6,4,15,0.92); border:1px solid var(--border); color:var(--text); font-family:'Rajdhani',sans-serif; font-size:13px; letter-spacing:1px; padding:7px 14px; width:240px; outline:none; }
+#searchInput:focus { border-color:var(--cyan); box-shadow:0 0 12px rgba(34,211,238,0.15); }
+#searchInput::placeholder { color:var(--muted); }
+#searchResults { position:absolute; top:36px; left:0; width:240px; background:rgba(6,4,15,0.97); border:1px solid var(--border); z-index:21; display:none; }
+.search-item { padding:8px 14px; cursor:pointer; font-size:12px; letter-spacing:1px; border-bottom:1px solid rgba(155,92,246,0.08); display:flex; align-items:center; gap:10px; }
+.search-item:hover { background:rgba(155,92,246,0.1); }
+.search-item img { width:24px; height:24px; border-radius:2px; }
+.search-item-name { color:var(--text); }
+.search-item-district { font-size:9px; color:var(--cyan); opacity:0.7; margin-top:1px; }
+
+#scanlines { position:fixed; inset:0; pointer-events:none; z-index:6; background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.03) 3px,rgba(0,0,0,0.03) 4px); }
+
+.corner { position:fixed; z-index:15; width:32px; height:32px; pointer-events:none; opacity:0.2; }
+.corner-tl { top:68px; left:10px; border-top:1px solid var(--cyan); border-left:1px solid var(--cyan); }
+.corner-tr { top:68px; right:10px; border-top:1px solid var(--cyan); border-right:1px solid var(--cyan); }
+.corner-bl { bottom:10px; left:10px; border-bottom:1px solid var(--purple); border-left:1px solid var(--purple); }
+.corner-br { bottom:10px; right:10px; border-bottom:1px solid var(--purple); border-right:1px solid var(--purple); }
+
+/* ── HEADER ── */
+#header {
+  position:fixed; top:0; left:0; right:0; z-index:20;
+  padding:14px 24px;
+  display:flex; align-items:center; justify-content:space-between;
+  background:linear-gradient(to bottom,rgba(6,4,15,0.98) 0%,transparent 100%);
+  border-bottom:1px solid rgba(155,92,246,0.07);
+}
+.logo { font-family:'Exo 2',sans-serif; font-weight:900; font-size:20px; letter-spacing:3px; }
+.logo .b { color:var(--cyan); text-shadow:0 0 16px rgba(34,211,238,0.5); }
+.logo .g { color:var(--purple); text-shadow:0 0 16px rgba(155,92,246,0.5); }
+.tagline { font-size:9px; color:var(--muted); letter-spacing:2px; margin-top:2px; }
+#cityCount { font-family:'Exo 2',sans-serif; font-size:11px; letter-spacing:2px; color:var(--muted); padding:5px 14px; border:1px solid var(--border); background:rgba(155,92,246,0.04); }
+#cityCount span { color:var(--cyan); font-weight:700; font-size:14px; }
+
+/* ── WELCOME SCREEN ── */
+#welcomeScreen {
+  position:fixed; inset:0; z-index:40;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(6,4,15,0.92);
+  backdrop-filter:blur(8px);
+}
+.welcome-box {
+  width:540px; max-width:95vw;
+  background:rgba(6,4,15,0.98);
+  border:1px solid var(--border);
+  padding:48px;
+  box-shadow:0 0 80px rgba(155,92,246,0.1),0 0 160px rgba(34,211,238,0.04);
+}
+.welcome-tag { font-size:9px; letter-spacing:4px; color:var(--cyan); margin-bottom:10px; opacity:0.6; }
+.welcome-box h1 { font-family:'Exo 2',sans-serif; font-size:30px; font-weight:900; letter-spacing:2px; color:#fff; line-height:1.05; margin-bottom:8px; }
+.welcome-box h1 em { font-style:normal; color:var(--purple); text-shadow:0 0 20px rgba(155,92,246,0.4); }
+.welcome-box p { font-size:13px; color:var(--muted); margin-bottom:36px; line-height:1.7; }
+
+.welcome-actions { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
+.btn-explore {
+  background:transparent; border:1px solid var(--border2); color:var(--cyan);
+  font-family:'Exo 2',sans-serif; font-size:12px; font-weight:700; letter-spacing:2px;
+  padding:18px 16px; cursor:pointer; transition:all 0.15s; text-align:center;
+}
+.btn-explore:hover { background:rgba(34,211,238,0.06); border-color:var(--cyan); box-shadow:0 0 16px rgba(34,211,238,0.1); }
+.btn-explore .btn-icon { font-size:20px; display:block; margin-bottom:6px; }
+.btn-explore .btn-label { display:block; }
+.btn-explore .btn-sub { display:block; font-size:9px; font-weight:400; opacity:0.5; margin-top:3px; letter-spacing:1px; font-family:'Rajdhani',sans-serif; }
+
+.btn-join {
+  background:var(--purple2); border:1px solid var(--purple); color:#fff;
+  font-family:'Exo 2',sans-serif; font-size:12px; font-weight:700; letter-spacing:2px;
+  padding:18px 16px; cursor:pointer; transition:all 0.15s; text-align:center;
+}
+.btn-join:hover { background:var(--purple); box-shadow:0 0 24px rgba(155,92,246,0.3); }
+.btn-join .btn-icon { font-size:20px; display:block; margin-bottom:6px; }
+.btn-join .btn-label { display:block; }
+.btn-join .btn-sub { display:block; font-size:9px; font-weight:400; opacity:0.6; margin-top:3px; letter-spacing:1px; font-family:'Rajdhani',sans-serif; }
+
+/* ── REGISTER PANEL ── */
+#registerPanel {
+  position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+  z-index:35; width:460px; max-width:95vw;
+  background:rgba(6,4,15,0.98); border:1px solid var(--border);
+  padding:40px; display:none;
+  box-shadow:0 0 60px rgba(155,92,246,0.1);
+  backdrop-filter:blur(20px);
+}
+.panel-tag { font-size:9px; letter-spacing:4px; color:var(--cyan); margin-bottom:8px; opacity:0.6; }
+#registerPanel h2 { font-family:'Exo 2',sans-serif; font-size:22px; font-weight:900; letter-spacing:2px; color:#fff; margin-bottom:6px; }
+#registerPanel h2 em { font-style:normal; color:var(--purple); }
+#registerPanel p { font-size:12px; color:var(--muted); margin-bottom:24px; line-height:1.6; }
+
+.input-wrap { position:relative; margin-bottom:10px; }
+input[type="text"] {
+  width:100%; background:rgba(13,8,32,0.9);
+  border:1px solid var(--border); border-bottom:2px solid var(--purple2);
+  color:var(--text); font-family:'Rajdhani',sans-serif;
+  font-size:15px; font-weight:600; padding:13px 110px 13px 16px;
+  outline:none; transition:all 0.2s; letter-spacing:1px;
+}
+input[type="text"]:focus { border-color:var(--purple); border-bottom-color:var(--cyan); box-shadow:0 0 16px rgba(155,92,246,0.1); }
+input[type="text"]::placeholder { color:rgba(226,217,243,0.2); font-weight:400; }
+
+.btn-build {
+  position:absolute; right:0; top:0; bottom:0;
+  background:var(--purple); border:none; color:#fff;
+  font-family:'Exo 2',sans-serif; font-size:11px; font-weight:700; letter-spacing:2px;
+  padding:0 18px; cursor:pointer; transition:all 0.15s;
+}
+.btn-build:hover { background:var(--pink); box-shadow:0 0 16px rgba(232,121,249,0.3); }
+.btn-build:disabled { background:var(--dark); color:var(--muted); cursor:not-allowed; }
+
+.btn-back {
+  width:100%; background:transparent; border:1px solid rgba(155,92,246,0.1);
+  color:var(--muted); font-family:'Rajdhani',sans-serif;
+  font-size:10px; letter-spacing:2px; padding:9px; cursor:pointer; transition:all 0.15s; margin-top:8px;
+}
+.btn-back:hover { border-color:var(--border); color:var(--text); }
+
+.hint { font-size:10px; color:rgba(226,217,243,0.22); margin-top:12px; line-height:1.7; }
+.hint a { color:rgba(34,211,238,0.45); text-decoration:none; }
+.hint a:hover { color:var(--cyan); }
+
+#errorMsg { font-size:11px; color:#f87171; margin-top:10px; display:none; padding:9px 12px; background:rgba(248,113,113,0.05); border-left:2px solid #f87171; }
+
+/* ── LOADING ── */
+#loadingOverlay { position:fixed; inset:0; z-index:50; background:rgba(6,4,15,0.97); display:none; flex-direction:column; align-items:center; justify-content:center; gap:20px; }
+.loading-logo { font-family:'Exo 2',sans-serif; font-size:10px; letter-spacing:6px; color:var(--muted); }
+#loadingText { font-family:'Exo 2',sans-serif; font-size:12px; letter-spacing:3px; color:var(--purple); animation:pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.loading-bar-wrap { width:240px; height:1px; background:rgba(155,92,246,0.15); overflow:hidden; }
+.loading-bar-fill { height:100%; background:linear-gradient(90deg,var(--purple),var(--cyan)); animation:loadBar 1.8s ease-in-out infinite; }
+@keyframes loadBar { 0%{width:0%;margin-left:0} 50%{width:70%;margin-left:10%} 100%{width:0%;margin-left:100%} }
+
+/* ── MY BUILDING BTN (after login) ── */
+#myBuildingBtn {
+  position:fixed; top:14px; left:50%; transform:translateX(-50%);
+  z-index:22; display:none;
+  background:rgba(155,92,246,0.12); border:1px solid var(--border);
+  color:var(--purple); font-family:'Exo 2',sans-serif;
+  font-size:10px; font-weight:700; letter-spacing:2px;
+  padding:6px 16px; cursor:pointer; transition:all 0.15s;
+}
+#myBuildingBtn:hover { background:rgba(155,92,246,0.22); }
+
+/* ── PLAYER CARD (click on building) ── */
+#playerCard {
+  position:fixed; top:70px; right:20px; z-index:20;
+  background:rgba(6,4,15,0.97); border:1px solid var(--border);
+  border-top:2px solid var(--purple);
+  padding:0; width:260px; display:none;
+  backdrop-filter:blur(16px);
+  box-shadow:0 8px 32px rgba(0,0,0,0.5);
+}
+
+.pc-header {
+  padding:16px 18px 14px;
+  border-bottom:1px solid var(--border);
+  display:flex; gap:12px; align-items:center;
+}
+.avatar-frame { position:relative; width:46px; height:46px; flex-shrink:0; }
+.avatar-frame img { width:100%; height:100%; object-fit:cover; border:1px solid var(--purple2); background:var(--dark); }
+.avatar-ring { position:absolute; inset:-3px; border:1px solid var(--cyan); animation:ringPulse 2.5s infinite; pointer-events:none; }
+@keyframes ringPulse { 0%,100%{opacity:0.8;box-shadow:0 0 5px var(--cyan)} 50%{opacity:0.2;box-shadow:0 0 12px var(--cyan)} }
+.pc-name { font-family:'Exo 2',sans-serif; font-size:14px; font-weight:700; color:#fff; margin-bottom:2px; }
+.pc-district { font-size:9px; letter-spacing:2px; color:var(--cyan); opacity:0.7; }
+
+.pc-stats { display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--border); border-bottom:1px solid var(--border); }
+.pc-stat { background:rgba(6,4,15,0.9); padding:10px 12px; text-align:center; }
+.pc-stat-val { font-family:'Exo 2',sans-serif; font-size:18px; font-weight:700; color:var(--purple); display:block; line-height:1; margin-bottom:3px; }
+.pc-stat-val.c { color:var(--cyan); }
+.pc-stat-lbl { font-size:8px; letter-spacing:1.5px; color:var(--muted); }
+
+.pc-games { padding:12px 18px; border-bottom:1px solid var(--border); }
+.pc-games-title { font-size:8px; letter-spacing:2px; color:var(--muted); margin-bottom:8px; }
+.game-row { display:flex; align-items:center; gap:8px; margin-bottom:5px; }
+.game-name { font-size:10px; color:var(--text); opacity:0.7; width:70px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex-shrink:0; }
+.game-track { flex:1; height:2px; background:rgba(155,92,246,0.1); }
+.game-fill { height:100%; background:linear-gradient(90deg,var(--purple2),var(--cyan)); }
+.game-hrs { font-size:9px; color:var(--muted); width:30px; text-align:right; flex-shrink:0; }
+
+.pc-actions { padding:12px 18px; display:flex; flex-direction:column; gap:6px; }
+.btn-profile {
+  width:100%; background:var(--purple2); border:1px solid var(--purple); color:#fff;
+  font-family:'Exo 2',sans-serif; font-size:10px; font-weight:700; letter-spacing:2px;
+  padding:10px; cursor:pointer; transition:all 0.15s; text-align:center;
+}
+.btn-profile:hover { background:var(--purple); box-shadow:0 0 16px rgba(155,92,246,0.3); }
+.btn-close-card {
+  width:100%; background:transparent; border:1px solid rgba(155,92,246,0.1);
+  color:var(--muted); font-family:'Rajdhani',sans-serif;
+  font-size:10px; letter-spacing:2px; padding:7px; cursor:pointer; transition:all 0.15s;
+}
+.btn-close-card:hover { border-color:var(--border); color:var(--text); }
+
+/* ── TOOLTIP ── */
+#tooltip {
+  position:fixed; z-index:25;
+  background:rgba(6,4,15,0.97); border:1px solid var(--border); border-left:2px solid var(--cyan);
+  padding:9px 13px; pointer-events:none; display:none;
+  backdrop-filter:blur(8px); min-width:140px;
+}
+.tt-name { font-family:'Exo 2',sans-serif; font-size:12px; font-weight:700; color:#fff; margin-bottom:4px; }
+.tt-row { color:var(--muted); margin-bottom:1px; font-size:10px; }
+.tt-row span { color:var(--cyan); font-weight:600; }
+.tt-click { font-size:9px; color:rgba(155,92,246,0.5); margin-top:5px; letter-spacing:1px; }
+
+/* ── HUD ── */
+#hud { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); z-index:20; display:none; font-size:9px; letter-spacing:2px; color:var(--muted); background:rgba(6,4,15,0.85); border:1px solid var(--border); padding:7px 18px; }
+
+/* ── ADD BUILDING BTN (explore mode) ── */
+#addBuildingBtn {
+  position:fixed; bottom:16px; right:20px; z-index:22; display:none;
+  background:var(--purple2); border:1px solid var(--purple); color:#fff;
+  font-family:'Exo 2',sans-serif; font-size:10px; font-weight:700; letter-spacing:2px;
+  padding:10px 20px; cursor:pointer; transition:all 0.15s;
+}
+#addBuildingBtn:hover { background:var(--purple); box-shadow:0 0 20px rgba(155,92,246,0.3); }
+
+/* ── PROFILE PAGE ── */
+#profilePage {
+  position:fixed; inset:0; z-index:45; display:none;
+  background:rgba(6,4,15,0.98); backdrop-filter:blur(20px);
+  overflow-y:auto;
+}
+.profile-page-inner { max-width:700px; margin:0 auto; padding:80px 24px 40px; }
+.profile-page-back {
+  font-family:'Exo 2',sans-serif; font-size:10px; letter-spacing:2px;
+  color:var(--muted); background:transparent; border:1px solid var(--border);
+  padding:7px 16px; cursor:pointer; transition:all 0.15s; margin-bottom:32px; display:inline-block;
+}
+.profile-page-back:hover { color:var(--cyan); border-color:var(--border2); }
+
+.pp-hero { display:flex; gap:24px; align-items:center; margin-bottom:32px; padding-bottom:24px; border-bottom:1px solid var(--border); }
+.pp-avatar-wrap { position:relative; width:80px; height:80px; flex-shrink:0; }
+.pp-avatar-wrap img { width:100%; height:100%; object-fit:cover; border:2px solid var(--purple); }
+.pp-avatar-ring { position:absolute; inset:-5px; border:1px solid var(--cyan); animation:ringPulse 2.5s infinite; }
+.pp-name { font-family:'Exo 2',sans-serif; font-size:28px; font-weight:900; color:#fff; letter-spacing:2px; margin-bottom:4px; }
+.pp-district-badge { display:inline-block; font-size:9px; letter-spacing:3px; color:var(--cyan); border:1px solid var(--border2); padding:3px 10px; margin-bottom:8px; }
+.pp-since { font-size:11px; color:var(--muted); }
+
+.pp-stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:28px; }
+.pp-stat-box { background:rgba(155,92,246,0.05); border:1px solid var(--border); padding:16px 12px; text-align:center; }
+.pp-stat-val { font-family:'Exo 2',sans-serif; font-size:24px; font-weight:700; color:var(--purple); display:block; margin-bottom:4px; }
+.pp-stat-val.c { color:var(--cyan); }
+.pp-stat-lbl { font-size:8px; letter-spacing:2px; color:var(--muted); }
+
+.pp-section-title { font-size:9px; letter-spacing:3px; color:var(--muted); margin-bottom:12px; }
+.pp-games-list { display:flex; flex-direction:column; gap:6px; margin-bottom:28px; }
+.pp-game-row { display:flex; align-items:center; gap:12px; padding:8px 12px; background:rgba(155,92,246,0.03); border:1px solid rgba(155,92,246,0.08); }
+.pp-game-rank { font-family:'Exo 2',sans-serif; font-size:11px; color:var(--muted); width:20px; flex-shrink:0; }
+.pp-game-name { font-size:13px; font-weight:600; flex:1; }
+.pp-game-track { width:120px; height:3px; background:rgba(155,92,246,0.1); flex-shrink:0; }
+.pp-game-fill { height:100%; background:linear-gradient(90deg,var(--purple2),var(--cyan)); }
+.pp-game-hrs { font-family:'Exo 2',sans-serif; font-size:11px; color:var(--cyan); width:40px; text-align:right; flex-shrink:0; }
+
+.pp-building-preview { border:1px solid var(--border); padding:20px; text-align:center; background:rgba(155,92,246,0.03); }
+.pp-building-canvas { width:100%; max-width:300px; height:200px; margin:0 auto; display:block; }
+</style>
+</head>
+<body>
+
+<canvas id="cityCanvas"></canvas>
+<div id="scanlines"></div>
+<div class="corner corner-tl"></div>
+<div class="corner corner-tr"></div>
+<div class="corner corner-bl"></div>
+<div class="corner corner-br"></div>
+
+<!-- HEADER -->
+<div id="header">
+  <div>
+    <div class="logo"><span class="b">BUILDING</span><span class="g">AMER</span></div>
+    <div class="tagline">YOUR GAMING LIBRARY, VISUALIZED</div>
+  </div>
+  <div id="cityCount"><span id="gamerCount">0</span> GAMERS IN THE CITY</div>
+
+<div id="searchBar" style="position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:20;display:none;align-items:center;">
+  <div style="position:relative">
+    <input id="searchInput" style="background:rgba(6,4,15,0.92);border:1px solid rgba(155,92,246,0.3);color:#e2d9f3;font-family:'Rajdhani',sans-serif;font-size:13px;letter-spacing:1px;padding:7px 14px;width:240px;outline:none;" placeholder="🔍  BUSCAR GAMER..." autocomplete="off" oninput="onSearch(this.value)" onblur="setTimeout(()=>{const r=document.getElementById('searchResults');if(r)r.style.display='none'},200)"/>
+    <div id="searchResults" style="position:absolute;top:36px;left:0;width:240px;background:rgba(6,4,15,0.97);border:1px solid rgba(155,92,246,0.2);z-index:21;display:none;"></div>
+  </div>
+</div>
+
+<div id="searchBar">
+  <div style="position:relative">
+    <input id="searchInput" placeholder="🔍  BUSCAR GAMER..." autocomplete="off" oninput="onSearch(this.value)" onblur="setTimeout(()=>document.getElementById('searchResults').style.display='none',200)"/>
+    <div id="searchResults"></div>
+  </div>
+</div>
+</div>
+
+<!-- MY BUILDING BTN -->
+<button id="myBuildingBtn" onclick="focusMyBuilding()">◉ &nbsp;MEU PRÉDIO</button>
+
+<!-- WELCOME SCREEN -->
+<div id="welcomeScreen">
+  <div class="welcome-box">
+    <div class="welcome-tag">// BUILDINGAMER v2.0</div>
+    <h1>A CIDADE DOS<br><em>GAMERS</em></h1>
+    <p>Cada gamer é um prédio. Quanto mais você jogou,<br>mais alto ele cresce. Explore a cidade ou adicione o seu.</p>
+    <div class="welcome-actions">
+      <button class="btn-explore" onclick="enterExplore()">
+        <span class="btn-icon">🏙️</span>
+        <span class="btn-label">EXPLORAR</span>
+        <span class="btn-sub">Ver a cidade sem se registrar</span>
+      </button>
+      <button class="btn-join" onclick="enterRegister()">
+        <span class="btn-icon">🏗️</span>
+        <span class="btn-label">ADD MEU PRÉDIO</span>
+        <span class="btn-sub">Conectar meu SteamID</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- REGISTER PANEL -->
+<div id="registerPanel">
+  <div class="panel-tag">// CONSTRUIR MEU PRÉDIO</div>
+  <h2>INSIRA SEU<br><em>STEAM ID</em></h2>
+  <p>Seu prédio será gerado com base na sua biblioteca Steam e ficará visível para todos na cidade.</p>
+  <div class="input-wrap">
+    <input type="text" id="steamInput" placeholder="username ou SteamID64" autocomplete="off"/>
+    <button class="btn-build" id="buildBtn" onclick="loadProfile()">BUILD</button>
+  </div>
+  <div id="errorMsg"></div>
+  <div class="hint">Como encontrar: <a href="https://steamid.io" target="_blank">steamid.io</a> · Perfil deve ser <strong style="color:rgba(34,211,238,0.55)">público</strong></div>
+  <button class="btn-back" onclick="backToWelcome()">◀ &nbsp;VOLTAR</button>
+</div>
+
+<!-- LOADING -->
+<div id="loadingOverlay">
+  <div class="loading-logo">BUILDINGAMER</div>
+  <div id="loadingText">INICIALIZANDO...</div>
+  <div class="loading-bar-wrap"><div class="loading-bar-fill"></div></div>
+</div>
+
+<!-- PLAYER CARD -->
+<div id="playerCard">
+  <div class="pc-header">
+    <div class="avatar-frame">
+      <img id="pcAvatar" src="" alt="">
+      <div class="avatar-ring"></div>
+    </div>
+    <div>
+      <div class="pc-name" id="pcName">—</div>
+      <div class="pc-district" id="pcDistrict">—</div>
+    </div>
+  </div>
+  <div class="pc-stats">
+    <div class="pc-stat"><span class="pc-stat-val" id="pcGames">—</span><span class="pc-stat-lbl">GAMES</span></div>
+    <div class="pc-stat"><span class="pc-stat-val c" id="pcHours">—</span><span class="pc-stat-lbl">HOURS</span></div>
+    <div class="pc-stat"><span class="pc-stat-val" id="pcFloors">—</span><span class="pc-stat-lbl">FLOORS</span></div>
+    <div class="pc-stat"><span class="pc-stat-val c" id="pcRank">—</span><span class="pc-stat-lbl">RANK</span></div>
+  </div>
+  <div class="pc-games" id="pcGamesWrap" style="display:none">
+    <div class="pc-games-title">TOP GAMES</div>
+    <div id="pcGamesList"></div>
+  </div>
+  <div class="pc-actions">
+    <button class="btn-profile" onclick="openProfilePage()">VER PERFIL COMPLETO →</button>
+    <button class="btn-close-card" onclick="closePlayerCard()">FECHAR</button>
+  </div>
+</div>
+
+<!-- TOOLTIP -->
+<div id="tooltip">
+  <div class="tt-name" id="ttName"></div>
+  <div class="tt-row">HOURS &nbsp;<span id="ttHours"></span></div>
+  <div class="tt-row">GAMES &nbsp;<span id="ttGames"></span></div>
+  <div class="tt-row">RANK &nbsp;&nbsp;<span id="ttRank"></span></div>
+  <div class="tt-click">[ CLIQUE PARA VER PERFIL ]</div>
+</div>
+
+<!-- HUD -->
+<div id="hud">ARRASTAR=orbitar &nbsp;·&nbsp; BOTÃO DIR=pan &nbsp;·&nbsp; SCROLL=zoom &nbsp;·&nbsp; CLIQUE=perfil</div>
+
+<!-- ADD BUILDING BTN (explore mode) -->
+<button id="addBuildingBtn" onclick="enterRegister()">+ &nbsp;ADD MEU PRÉDIO</button>
+
+<!-- PROFILE PAGE -->
+<div id="profilePage">
+  <div class="profile-page-inner">
+    <button class="profile-page-back" onclick="closeProfilePage()">◀ &nbsp;VOLTAR À CIDADE</button>
+    <div class="pp-hero">
+      <div class="pp-avatar-wrap">
+        <img id="ppAvatar" src="" alt="">
+        <div class="pp-avatar-ring"></div>
+      </div>
+      <div>
+        <div class="pp-name" id="ppName">—</div>
+        <div class="pp-district-badge" id="ppDistrict">—</div>
+        <div class="pp-since" id="ppSince">—</div>
+      </div>
+    </div>
+    <div class="pp-stats-row">
+      <div class="pp-stat-box"><span class="pp-stat-val" id="ppGames">—</span><span class="pp-stat-lbl">GAMES</span></div>
+      <div class="pp-stat-box"><span class="pp-stat-val c" id="ppHours">—</span><span class="pp-stat-lbl">HOURS</span></div>
+      <div class="pp-stat-box"><span class="pp-stat-val" id="ppFloors">—</span><span class="pp-stat-lbl">FLOORS</span></div>
+      <div class="pp-stat-box"><span class="pp-stat-val c" id="ppRank">—</span><span class="pp-stat-lbl">RANK</span></div>
+    </div>
+    <div class="pp-section-title">TOP GAMES POR HORAS JOGADAS</div>
+    <div class="pp-games-list" id="ppGamesList"></div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const SUPABASE_URL  = 'https://ntfyvegjurjefnynhnyx.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50Znl2ZWdqdXJqZWZueW5obnl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1ODE3MDAsImV4cCI6MjA4ODE1NzcwMH0.0_1BdPPECsWnzltC-tL8j1AQmZWoTcAjfOj28Uxy9h4';
+
+async function sbFetch(path, opts = {}) {
+  const { headers: extraHeaders, ...restOpts } = opts;
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...restOpts,
+    headers: {
+      'apikey': SUPABASE_ANON,
+      'Authorization': `Bearer ${SUPABASE_ANON}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation',
+      ...(extraHeaders || {}),
+    },
+  });
+  if (!res.ok) console.error('Supabase error:', res.status, await res.text());
+  return res;
+}
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let cityGamers    = [];
+let buildings     = [];
+let mySteamId     = localStorage.getItem('bg_steamid') || null;
+let selectedBuilding = null;
+let camAngle = 0.55, camTilt = 0.36, camZoom = 0.9;
+let camX=0, camY=0;
+let lastMouse = {x:0,y:0};
+let hoveredBuilding = null;
+let animFrame = 0, lastSort = 0;
+let mode = 'welcome'; // welcome | explore | city
+// Camera orbit state
+let targetX=0, targetY=0;
+let camDist=900;
+let velX=0, velY=0;
+let rotVelX=0;
+let isDragging=false;
+let clickStartX=0, clickStartY=0;
+
+// ── CANVAS ────────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('cityCanvas');
+const ctx    = canvas.getContext('2d');
+let W, H;
+function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+resize(); window.addEventListener('resize', resize);
+
+// ── ISO PROJECTION ────────────────────────────────────────────────────────────
+function iso(x, y, z) {
+  const wx = x - camX, wy = y - camY;
+  const rx = wx*Math.cos(camAngle) - wy*Math.sin(camAngle);
+  const ry = wx*Math.sin(camAngle) + wy*Math.cos(camAngle);
+  return {
+    x: W/2 + rx*camZoom,
+    y: H/2 + (ry*Math.sin(camTilt) - z*Math.cos(camTilt))*camZoom
+  };
+}
+
+// ── DISTRICT SYSTEM ──────────────────────────────────────────────────────────
+// Each unique district (game name) gets a fixed center position and color
+const districtMap = {}; // name → {cx, cy, color, appid}
+
+function hashStr(s) {
+  let h = 0;
+  for (let i=0;i<s.length;i++) h = (Math.imul(31,h)+s.charCodeAt(i))|0;
+  return h;
+}
+
+function getDistrictColor(name) {
+  const h = Math.abs(hashStr(name));
+  const hue = h % 360;
+  return { hue, css: `hsl(${hue},70%,45%)`, glow: `hsla(${hue},70%,55%,0.15)`, dim: `hsla(${hue},50%,25%,0.18)` };
+}
+
+function assignDistricts(gamers) {
+  // Collect unique districts and assign grid positions
+  const names = [...new Set(gamers.map(g => g.district || 'UNKNOWN'))];
+  const cols = Math.ceil(Math.sqrt(names.length));
+  const DIST_SPACING = 1400; // spacing between district centers
+  names.forEach((name, i) => {
+    if (districtMap[name]) return; // already assigned
+    const col = i % cols, row = Math.floor(i / cols);
+    const cx = (col - cols/2 + 0.5) * DIST_SPACING;
+    const cy = (row - Math.ceil(names.length/cols)/2 + 0.5) * DIST_SPACING;
+    districtMap[name] = { cx, cy, color: getDistrictColor(name), appid: null };
+  });
+}
+
+function idToPos(id, district) {
+  // Position within district cluster
+  let h = hashStr(id);
+  const d = districtMap[district || 'UNKNOWN'];
+  const cx = d ? d.cx : 0, cy = d ? d.cy : 0;
+  // Spiral-ish grid within district: up to 20x20 slots, 160px spacing
+  const SPACING = 180, SLOTS = 16;
+  const idx = Math.abs(h) % (SLOTS*SLOTS);
+  const gx = (idx % SLOTS) - SLOTS/2 + 0.5;
+  const gy = Math.floor(idx / SLOTS) - SLOTS/2 + 0.5;
+  return {
+    x: cx + gx*SPACING + ((Math.abs(h*7) % 50) - 25),
+    y: cy + gy*SPACING + ((Math.abs(h*13) % 50) - 25)
+  };
+}
+
+// ── BUILD CITY ────────────────────────────────────────────────────────────────
+function buildCity(gamers) {
+  buildings = [];
+  assignDistricts(gamers);
+  gamers.forEach((g,i) => {
+    const pos = idToPos(g.steamid, g.district);
+    const isMe = g.steamid === mySteamId;
+    const h = Math.max(50, Math.min(480, g.floors * 14));
+    const w = Math.max(55, Math.min(130, 44 + g.games * 0.65));
+    let seedN = 0;
+    for (let k=0;k<g.steamid.length;k++) seedN=(seedN*31+g.steamid.charCodeAt(k))|0;
+    buildings.push({ ...g, x:pos.x, y:pos.y, z:0, w, d:w*0.8, h, isPlayer:isMe, lit:0.6+Math.random()*0.35, seed:Math.abs(seedN)%100 });
+  });
+  sortBuildings();
+  document.getElementById('gamerCount').textContent = gamers.length;
+}
+
+function sortBuildings() {
+  buildings.sort((a,b) => {
+    return (a.x*Math.sin(camAngle)+a.y*Math.cos(camAngle)) - (b.x*Math.sin(camAngle)+b.y*Math.cos(camAngle));
+  });
+}
+
+// ── SKY ───────────────────────────────────────────────────────────────────────
+function drawSky() {
+  const g = ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#020108'); g.addColorStop(0.55,'#06040f'); g.addColorStop(1,'#090519');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  // Nebulae
+  [[W*.25,H*.25,'155,92,246',.055],[W*.75,H*.3,'34,211,238',.032],[W*.5,H*.18,'232,121,249',.025]].forEach(([x,y,c,a])=>{
+    const ng=ctx.createRadialGradient(x,y,0,x,y,W*.38);
+    ng.addColorStop(0,`rgba(${c},${a})`); ng.addColorStop(1,'transparent');
+    ctx.fillStyle=ng; ctx.fillRect(0,0,W,H);
+  });
+  // Stars
+  for(let i=0;i<160;i++){
+    const sx=((i*137+17)%1000)/1000*W, sy=((i*251+33)%600)/600*(H*.48);
+    ctx.globalAlpha=0.08+Math.sin(animFrame*.01+i)*.07;
+    ctx.fillStyle=i%6===0?'#22d3ee':i%4===0?'#e879f9':'#e2d9f3';
+    ctx.beginPath(); ctx.arc(sx,sy,0.3+(i%4)*.22,0,Math.PI*2); ctx.fill();
+  }
+  ctx.globalAlpha=1;
+}
+
+// ── GROUND ────────────────────────────────────────────────────────────────────
+function drawGround() {
+  // Ground glow
+  const gg=ctx.createRadialGradient(W/2,H/2+60,0,W/2,H/2+60,W*.55);
+  gg.addColorStop(0,'rgba(100,40,200,0.06)'); gg.addColorStop(0.5,'rgba(34,211,238,0.02)'); gg.addColorStop(1,'transparent');
+  ctx.fillStyle=gg; ctx.fillRect(0,0,W,H);
+
+  // ── District floor tiles ──────────────────────────────────────────────────
+  const DSIZE = 700; // half-width of each district floor
+  Object.entries(districtMap).forEach(([name, d]) => {
+    // Filled isometric floor quad
+    const c0=iso(d.cx-DSIZE,d.cy-DSIZE,0), c1=iso(d.cx+DSIZE,d.cy-DSIZE,0);
+    const c2=iso(d.cx+DSIZE,d.cy+DSIZE,0), c3=iso(d.cx-DSIZE,d.cy+DSIZE,0);
+    ctx.beginPath(); ctx.moveTo(c0.x,c0.y); ctx.lineTo(c1.x,c1.y);
+    ctx.lineTo(c2.x,c2.y); ctx.lineTo(c3.x,c3.y); ctx.closePath();
+    ctx.fillStyle=d.color.dim; ctx.fill();
+    ctx.strokeStyle=d.color.css.replace('hsl','hsla').replace(')',',0.35)'); ctx.lineWidth=1.2; ctx.stroke();
+  });
+
+  const SIZE=14, STEP=200;
+  // Major grid
+  ctx.globalAlpha=0.08; ctx.strokeStyle='#9b5cf6'; ctx.lineWidth=0.6;
+  for(let i=-SIZE;i<=SIZE;i++){
+    const a=iso(i*STEP,-SIZE*STEP,0),b=iso(i*STEP,SIZE*STEP,0);
+    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+    const c=iso(-SIZE*STEP,i*STEP,0),d=iso(SIZE*STEP,i*STEP,0);
+    ctx.beginPath(); ctx.moveTo(c.x,c.y); ctx.lineTo(d.x,d.y); ctx.stroke();
+  }
+  ctx.globalAlpha=1;
+}
+
+// ── District badges (drawn after buildings, on top) ────────────────────────
+function drawDistrictBadges() {
+  if(!buildings.length) return;
+  Object.entries(districtMap).forEach(([name, d]) => {
+    // Position badge above district center
+    const top = iso(d.cx, d.cy, 520);
+    const pulse = Math.sin(animFrame * 0.025) * 0.15;
+    const alpha = 0.55 + pulse;
+
+    // Badge background — translucent pill
+    const label = name.toUpperCase();
+    ctx.font = '700 12px "Exo 2", Rajdhani';
+    const tw = ctx.measureText(label).width;
+    const bw = tw + 28, bh = 22;
+    const bx = top.x - bw/2, by = top.y - bh/2;
+
+    // Glow behind badge
+    const glowR = ctx.createRadialGradient(top.x, top.y, 0, top.x, top.y, bw*0.9);
+    glowR.addColorStop(0, d.color.css.replace('hsl','hsla').replace(')',`,${0.12+pulse})`));
+    glowR.addColorStop(1, 'transparent');
+    ctx.fillStyle = glowR; ctx.beginPath(); ctx.ellipse(top.x, top.y, bw, bh*1.8, 0, 0, Math.PI*2); ctx.fill();
+
+    // Badge pill
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = `rgba(6,4,15,0.72)`;
+    ctx.strokeStyle = d.color.css.replace('hsl','hsla').replace(')',',0.7)');
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 4); ctx.fill(); ctx.stroke();
+
+    // Animated side bars (scanner lines)
+    const barW = 3 + Math.sin(animFrame*0.04)*2;
+    ctx.fillStyle = d.color.css.replace('hsl','hsla').replace(')',',0.6)');
+    ctx.fillRect(bx - barW - 4, by + bh/2 - 1, barW, 2);
+    ctx.fillRect(bx + bw + 4, by + bh/2 - 1, barW, 2);
+
+    // Text
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.fillText(label, top.x, top.y + 4);
+    ctx.textAlign = 'left';
+    ctx.globalAlpha = 1;
+
+    // Vertical beam from badge down to ground
+    const ground = iso(d.cx, d.cy, 0);
+    const beamGrad = ctx.createLinearGradient(top.x, ground.y, top.x, top.y);
+    beamGrad.addColorStop(0, d.color.css.replace('hsl','hsla').replace(')',',0)'));
+    beamGrad.addColorStop(0.6, d.color.css.replace('hsl','hsla').replace(')',`,${0.06+pulse})`));
+    beamGrad.addColorStop(1, d.color.css.replace('hsl','hsla').replace(')',`,${0.2+pulse})`));
+    ctx.beginPath(); ctx.moveTo(top.x-1, ground.y); ctx.lineTo(top.x+1, ground.y);
+    ctx.lineTo(top.x, top.y); ctx.closePath();
+    ctx.fillStyle = beamGrad; ctx.fill();
+  });
+}
+
+// ── BUILDING ──────────────────────────────────────────────────────────────────
+function lerp(a,b,t){return a+(b-a)*t;}
+
+function getScreenBounds(b) {
+  const hw=b.w/2,hd=b.d/2;
+  const pts=[
+    iso(b.x-hw,b.y-hd,b.z),iso(b.x+hw,b.y-hd,b.z),
+    iso(b.x+hw,b.y+hd,b.z),iso(b.x-hw,b.y+hd,b.z),
+    iso(b.x-hw,b.y-hd,b.z+b.h),iso(b.x+hw,b.y-hd,b.z+b.h),
+    iso(b.x+hw,b.y+hd,b.z+b.h),iso(b.x-hw,b.y+hd,b.z+b.h),
+  ];
+  return pts;
+}
+
+function drawBuilding(b, hovered) {
+  const p = getScreenBounds(b);
+  const isMe = b.isPlayer;
+  const selected = b === selectedBuilding;
+  const t = 0.65+Math.sin(animFrame*.035)*.08;
+
+  let fL,fR,fT,sC,sW;
+  if (isMe) {
+    fL=`rgba(110,45,210,${t})`; fR=`rgba(65,20,150,${t})`; fT=`rgba(155,92,246,${t+.12})`;
+    sC='rgba(155,92,246,0.95)'; sW=1.5;
+  } else if (selected) {
+    fL=`rgba(20,90,130,0.9)`; fR=`rgba(10,55,90,0.9)`; fT=`rgba(34,211,238,0.85)`;
+    sC='rgba(34,211,238,0.9)'; sW=1.5;
+  } else if (hovered) {
+    fL=`rgba(15,70,110,0.88)`; fR=`rgba(8,45,80,0.88)`; fT=`rgba(34,211,238,0.7)`;
+    sC='rgba(34,211,238,0.5)'; sW=0.8;
+  } else {
+    const v=0.28+(b.seed%40)/100, hue=b.seed%3;
+    if(hue===0){fL=`rgba(${35*v|0},${15*v|0},${95*v|0},0.92)`;fR=`rgba(${20*v|0},${8*v|0},${60*v|0},0.92)`;fT=`rgba(${75*v|0},${35*v|0},${170*v|0},0.96)`;}
+    else if(hue===1){fL=`rgba(${15*v|0},${50*v|0},${90*v|0},0.92)`;fR=`rgba(${8*v|0},${30*v|0},${60*v|0},0.92)`;fT=`rgba(${25*v|0},${90*v|0},${160*v|0},0.96)`;}
+    else{fL=`rgba(${70*v|0},${10*v|0},${80*v|0},0.92)`;fR=`rgba(${45*v|0},${5*v|0},${55*v|0},0.92)`;fT=`rgba(${120*v|0},${20*v|0},${140*v|0},0.96)`;}
+    sC=null; sW=0;
   }
 
-  try {
-    const [profileRes, gamesRes, recentRes] = await Promise.all([
-      fetch(`https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key=${STEAM_KEY}&steamids=${steamid}&format=json`),
-      fetch(`https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key=${STEAM_KEY}&steamid=${steamid}&include_appinfo=1&include_played_free_games=1&format=json`),
-      fetch(`https://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v1/?key=${STEAM_KEY}&steamid=${steamid}&count=10&format=json`),
-    ]);
+  const face=(idxs,fill,stroke,sw)=>{
+    ctx.beginPath(); ctx.moveTo(p[idxs[0]].x,p[idxs[0]].y);
+    for(let i=1;i<idxs.length;i++) ctx.lineTo(p[idxs[i]].x,p[idxs[i]].y);
+    ctx.closePath(); ctx.fillStyle=fill; ctx.fill();
+    if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=sw;ctx.stroke();}
+  };
 
-    const [profileData, gamesData, recentData] = await Promise.all([
-      profileRes.json(),
-      gamesRes.json(),
-      recentRes.json(),
-    ]);
+  face([0,4,7,3],fL,sC,sW);
+  face([1,5,6,2],fR,sC?'rgba(155,92,246,0.3)':null,0.5);
+  face([4,5,6,7],fT,sC,sW);
 
-    const player = profileData?.response?.players?.[0];
-    if (!player) return res.status(404).json({ error: 'Perfil não encontrado ou privado' });
+  // Windows — front face (brighter, denser)
+  {
+    const cols=Math.max(3,b.w/14|0), rows=Math.max(3,b.h/18|0);
+    for(let c=0;c<cols;c++) for(let r=0;r<rows;r++){
+      const tx=(c+.5)/cols, sy2=(r+.3)/(rows+.3);
+      const seed = Math.sin(b.x*.031+c*2.1+r*3.3);
+      const flicker = Math.sin(b.x*.04+c*1.9+r*2.7+animFrame*.002);
+      if(seed > -0.35){ // ~67% of windows lit
+        const bx=lerp(lerp(p[0].x,p[3].x,tx),lerp(p[4].x,p[7].x,tx),sy2);
+        const by=lerp(lerp(p[0].y,p[3].y,tx),lerp(p[4].y,p[7].y,tx),sy2);
+        const bright = 0.65 + flicker*0.2;
+        // Vary window color: mostly blue-white, some warm yellow, rare green/pink
+        const colorSeed = (b.seed + c*7 + r*13) % 20;
+        let wColor;
+        if(colorSeed < 13)      wColor = `rgba(140,185,255,${bright})`; // blue-white (most)
+        else if(colorSeed < 16) wColor = `rgba(255,220,120,${bright})`; // warm yellow
+        else if(colorSeed < 18) wColor = `rgba(100,255,200,${bright*0.8})`; // cyan-green
+        else                    wColor = `rgba(255,140,200,${bright*0.7})`; // pink (rare)
+        if(isMe) wColor = `rgba(210,160,255,${bright})`;
+        ctx.beginPath(); ctx.rect(bx-1.5,by-2.5,3,4);
+        ctx.fillStyle=wColor; ctx.fill();
+      }
+    }
+    // Side face windows (dimmer, same density)
+    const scols=Math.max(2,b.d/14|0), srows=Math.max(3,b.h/18|0);
+    for(let c=0;c<scols;c++) for(let r=0;r<srows;r++){
+      const tx=(c+.5)/scols, sy2=(r+.3)/(srows+.3);
+      const seed = Math.sin(b.y*.031+c*2.3+r*3.1);
+      if(seed > -0.2){ // ~60% on side
+        const bx=lerp(lerp(p[1].x,p[2].x,1-tx),lerp(p[5].x,p[6].x,1-tx),sy2);
+        const by=lerp(lerp(p[1].y,p[2].y,1-tx),lerp(p[5].y,p[6].y,1-tx),sy2);
+        const bright = 0.4 + Math.sin(b.y*.04+c*2+r*3+animFrame*.002)*0.15;
+        ctx.beginPath(); ctx.rect(bx-1.5,by-2.5,3,4);
+        ctx.fillStyle=`rgba(100,150,220,${bright})`; ctx.fill();
+      }
+    }
+  }
 
-    const games = gamesData?.response?.games || [];
-    const gameCount = gamesData?.response?.game_count || games.length;
-    const totalMinutes = games.reduce((s, g) => s + (g.playtime_forever || 0), 0);
-    const totalHours = Math.floor(totalMinutes / 60);
+  // Player beacon
+  if(isMe){
+    const tc={x:(p[4].x+p[5].x+p[6].x+p[7].x)/4,y:(p[4].y+p[5].y+p[6].y+p[7].y)/4};
+    const pr=5+Math.sin(animFrame*.07)*4;
+    ctx.beginPath();ctx.arc(tc.x,tc.y,pr,0,Math.PI*2);ctx.fillStyle=`rgba(34,211,238,${.25+Math.sin(animFrame*.07)*.15})`;ctx.fill();
+    ctx.beginPath();ctx.arc(tc.x,tc.y,2.5,0,Math.PI*2);ctx.fillStyle='#22d3ee';ctx.fill();
+    const bg2=ctx.createLinearGradient(0,tc.y-70,0,tc.y);bg2.addColorStop(0,'transparent');bg2.addColorStop(1,'rgba(34,211,238,0.3)');
+    ctx.beginPath();ctx.moveTo(tc.x,tc.y);ctx.lineTo(tc.x,tc.y-70);ctx.strokeStyle=bg2;ctx.lineWidth=1;ctx.stroke();
+  }
 
-    // Top 3 most played games (all time)
-    const sorted = [...games].sort((a, b) => b.playtime_forever - a.playtime_forever);
-    const top3 = sorted.slice(0, 3).map(g => ({
-      appid: g.appid,
-      name: g.name || `App ${g.appid}`,
-      hours: Math.floor((g.playtime_forever || 0) / 60),
-    }));
+  // ── PINÁCULO ──────────────────────────────────────────────────────────────
+  // roof center = avg of top 4 corners
+  const rc = {
+    x: (p[4].x+p[5].x+p[6].x+p[7].x)/4,
+    y: (p[4].y+p[5].y+p[6].y+p[7].y)/4
+  };
+  // pináculo height proportional to building, min 12px max 40px
+  const pinH = Math.max(12, Math.min(40, b.h * camZoom * 0.18));
+  // pináculo tip (top of spire in screen space)
+  const tipX = rc.x;
+  const tipY = rc.y - pinH;
 
-    // Recent game = top game played in last 2 weeks
-    const recentGames = recentData?.response?.games || [];
-    const topRecent = recentGames.sort((a, b) => (b.playtime_2weeks || 0) - (a.playtime_2weeks || 0))[0];
-    const recentGame = topRecent?.name || null;
-    const recentAppid = topRecent?.appid || null;
-    const recentHours = topRecent ? Math.floor((topRecent.playtime_2weeks || 0) / 60) : 0;
+  // base corners of pináculo (diamond on roof)
+  const pinW = Math.max(5, b.w * camZoom * 0.13);
+  const pb = [
+    { x: rc.x - pinW * 0.9, y: rc.y + pinW * 0.3 }, // left
+    { x: rc.x,               y: rc.y - pinW * 0.2 }, // front
+    { x: rc.x + pinW * 0.9, y: rc.y + pinW * 0.3 }, // right
+    { x: rc.x,               y: rc.y + pinW * 0.8 }, // back
+  ];
 
-    return res.status(200).json({
-      name: player.personaname,
-      avatar: player.avatarmedium || player.avatar,
-      steamid: player.steamid,
-      profileUrl: player.profileurl,
-      gameCount,
-      totalHours,
-      top3,
-      recentGame,      // game most played in last 2 weeks
-      recentAppid,     // appid of that game
-      recentHours,     // hours in last 2 weeks
-      memberSince: player.timecreated,
-      privateLibrary: gameCount === 0,
-    });
+  const pinColor = isMe ? '155,92,246' : selected ? '34,211,238' : '130,80,220';
+  const pinAlpha = isMe ? 0.9 : selected ? 1.0 : 0.7;
 
-  } catch (err) {
-    return res.status(500).json({ error: 'Erro ao buscar dados da Steam: ' + err.message });
+  // left face
+  ctx.beginPath(); ctx.moveTo(tipX,tipY); ctx.lineTo(pb[0].x,pb[0].y); ctx.lineTo(pb[3].x,pb[3].y); ctx.closePath();
+  ctx.fillStyle=`rgba(${pinColor},${pinAlpha*0.55})`; ctx.fill();
+  // right face
+  ctx.beginPath(); ctx.moveTo(tipX,tipY); ctx.lineTo(pb[2].x,pb[2].y); ctx.lineTo(pb[3].x,pb[3].y); ctx.closePath();
+  ctx.fillStyle=`rgba(${pinColor},${pinAlpha*0.4})`; ctx.fill();
+  // front face
+  ctx.beginPath(); ctx.moveTo(tipX,tipY); ctx.lineTo(pb[0].x,pb[0].y); ctx.lineTo(pb[1].x,pb[1].y); ctx.lineTo(pb[2].x,pb[2].y); ctx.closePath();
+  ctx.fillStyle=`rgba(${pinColor},${pinAlpha*0.8})`; ctx.fill();
+  // outline
+  ctx.beginPath(); ctx.moveTo(tipX,tipY);
+  pb.forEach(pt=>ctx.lineTo(pt.x,pt.y));
+  ctx.lineTo(tipX,tipY);
+  ctx.strokeStyle=`rgba(${pinColor},${pinAlpha*0.6})`; ctx.lineWidth=0.6; ctx.stroke();
+
+  // Store tip position on building object for camera focus
+  b._tipX = tipX; b._tipY = tipY;
+
+  // ── SELEÇÃO: efeito ao redor do pináculo ─────────────────────────────────
+  if(selected){
+    const pulse = Math.sin(animFrame*.08);
+    // Anel pulsante ao redor da base do pináculo
+    const ringR = pinW * 1.4 + pulse * 3;
+    ctx.beginPath(); ctx.arc(rc.x, rc.y, ringR, 0, Math.PI*2);
+    ctx.strokeStyle=`rgba(34,211,238,${0.55+pulse*0.2})`; ctx.lineWidth=1.5; ctx.stroke();
+    // Segundo anel mais largo e transparente
+    ctx.beginPath(); ctx.arc(rc.x, rc.y, ringR*1.7, 0, Math.PI*2);
+    ctx.strokeStyle=`rgba(34,211,238,${0.2+pulse*0.1})`; ctx.lineWidth=0.8; ctx.stroke();
+    // Raio de luz subindo da ponta
+    const beamLen = 60 + pulse * 15;
+    const beamGrad = ctx.createLinearGradient(tipX, tipY, tipX, tipY - beamLen);
+    beamGrad.addColorStop(0, `rgba(34,211,238,${0.6+pulse*0.2})`);
+    beamGrad.addColorStop(1, 'rgba(34,211,238,0)');
+    ctx.beginPath(); ctx.moveTo(tipX-1, tipY); ctx.lineTo(tipX+1, tipY); ctx.lineTo(tipX, tipY-beamLen); ctx.closePath();
+    ctx.fillStyle=beamGrad; ctx.fill();
+    // Brilho na ponta
+    ctx.beginPath(); ctx.arc(tipX, tipY, 2.5+pulse*1.5, 0, Math.PI*2);
+    ctx.fillStyle=`rgba(34,211,238,${0.8+pulse*0.2})`; ctx.fill();
+  }
+
+  // ── NOME no hover/selecionado ─────────────────────────────────────────────
+  if((hovered||selected)&&!isMe){
+    ctx.font='600 11px Rajdhani'; ctx.fillStyle='rgba(34,211,238,0.9)'; ctx.textAlign='center';
+    ctx.fillText(b.name, tipX, tipY-8); ctx.textAlign='left';
+  }
+  if(isMe){
+    ctx.font='700 11px Rajdhani'; ctx.fillStyle='rgba(155,92,246,0.9)'; ctx.textAlign='center';
+    ctx.fillText(b.name, tipX, tipY-8); ctx.textAlign='left';
   }
 }
+
+// ── MAIN LOOP ─────────────────────────────────────────────────────────────────
+function draw(){
+  animFrame++;
+  updateCamera();
+  ctx.clearRect(0,0,W,H);
+  drawSky(); drawGround();
+  if(animFrame-lastSort>90){sortBuildings();lastSort=animFrame;}
+  for(const b of buildings) drawBuilding(b,b===hoveredBuilding);
+  drawDistrictBadges();
+  if(buildings.length===0&&mode==='explore'){
+    ctx.font='300 13px "Exo 2"';ctx.fillStyle='rgba(155,92,246,0.2)';ctx.textAlign='center';
+    ctx.fillText('A CIDADE ESTÁ VAZIA. SEJA O PRIMEIRO.',W/2,H/2+80);ctx.textAlign='left';
+  }
+  requestAnimationFrame(draw);
+}
+
+// ── CAMERA UPDATE (every frame) ───────────────────────────────────────────────
+function updateCamera(){
+  if(mode==='welcome')return;
+
+  // Apply spherical deltas with damping (OrbitControls style)
+  theta  += dTheta  * DAMPING;
+  phi    += dPhi    * DAMPING;
+  radius += dRadius * DAMPING;
+
+  dTheta  *= (1 - DAMPING);
+  dPhi    *= (1 - DAMPING);
+  dRadius *= (1 - DAMPING);
+  panDX   *= (1 - DAMPING);
+  panDY   *= (1 - DAMPING);
+
+  // Clamp phi: between 5° (near top-down) and 88° (near horizontal)
+  phi = Math.max(0.09, Math.min(1.54, phi));
+  // Clamp radius
+  radius = Math.max(120, Math.min(2500, radius));
+
+  // Pan: shift target in camera's horizontal plane
+  // pan X = right direction = (cos(theta), 0, -sin(theta)) in world XZ
+  // pan Y = up-ish direction along camera = perpendicular to both right and look
+  const panSpeed = radius * 0.0012;
+  targetX += (panDX * Math.cos(theta) + panDY * Math.sin(theta) * Math.cos(phi)) * panSpeed;
+  targetY += (panDX * Math.sin(theta) - panDY * Math.cos(theta) * Math.cos(phi)) * panSpeed;
+
+  // Sync legacy vars used by iso() and other fns
+  camAngle = theta;
+  camTilt  = phi;
+  camZoom  = 800 / radius;
+  camX     = targetX;
+  camY     = targetY;
+}
+
+
+
+
+// ── HIT TEST ─────────────────────────────────────────────────────────────────
+function getBuildingAt(mx,my){
+  let found=null, minScore=999999;
+  for(const b of [...buildings].reverse()){
+    const p=getScreenBounds(b);
+    const minX=Math.min(...p.map(pt=>pt.x))-8;
+    const maxX=Math.max(...p.map(pt=>pt.x))+8;
+    const minY=Math.min(...p.map(pt=>pt.y))-8;
+    const maxY=Math.max(...p.map(pt=>pt.y))+8;
+    if(mx>=minX&&mx<=maxX&&my>=minY&&my<=maxY){
+      const cx=(p[4].x+p[5].x+p[6].x+p[7].x)/4;
+      const cy=(p[0].y+p[4].y)/2;
+      const d=Math.sqrt((mx-cx)**2+(my-cy)**2);
+      if(d<minScore){minScore=d;found=b;}
+    }
+  }
+  return found;
+}
+
+
+// ── MOUSE ─────────────────────────────────────────────────────────────────────
+canvas.addEventListener('mousemove',e=>{
+  if(mode==='welcome')return;
+  if(!isDragging){
+    hoveredBuilding=getBuildingAt(e.clientX,e.clientY);
+    const tt=document.getElementById('tooltip');
+    if(hoveredBuilding){
+      tt.style.display='block';
+      tt.style.left=(e.clientX+16)+'px';
+      tt.style.top=Math.max(70,e.clientY-10)+'px';
+      document.getElementById('ttName').textContent=hoveredBuilding.name;
+      document.getElementById('ttHours').textContent=(hoveredBuilding.hours||0).toLocaleString()+'h';
+      document.getElementById('ttGames').textContent=hoveredBuilding.games||'?';
+      document.getElementById('ttRank').textContent='#'+(hoveredBuilding.rank||'?');
+      canvas.style.cursor='pointer';
+    } else {
+      tt.style.display='none';
+      canvas.style.cursor='default';
+    }
+  }
+});
+
+// ── MOUSE: ORBIT (left) + PAN (right) ───────────────────────────────────────
+// Pivot is always targetX/Y — the center of the screen.
+// Left drag = orbit: horizontal → azimuth (unlimited 360°), vertical → elevation
+// Right drag = pan: shifts targetX/Y in world space
+
+canvas.addEventListener('mousedown',e=>{
+  if(mode==='welcome')return;
+  e.preventDefault();
+  clickStartX=e.clientX; clickStartY=e.clientY;
+  lastMouse={x:e.clientX,y:e.clientY};
+  isDragging=true;
+  canvas.style.cursor='grabbing';
+  document.getElementById('tooltip').style.display='none';
+
+  // On left-button drag: pivot is always camX/camY = targetX/Y = screen center
+  // Nothing to do — targetX/Y IS the world point at screen center by definition
+});
+
+window.addEventListener('mouseup',e=>{
+  const moved=Math.abs(e.clientX-clickStartX)+Math.abs(e.clientY-clickStartY);
+  if(moved<6&&mode!=='welcome'&&e.button===0){
+    const b=getBuildingAt(e.clientX,e.clientY);
+    if(b) selectBuilding(b);
+    else closePlayerCard();
+  }
+  isDragging=false;
+  canvas.style.cursor='default';
+});
+
+window.addEventListener('mousemove',e=>{
+  if(!isDragging||mode==='welcome')return;
+  const dx=e.clientX-lastMouse.x;
+  const dy=e.clientY-lastMouse.y;
+
+  if(e.buttons===1){
+    // Horizontal = rotate azimuth around vertical axis (unlimited)
+    camAngle -= dx * 0.007;
+    // Vertical = elevation: drag up → look more from above (increase tilt toward top-down)
+    // clamp: 0.04 = nearly horizontal, 1.52 = nearly straight down
+    camTilt = Math.max(0.04, Math.min(1.52, camTilt - dy * 0.005));
+  }
+
+  if(e.buttons===2||e.buttons===4){
+    // Pan: shift the orbit pivot in world space
+    panDX -= dx;
+    panDY += dy;
+  }
+
+  lastMouse={x:e.clientX,y:e.clientY};
+});
+
+
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+
+// Scroll = zoom in/out (change orbit distance)
+canvas.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const factor = e.deltaY > 0 ? 1.10 : 0.91;
+  camDist = Math.max(120, Math.min(2500, camDist * factor));
+},{passive:false});
+
+// ── TOUCH ─────────────────────────────────────────────────────────────────────
+let lastTD=0, touchMoved=false, lastTouchCenter={x:0,y:0};
+canvas.addEventListener('touchstart',e=>{
+  touchMoved=false;
+  if(e.touches.length===1){
+    lastMouse={x:e.touches[0].clientX,y:e.touches[0].clientY};
+    clickStartX=e.touches[0].clientX; clickStartY=e.touches[0].clientY;
+  }
+  if(e.touches.length===2){
+    lastTD=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+    lastTouchCenter={x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2};
+  }
+},{passive:true});
+
+canvas.addEventListener('touchmove',e=>{
+  e.preventDefault(); touchMoved=true;
+  if(e.touches.length===1){
+    const dx=e.touches[0].clientX-lastMouse.x;
+    const dy=e.touches[0].clientY-lastMouse.y;
+    // One finger = orbit rotate
+    dTheta -= dx * 0.008; dPhi -= dy * 0.006;
+    camTilt = Math.max(0.04, Math.min(1.52, camTilt - dy*.004));
+    lastMouse={x:e.touches[0].clientX,y:e.touches[0].clientY};
+  }
+  if(e.touches.length===2){
+    // Two fingers = zoom + pan
+    const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+    camDist = Math.max(120, Math.min(2500, camDist * (lastTD/d)));
+    lastTD=d;
+    const cx=(e.touches[0].clientX+e.touches[1].clientX)/2;
+    const cy=(e.touches[0].clientY+e.touches[1].clientY)/2;
+    panDX -= (cx-lastTouchCenter.x);
+    panDY += (cy-lastTouchCenter.y);
+    lastTouchCenter={x:cx,y:cy};
+  }
+},{passive:false});
+
+canvas.addEventListener('touchend',e=>{
+  if(!touchMoved&&mode!=='welcome'){
+    const t=e.changedTouches[0];
+    const b=getBuildingAt(t.clientX,t.clientY);
+    if(b) selectBuilding(b); else closePlayerCard();
+  }
+  isDragging=false;
+});
+
+// ── SELECT BUILDING ───────────────────────────────────────────────────────────
+function selectBuilding(b){
+  selectedBuilding=b;
+  document.getElementById('pcAvatar').src=b.avatar||'';
+  document.getElementById('pcName').textContent=b.name;
+  document.getElementById('pcDistrict').textContent=(b.district||'UNKNOWN').toUpperCase();
+  document.getElementById('pcGames').textContent=b.games||'?';
+  document.getElementById('pcHours').textContent=b.hours>0?(b.hours>=1000?Math.floor(b.hours/1000)+'k':b.hours):'—';
+  document.getElementById('pcFloors').textContent=b.floors||'?';
+  document.getElementById('pcRank').textContent='#'+(b.rank||'?');
+
+  // Top games from stored data
+  const top3=b.top3||[];
+  if(top3.length>0){
+    const maxH=top3[0].hours||1;
+    document.getElementById('pcGamesList').innerHTML=top3.map(g=>`
+      <div class="game-row">
+        <span class="game-name">${(g.name||'Game').substring(0,14)}</span>
+        <div class="game-track"><div class="game-fill" style="width:${Math.round(g.hours/maxH*100)}%"></div></div>
+        <span class="game-hrs">${g.hours}h</span>
+      </div>`).join('');
+    document.getElementById('pcGamesWrap').style.display='block';
+  } else {
+    document.getElementById('pcGamesList').innerHTML='<div style="font-size:10px;color:var(--muted);padding:4px 0;line-height:1.6">Dados de jogos não disponíveis.<br><span style="color:rgba(155,92,246,0.6)">Re-registre seu SteamID para atualizar.</span></div>';
+    document.getElementById('pcGamesWrap').style.display='block';
+  }
+  document.getElementById('playerCard').style.display='block';
+  // Smooth focus: pináculo tip lands at screen center
+  // Shift target along camera's depth axis so tip (at tipZ) projects to H/2
+  const pinH = Math.max(12, Math.min(40, b.h * 0.18));
+  const tipZ  = b.h + pinH;
+  // Shift target so tip (at z=tipZ) projects to screen center H/2
+  // Derivation: targetX = b.x - sin(A)*tipZ/tan(T), targetY = b.y - cos(A)*tipZ/tan(T)
+  const D = tipZ / Math.tan(camTilt);
+  const focusX = b.x - Math.sin(camAngle) * D;
+  const focusY = b.y - Math.cos(camAngle) * D;
+
+  let t=0;
+  const startX=targetX, startY=targetY;
+  const startDist=radius;
+  const targetDist=Math.min(radius, 480);
+  function focusLerp(){
+    t+=0.055;
+    const k=1-Math.pow(1-Math.min(t,1),3);
+    targetX=startX+(focusX-startX)*k;
+    targetY=startY+(focusY-startY)*k;
+    radius=startDist+(targetDist-startDist)*k; dRadius=0;
+    velX=0; velY=0;
+    if(t<1) requestAnimationFrame(focusLerp);
+  }
+  focusLerp();
+}
+
+function closePlayerCard(){
+  selectedBuilding=null;
+  document.getElementById('playerCard').style.display='none';
+  // Keep targetX/Y as-is so orbit pivot stays on the last selected building
+}
+
+// ── PROFILE PAGE ──────────────────────────────────────────────────────────────
+function openProfilePage(){
+  if(!selectedBuilding)return;
+  const b=selectedBuilding;
+  document.getElementById('ppAvatar').src=b.avatar||'';
+  document.getElementById('ppName').textContent=b.name;
+  document.getElementById('ppDistrict').textContent=(b.district||'UNKNOWN').toUpperCase();
+  document.getElementById('ppSince').textContent='Na cidade desde '+new Date(b.created_at||Date.now()).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  document.getElementById('ppGames').textContent=b.games||'?';
+  document.getElementById('ppHours').textContent=b.hours>0?(b.hours>=1000?Math.floor(b.hours/1000)+'k':b.hours):'—';
+  document.getElementById('ppFloors').textContent=b.floors||'?';
+  document.getElementById('ppRank').textContent='#'+(b.rank||'?');
+
+  const top3=b.top3||[];
+  if(top3.length>0){
+    const maxH=top3[0].hours||1;
+    document.getElementById('ppGamesList').innerHTML=top3.map((g,i)=>`
+      <div class="pp-game-row">
+        <span class="pp-game-rank">#${i+1}</span>
+        <span class="pp-game-name">${g.name||'Game'}</span>
+        <div class="pp-game-track"><div class="pp-game-fill" style="width:${Math.round(g.hours/maxH*100)}%"></div></div>
+        <span class="pp-game-hrs">${g.hours}h</span>
+      </div>`).join('');
+  } else {
+    document.getElementById('ppGamesList').innerHTML='<div style="color:var(--muted);font-size:12px;padding:12px 0">Biblioteca privada ou sem jogos registrados.</div>';
+  }
+  document.getElementById('profilePage').style.display='block';
+}
+
+function closeProfilePage(){
+  document.getElementById('profilePage').style.display='none';
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────────────────
+async function enterExplore(){
+  showSearchBar(true);
+  mode='explore';
+  document.getElementById('welcomeScreen').style.display='none';
+  showLoading(true,'CARREGANDO A CIDADE...');
+  await refreshCity();
+  showLoading(false);
+  document.getElementById('hud').style.display='flex';
+  document.getElementById('addBuildingBtn').style.display='block';
+  if(mySteamId) document.getElementById('myBuildingBtn').style.display='block';
+}
+
+function enterRegister(){
+  document.getElementById('welcomeScreen').style.display='none';
+  document.getElementById('registerPanel').style.display='block';
+  // Pre-fill if returning user
+  if(mySteamId) document.getElementById('steamInput').value=mySteamId;
+}
+
+function backToWelcome(){
+  document.getElementById('registerPanel').style.display='none';
+  if(mode==='welcome') document.getElementById('welcomeScreen').style.display='flex';
+}
+
+function focusMyBuilding(){
+  // Update URL with steamid for easy sharing
+  if(mySteamId) {
+    const url = new URL(window.location);
+    url.searchParams.set('steamid', mySteamId);
+    window.history.replaceState({}, '', url);
+  }
+  if(!mySteamId)return;
+  const b=buildings.find(b=>b.steamid===mySteamId);
+  if(b){
+    selectBuilding(b);
+    targetX=b.x; targetY=b.y; camDist=400;
+    velX=0; velY=0; rotVelX=0;
+  }
+}
+
+// ── LOAD PROFILE ──────────────────────────────────────────────────────────────
+async function loadProfile(){
+  const input=document.getElementById('steamInput').value.trim();
+  if(!input)return;
+  showError('');
+  showLoading(true,'BUSCANDO PERFIL...');
+  document.getElementById('buildBtn').disabled=true;
+
+  try {
+    const res=await fetch(`/api/steam?steamid=${encodeURIComponent(input)}`);
+    const data=await res.json();
+    if(data.error)throw new Error(data.error);
+
+    showLoading(true,'REGISTRANDO NA CIDADE...');
+    const floors=Math.max(3,Math.floor((data.totalHours||0)/50)+Math.floor((data.gameCount||0)/5));
+    // District = game most played in last 2 weeks (fallback: all-time top game)
+    const recentGame = data.recentGame || data.top3?.[0]?.name || 'INDEPENDENT';
+    const district = recentGame;
+    const districtAppid = data.recentAppid || null;
+
+    // Save to Supabase with top3
+    await sbFetch('gamers?on_conflict=steamid',{
+      method:'POST',
+      headers:{'Prefer':'resolution=merge-duplicates,return=representation'},
+      body:JSON.stringify({
+        steamid:data.steamid, name:data.name, avatar:data.avatar||'',
+        hours:data.totalHours||0, games:data.gameCount||0, floors, district, district_appid:districtAppid,
+        top3:JSON.stringify(data.top3||[]),
+      })
+    });
+
+    // Save steamid locally
+    mySteamId=data.steamid;
+    localStorage.setItem('bg_steamid',mySteamId);
+
+    showLoading(true,'CONSTRUINDO A CIDADE...');
+    mode='city';
+    await refreshCity();
+
+    showLoading(false);
+    document.getElementById('registerPanel').style.display='none';
+    document.getElementById('hud').style.display='flex';
+    showSearchBar(true);
+    document.getElementById('addBuildingBtn').style.display='none';
+    document.getElementById('myBuildingBtn').style.display='block';
+
+    // Auto-select my building
+    const myB=buildings.find(b=>b.steamid===mySteamId);
+    if(myB)selectBuilding(myB);
+    theta=0.55; phi=1.1; radius=900; targetX=0; targetY=0; dTheta=0; dPhi=0; dRadius=0; panDX=0; panDY=0;
+
+  } catch(err){
+    showLoading(false);
+    showError('Erro: '+(err.message||'Tente novamente.'));
+  } finally {
+    document.getElementById('buildBtn').disabled=false;
+  }
+}
+
+// ── SUPABASE ──────────────────────────────────────────────────────────────────
+async function refreshCity(){
+  try {
+    const res=await sbFetch('gamers?select=*&order=floors.desc');
+    if(!res.ok){cityGamers=[];return;}
+    cityGamers=await res.json()||[];
+    // Parse top3 JSON string if needed
+    cityGamers.forEach(g=>{
+      if(typeof g.top3==='string'){try{g.top3=JSON.parse(g.top3);}catch{g.top3=[];}}
+      else if(!g.top3)g.top3=[];
+    });
+    cityGamers.forEach((g,i)=>g.rank=i+1);
+    buildCity(cityGamers);
+    document.getElementById('gamerCount').textContent=cityGamers.length;
+  } catch(e){ console.error(e); }
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function showLoading(show,text){
+  document.getElementById('loadingOverlay').style.display=show?'flex':'none';
+  if(text)document.getElementById('loadingText').textContent=text;
+}
+function showError(msg){
+  const el=document.getElementById('errorMsg');
+  el.textContent=msg; el.style.display=msg?'block':'none';
+}
+
+document.getElementById('steamInput').addEventListener('keydown',e=>{if(e.key==='Enter')loadProfile();});
+
+// ── URL: ?steamid=XXXX → auto-focus building ─────────────────────────────────
+(function handleURL(){
+  const params = new URLSearchParams(window.location.search);
+  const sid = params.get('steamid') || params.get('id');
+  if(sid) {
+    mySteamId = sid;
+    localStorage.setItem('bg_steamid', sid);
+  }
+})();
+
+// ── SEARCH ────────────────────────────────────────────────────────────────────
+function onSearch(val) {
+  const q = val.trim().toLowerCase();
+  const el = document.getElementById('searchResults');
+  if(!q || q.length < 2) { el.style.display='none'; return; }
+  const matches = buildings.filter(b =>
+    b.name && b.name.toLowerCase().includes(q)
+  ).slice(0, 8);
+  if(!matches.length) { el.style.display='none'; return; }
+  el.innerHTML = matches.map(b => `
+    <div class="search-item" onmousedown="searchFly('${b.steamid}')" style="padding:8px 14px;cursor:pointer;font-size:12px;letter-spacing:1px;border-bottom:1px solid rgba(155,92,246,0.08);display:flex;align-items:center;gap:10px;">
+      <img src="${b.avatar||''}" style="width:24px;height:24px;border-radius:2px;" onerror="this.style.display='none'"/>
+      <div>
+        <div style="color:#e2d9f3">${b.name}</div>
+        <div style="font-size:9px;color:#22d3ee;opacity:0.7;margin-top:1px">${(b.district||'').toUpperCase()}</div>
+      </div>
+    </div>`).join('');
+  el.style.display = 'block';
+}
+
+function searchFly(steamid) {
+  document.getElementById('searchResults').style.display='none';
+  document.getElementById('searchInput').value='';
+  const b = buildings.find(b=>b.steamid===steamid);
+  if(b) selectBuilding(b);
+}
+
+// Show/hide search bar when in city mode
+function showSearchBar(show) {
+  document.getElementById('searchBar').style.display = show ? 'flex' : 'none';
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+// Pre-load city in background while showing welcome
+refreshCity();
+draw();
+</script>
+</body>
+</html>
