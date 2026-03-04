@@ -813,6 +813,23 @@ canvas.addEventListener('mousedown',e=>{
   isDragging=true;
   canvas.style.cursor='grabbing';
   document.getElementById('tooltip').style.display='none';
+
+  // On left-button drag start: anchor orbit pivot to world point at screen center
+  // iso inverse: screen center (W/2, H/2+camYOffset) maps to world (camX, camY)
+  // which is already targetX/Y — but if camYOffset != 0 the visual center is shifted.
+  // Snap targetX/Y to the actual visual center of screen in world coords.
+  if(e.button===0){
+    // Project screen center back to world ground plane (z=0)
+    // At screen center: rx=0, ry = -camYOffset/(camZoom*sinTilt)
+    const ry0 = -camYOffset / (camZoom * Math.sin(camTilt));
+    // Unrotate: world offset from camX/camY
+    const wx0 = -ry0 * Math.sin(camAngle);
+    const wy0 =  ry0 * Math.cos(camAngle);
+    targetX = camX + wx0;
+    targetY = camY + wy0;
+    camYOffset = 0; // reset vertical offset so pivot is clean
+    velX=0; velY=0;
+  }
 });
 
 window.addEventListener('mouseup',e=>{
