@@ -964,11 +964,8 @@ function selectBuilding(b){
 function closePlayerCard(){
   selectedBuilding=null;
   document.getElementById('playerCard').style.display='none';
-  // Animate camYOffset back to 0
-  const startOff=camYOffset;
-  let tc=0;
-  function resetYOff(){ tc+=0.07; camYOffset=startOff*(1-Math.min(tc,1)); if(tc<1)requestAnimationFrame(resetYOff); }
-  resetYOff();
+  // Keep targetX/Y as-is so orbit pivot stays on the last selected building
+  camYOffset=0; // reset vertical offset (no jump since deselecting flattens anyway)
 }
 
 // ── PROFILE PAGE ──────────────────────────────────────────────────────────────
