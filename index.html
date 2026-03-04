@@ -589,16 +589,16 @@ const SUPABASE_KEY = 'sb_publishable_f5qYl3HmOL-v67DhORW64g_Ss7iC8oD';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50Znl2ZWdqdXJqZWZueW5obnl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1ODE3MDAsImV4cCI6MjA4ODE1NzcwMH0.0_1BdPPECsWnzltC-tL8j1AQmZWoTcAjfOj28Uxy9h4';
 
 async function sbFetch(path, opts = {}) {
+  const { headers: extraHeaders, ...restOpts } = opts;
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...restOpts,
     headers: {
       'apikey': SUPABASE_ANON,
       'Authorization': `Bearer ${SUPABASE_ANON}`,
       'Content-Type': 'application/json',
       'Prefer': 'return=representation',
-      'X-Client-Info': 'buildingamer/1.0',
-      ...opts.headers
+      ...(extraHeaders || {}),
     },
-    ...opts
   });
   if (!res.ok) {
     const err = await res.text();
