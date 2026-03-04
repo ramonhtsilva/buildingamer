@@ -459,7 +459,7 @@ function iso(x, y, z) {
   const ry = wx*Math.sin(camAngle) + wy*Math.cos(camAngle);
   return {
     x: W/2 + rx*camZoom,
-    y: H/2 + 40 + (ry*Math.sin(camTilt) - z*Math.cos(camTilt))*camZoom
+    y: H/2 + camYOffset + (ry*Math.sin(camTilt) - z*Math.cos(camTilt))*camZoom
   };
 }
 
@@ -945,25 +945,28 @@ function selectBuilding(b){
     document.getElementById('pcGamesWrap').style.display='block';
   }
   document.getElementById('playerCard').style.display='block';
-  // Smooth focus: lerp camera to building, tip of pináculo at screen center
+  // Smooth focus: pináculo tip lands exactly at screen center
   const focusX=b.x, focusY=b.y;
-  // Compensate for building height so the TIP (not base) centers:
-  // In world space, move target slightly "back" along camera axis to counter tipZ offset
-  const tipZ = b.h + Math.max(12, Math.min(40, b.h * 0.18)); // approx world height of tip
-  const vertOffset = (tipZ * Math.cos(camTilt)) / Math.sin(camTilt); // world Y to center tip
-  const offX = Math.sin(camAngle) * vertOffset * 0.5;
-  const offY = -Math.cos(camAngle) * vertOffset * 0.5;
+  const pinH = Math.max(12, Math.min(40, b.h * 0.18));
+  const tipZ  = b.h + pinH; // world-space Z of pinnacle tip
+
+  // When centered (rx=ry=0), iso Y = H/2 + camYOffset - tipZ*cos(tilt)*zoom
+  // For tip at H/2: camYOffset = tipZ * cos(tilt) * zoom
+  const targetDist = Math.min(camDist, 480);
+  const targetZoom = 800 / targetDist;
+  const targetYOffset = tipZ * Math.cos(camTilt) * targetZoom;
 
   let t=0;
   const startX=targetX, startY=targetY;
   const startDist=camDist;
-  const targetDist=Math.min(camDist, 480);
+  const startYOffset=camYOffset;
   function focusLerp(){
     t+=0.055;
     const k=1-Math.pow(1-Math.min(t,1),3); // ease-out cubic
-    targetX=startX+(focusX+offX-startX)*k;
-    targetY=startY+(focusY+offY-startY)*k;
+    targetX=startX+(focusX-startX)*k;
+    targetY=startY+(focusY-startY)*k;
     camDist=startDist+(targetDist-startDist)*k;
+    camYOffset=startYOffset+(targetYOffset-startYOffset)*k;
     velX=0; velY=0;
     if(t<1) requestAnimationFrame(focusLerp);
   }
@@ -973,6 +976,11 @@ function selectBuilding(b){
 function closePlayerCard(){
   selectedBuilding=null;
   document.getElementById('playerCard').style.display='none';
+  // Animate camYOffset back to 0
+  const startOff=camYOffset;
+  let tc=0;
+  function resetYOff(){ tc+=0.07; camYOffset=startOff*(1-Math.min(tc,1)); if(tc<1)requestAnimationFrame(resetYOff); }
+  resetYOff();
 }
 
 // ── PROFILE PAGE ──────────────────────────────────────────────────────────────
