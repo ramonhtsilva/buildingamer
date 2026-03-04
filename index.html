@@ -432,7 +432,7 @@ let buildings     = [];
 let mySteamId     = localStorage.getItem('bg_steamid') || null;
 let selectedBuilding = null;
 let camAngle = 0.55, camTilt = 0.36, camZoom = 0.9;
-let camX=0, camY=0;
+let camX=0, camY=0, camYOffset=0;
 let lastMouse = {x:0,y:0};
 let hoveredBuilding = null;
 let animFrame = 0, lastSort = 0;
