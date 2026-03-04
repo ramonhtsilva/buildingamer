@@ -767,7 +767,7 @@ window.addEventListener('mousemove',e=>{
     const oldTilt  = camTilt;
 
     // Apply rotation
-    camAngle += dx * 0.007;
+    camAngle -= dx * 0.007;
     camTilt = Math.max(.08, Math.min(.78, camTilt - dy*.003));
 
     // After rotating, reproject pivot — it would have moved on screen.
