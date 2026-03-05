@@ -4,10 +4,40 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET');
 
-  const { steamid } = req.query;
+  let { steamid } = req.query;
 
-  if (!steamid || !/^\d{17}$/.test(steamid)) {
-    return res.status(400).json({ error: 'SteamID64 inválido' });
+  if (!steamid) {
+    return res.status(400).json({ error: 'SteamID obrigatório' });
+  }
+
+  // Accept: SteamID64 (17 digits), vanity URL name, or full profile URL
+  // e.g. "hakamzinho", "https://steamcommunity.com/id/hakamzinho", "https://steamcommunity.com/profiles/76561198..."
+  try {
+    steamid = steamid.trim();
+
+    // Extract from full URL
+    const urlMatch = steamid.match(/steamcommunity\.com\/(id|profiles)\/([^\/\?]+)/);
+    if (urlMatch) {
+      if (urlMatch[1] === 'profiles') {
+        steamid = urlMatch[2]; // already a SteamID64
+      } else {
+        steamid = urlMatch[2]; // vanity name
+      }
+    }
+
+    // If not a 17-digit number, resolve vanity URL
+    if (!/^\d{17}$/.test(steamid)) {
+      const vanityRes = await fetch(
+        `https://api.steampowered.com/ISteamUser/ResolveVanityURL/v1/?key=${STEAM_KEY}&vanityurl=${encodeURIComponent(steamid)}&format=json`
+      );
+      const vanityData = await vanityRes.json();
+      if (vanityData?.response?.success !== 1) {
+        return res.status(404).json({ error: `Perfil "${steamid}" não encontrado. Tente usar o SteamID64 (17 dígitos).` });
+      }
+      steamid = vanityData.response.steamid;
+    }
+  } catch (resolveErr) {
+    return res.status(500).json({ error: 'Erro ao resolver perfil Steam: ' + resolveErr.message });
   }
 
   try {
