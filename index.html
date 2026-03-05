@@ -739,14 +739,18 @@ function drawDistrictBadges() {
 function lerp(a,b,t){return a+(b-a)*t;}
 
 function getScreenBounds(b) {
+  // Cache: só recalcula quando câmera muda
+  const camKey = `${camAngle.toFixed(4)}_${camTilt.toFixed(4)}_${camZoom.toFixed(4)}_${(targetX||0).toFixed(1)}_${(targetY||0).toFixed(1)}`;
+  if (b._sp && b._camKey === camKey) return b._sp;
   const hw=b.w/2,hd=b.d/2;
-  const pts=[
+  b._sp=[
     iso(b.x-hw,b.y-hd,b.z),iso(b.x+hw,b.y-hd,b.z),
     iso(b.x+hw,b.y+hd,b.z),iso(b.x-hw,b.y+hd,b.z),
     iso(b.x-hw,b.y-hd,b.z+b.h),iso(b.x+hw,b.y-hd,b.z+b.h),
     iso(b.x+hw,b.y+hd,b.z+b.h),iso(b.x-hw,b.y+hd,b.z+b.h),
   ];
-  return pts;
+  b._camKey = camKey;
+  return b._sp;
 }
 
 // ── WINDOW TEXTURE ────────────────────────────────────────────────────────────
@@ -992,10 +996,34 @@ function drawBuilding(b, hovered) {
 }
 
 // ── MAIN LOOP ─────────────────────────────────────────────────────────────────
+let _lastCamState = '';
+let _lastHovered = null;
+let _lastSelected = null;
+let _forceFrames = 0; // frames adicionais após mudança
+
 function draw(){
   animFrame++;
   updateCamera();
-  ctx.imageSmoothingEnabled = false;
+
+  // Detecta se algo mudou (câmera, hover, selected, animações periódicas)
+  const camState = `${camAngle.toFixed(3)}_${camTilt.toFixed(3)}_${camZoom.toFixed(3)}_${(targetX||0).toFixed(0)}_${(targetY||0).toFixed(0)}`;
+  const hasAnimation = (animFrame % 120 < 3); // pulso/glow a cada 2s
+  const stateChanged = camState !== _lastCamState 
+    || hoveredBuilding !== _lastHovered 
+    || selectedBuilding !== _lastSelected
+    || _forceFrames > 0
+    || hasAnimation;
+
+  _lastCamState = camState;
+  _lastHovered = hoveredBuilding;
+  _lastSelected = selectedBuilding;
+  if (_forceFrames > 0) _forceFrames--;
+
+  if (!stateChanged) {
+    requestAnimationFrame(draw);
+    return; // skip render — câmera parada, nada mudou
+  }
+
   ctx.imageSmoothingEnabled = false;
   ctx.clearRect(0,0,W,H);
   drawSky(); drawGround();
@@ -1033,11 +1061,12 @@ function updateCamera(){
 function getBuildingAt(mx,my){
   let found=null, minScore=999999;
   for(const b of [...buildings].reverse()){
-    const p=getScreenBounds(b);
-    const minX=Math.min(...p.map(pt=>pt.x))-8;
-    const maxX=Math.max(...p.map(pt=>pt.x))+8;
-    const minY=Math.min(...p.map(pt=>pt.y))-8;
-    const maxY=Math.max(...p.map(pt=>pt.y))+8;
+    // Usa bounds cacheados do último draw — sem recalcular iso()
+    const p = b._sp || getScreenBounds(b);
+    const minX=Math.min(p[0].x,p[1].x,p[2].x,p[3].x)-8;
+    const maxX=Math.max(p[0].x,p[1].x,p[2].x,p[3].x)+8;
+    const minY=Math.min(p[4].y,p[5].y,p[6].y,p[7].y)-8;
+    const maxY=Math.max(p[0].y,p[1].y,p[2].y,p[3].y)+8;
     if(mx>=minX&&mx<=maxX&&my>=minY&&my<=maxY){
       const cx=(p[4].x+p[5].x+p[6].x+p[7].x)/4;
       const cy=(p[0].y+p[4].y)/2;
@@ -1352,6 +1381,7 @@ async function loadProfile(){
 
     showLoading(true, t('loadingBuilding'));
     mode='city';
+    _forceFrames = 20;
     await refreshCity();
 
     showLoading(false);
