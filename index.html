@@ -694,17 +694,17 @@ function drawBuilding(b, hovered) {
   if (isMe) {
     cFront = `rgba(120,50,230,${t})`; cLeft  = `rgba(85,30,180,${t})`;
     cRight = `rgba(70,22,160,${t})`; cBack  = `rgba(55,15,130,${t})`;
-    cTop   = `rgba(160,95,255,${t+.1})`;
+    cTop   = `rgb(90,45,160)`;
     edgeColor = 'rgba(155,92,246,0.95)'; edgeW = 1.5;
   } else if (selected) {
     cFront = `rgba(22,95,140,0.92)`; cLeft  = `rgba(16,75,115,0.92)`;
     cRight = `rgba(10,55,90,0.92)`;  cBack  = `rgba(7,38,68,0.92)`;
-    cTop   = `rgba(34,211,238,0.88)`;
+    cTop   = `rgb(20,130,155)`;
     edgeColor = 'rgba(34,211,238,0.95)'; edgeW = 1.5;
   } else if (hovered) {
     cFront = `rgba(18,75,115,0.9)`; cLeft  = `rgba(13,58,95,0.9)`;
     cRight = `rgba(9,44,76,0.9)`;   cBack  = `rgba(6,32,58,0.9)`;
-    cTop   = `rgba(34,211,238,0.72)`;
+    cTop   = `rgb(16,100,120)`;
     edgeColor = 'rgba(34,211,238,0.55)'; edgeW = 0.8;
   } else {
     const v = 0.30 + (b.seed%40)/100;
@@ -715,21 +715,21 @@ function drawBuilding(b, hovered) {
       cLeft =`rgb(${28*v|0},${11*v|0},${78*v|0})`;
       cRight=`rgb(${20*v|0},${8*v|0},${60*v|0})`;
       cBack =`rgb(${13*v|0},${5*v|0},${42*v|0})`;
-      cTop  =`rgb(${55*v|0},${26*v|0},${130*v|0})`;
+      cTop  =`rgb(${70*v|0},${55*v|0},${160*v|0})`; // topo: mais claro que frente
     } else if (hue===1) {
       // Dark teal/blue
       cFront=`rgb(${16*v|0},${52*v|0},${95*v|0})`;
       cLeft =`rgb(${11*v|0},${38*v|0},${72*v|0})`;
       cRight=`rgb(${8*v|0},${28*v|0},${55*v|0})`;
       cBack =`rgb(${5*v|0},${18*v|0},${38*v|0})`;
-      cTop  =`rgb(${22*v|0},${75*v|0},${145*v|0})`;
+      cTop  =`rgb(${35*v|0},${90*v|0},${170*v|0})`; // topo mais claro
     } else {
       // Dark magenta/indigo
       cFront=`rgb(${68*v|0},${10*v|0},${80*v|0})`;
       cLeft =`rgb(${50*v|0},${7*v|0},${60*v|0})`;
       cRight=`rgb(${36*v|0},${5*v|0},${44*v|0})`;
       cBack =`rgb(${22*v|0},${3*v|0},${28*v|0})`;
-      cTop  =`rgb(${95*v|0},${16*v|0},${115*v|0})`;
+      cTop  =`rgb(${115*v|0},${35*v|0},${140*v|0})`; // topo mais claro
     }
     edgeColor = null; edgeW = 0;
   }
@@ -749,79 +749,86 @@ function drawBuilding(b, hovered) {
   face([2,3,7,6], cBack,  null, 0);            // back face (darkest, usually hidden)
   face([4,5,6,7], cTop,   edgeColor, edgeW);  // roof
 
-  // ── WINDOWS — GitCity style: large square tiles, flat colors, dense grid ─────
-  const drawWindows = (corners, sideDim, bSeed) => {
-    const [BL, BR, TL, TR] = corners;
+  // ── WINDOWS — GitCity style ──────────────────────────────────────────────────
+  // Key insight: cada janela é um paralelogramo definido por interpolação bilinear
+  // dos 4 cantos da face. Isso garante que ficam dentro da face isométrica.
+  const drawWindows = (BL, BR, TL, TR, dimFactor, bSeed) => {
+    // Tamanho da face em pixels (approximado pelo lado mais longo)
     const faceW = Math.hypot(BR.x-BL.x, BR.y-BL.y);
     const faceH = Math.hypot(TL.x-BL.x, TL.y-BL.y);
-    if (faceW < 8 || faceH < 10) return;
+    if (faceW < 6 || faceH < 8) return;
 
-    // GitCity: windows fill nearly the entire face in a tight grid
-    // ~1 window per 14px wide, 13px tall — large and prominent
-    const cols = Math.max(1, Math.round(faceW / 14));
-    const rows = Math.max(1, Math.round(faceH / 13));
+    // Grid de janelas — ~1 janela por 16px de face
+    const cols = Math.max(1, Math.round(faceW / 16));
+    const rows = Math.max(1, Math.round(faceH / 16));
 
-    // Window occupies ~75% of cell — large, nearly touching
-    const cellW = faceW / cols;
-    const cellH = faceH / rows;
-    const winRatio = 0.72;
+    // Margem: 15% em cada borda, janela ocupa 70% da célula
+    const GAP = 0.30; // fração do cell que é gap (preto)
+    const WIN = 1.0 - GAP; // fração que é janela
 
-    // GitCity colour palette: mostly blue tones, some white/yellow accents
-    // Colours are per-window, deterministic
-    const COLS = [
-      [100, 160, 255], // blue (dominant)
-      [140, 190, 255], // light blue
-      [200, 225, 255], // very light blue / white-blue
-      [255, 255, 255], // white
-      [255, 240, 160], // warm yellow (rare accent)
-      [ 80, 220, 200], // cyan accent (rare)
-      [200, 140, 255], // purple accent (rare)
+    // Paleta GitCity: azuis dominantes, acentos raros
+    // índice 0-9: 0-4 = tons de azul/branco, 5-7 = acentos, 8-9 = mais azul
+    const PAL = [
+      [180, 210, 255], // azul claro
+      [120, 170, 255], // azul médio
+      [220, 235, 255], // quase branco-azulado
+      [255, 255, 255], // branco puro
+      [100, 150, 240], // azul saturado
+      [200, 160, 255], // lilás/roxo
+      [120, 240, 210], // ciano
+      [255, 230, 120], // amarelo
+      [160, 200, 255], // azul pastel
+      [200, 220, 255], // azul pálido
     ];
-    const WEIGHTS = [0, 0, 0, 1, 1, 2, 5, 6]; // cumulative: blue=3/8, lblue=2/8, ...
 
     for (let c = 0; c < cols; c++) {
       for (let r = 0; r < rows; r++) {
-        // UV of cell centre
-        const u = (c + 0.5) / cols;
-        const v = 1 - (r + 0.5) / rows;
+        // UV dos 4 cantos da janela dentro da célula (com margens)
+        const u0 = (c + GAP/2) / cols;
+        const u1 = (c + GAP/2 + WIN) / cols;
+        const v0 = 1 - (r + GAP/2 + WIN) / rows; // v invertido (0=topo)
+        const v1 = 1 - (r + GAP/2) / rows;
 
-        // Deterministic lit/unlit — ~80% lit on front, 65% on sides
-        const litSeed = Math.sin(bSeed * 1.1 + c * 127.1 + r * 311.7);
-        const litThreshold = sideDim ? 0.3 : -0.6;
-        if (litSeed < litThreshold) continue; // unlit window — skip (face shows through = dark)
+        // Deterministic lit/unlit
+        const litS = Math.sin(bSeed * 1.3 + c * 127.1 + r * 311.7);
+        if (litS < (dimFactor > 1 ? 0.2 : -0.5)) continue; // apagada
 
-        // Screen position via bilinear interp
-        const wx = lerp(lerp(BL.x, BR.x, u), lerp(TL.x, TR.x, u), v);
-        const wy = lerp(lerp(BL.y, BR.y, u), lerp(TL.y, TR.y, u), v);
+        // Escolhe cor
+        const ci = Math.abs(Math.floor(Math.sin(bSeed*0.7 + c*47 + r*83) * 999)) % PAL.length;
+        let [wR, wG, wB] = isMe ? [210, 160, 255] : PAL[ci];
 
-        // Window pixel size — same cell ratio
-        const hw = (cellW * winRatio) * 0.5;
-        const hh = (cellH * winRatio) * 0.5;
+        // Faces laterais: mais escuras
+        wR = (wR * dimFactor) | 0;
+        wG = (wG * dimFactor) | 0;
+        wB = (wB * dimFactor) | 0;
 
-        // Pick colour — weighted toward blues
-        const cSeed = Math.abs(Math.floor(Math.sin(bSeed + c * 53.3 + r * 97.1) * 1000)) % 8;
-        let [wR, wG, wB] = isMe ? [210, 160, 255] : COLS[Math.min(cSeed, COLS.length-1)];
+        // Flicker muito sutil
+        const bright = 0.88 + Math.sin(bSeed + c*13 + r*19 + animFrame*0.0007) * 0.09;
+        ctx.fillStyle = `rgba(${wR},${wG},${wB},${bright.toFixed(2)})`;
 
-        // Side faces: desaturate and dim slightly
-        if (sideDim) { wR = wR*0.6|0; wG = wG*0.7|0; wB = wB*0.8|0; }
+        // Os 4 cantos do paralelogramo da janela via bilinear interp
+        const P = (u, v) => ({
+          x: lerp(lerp(BL.x,BR.x,u), lerp(TL.x,TR.x,u), v),
+          y: lerp(lerp(BL.y,BR.y,u), lerp(TL.y,TR.y,u), v),
+        });
+        const p0=P(u0,v0), p1=P(u1,v0), p2=P(u1,v1), p3=P(u0,v1);
 
-        // Very subtle slow flicker (only ~10% variation, very slow)
-        const flicker = 0.9 + Math.sin(bSeed*2.3 + c*11 + r*17 + animFrame*0.0008) * 0.08;
-        const alpha = flicker.toFixed(2);
-
-        // Flat solid square — no frame, no gradient, just the window
-        ctx.fillStyle = `rgba(${wR},${wG},${wB},${alpha})`;
-        ctx.fillRect(wx - hw, wy - hh, hw * 2, hh * 2);
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y);
+        ctx.lineTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.lineTo(p3.x, p3.y);
+        ctx.closePath();
+        ctx.fill();
       }
     }
   };
 
-  // Front face: corners BL=p[0], BR=p[1], TL=p[4], TR=p[5]
-  drawWindows([p[0], p[1], p[4], p[5]], false, b.x * 0.031 + b.seed);
-  // Left face:  corners BL=p[3], BR=p[0], TL=p[7], TR=p[4]
-  drawWindows([p[3], p[0], p[7], p[4]], true,  b.y * 0.031 + b.seed + 10);
-  // Right face: corners BL=p[1], BR=p[2], TL=p[5], TR=p[6]
-  drawWindows([p[1], p[2], p[5], p[6]], true,  b.y * 0.031 + b.seed + 20);
+  // Janelas nas 4 faces verticais. Topo é sólido (sem janelas).
+  drawWindows(p[0], p[1], p[4], p[5], 1.00, b.x*0.031 + b.seed);      // frente
+  drawWindows(p[3], p[0], p[7], p[4], 0.62, b.y*0.031 + b.seed + 10); // esquerda
+  drawWindows(p[1], p[2], p[5], p[6], 0.52, b.y*0.031 + b.seed + 20); // direita
+  drawWindows(p[2], p[3], p[6], p[7], 0.42, b.x*0.031 + b.seed + 30); // fundo
 
   // Player beacon
   if(isMe){
