@@ -680,140 +680,180 @@ function getScreenBounds(b) {
   return pts;
 }
 
+// ── WINDOW TEXTURE ────────────────────────────────────────────────────────────
+// Exatamente como o GitCity: WS=6, GAP=2, PAD=3
+// Retorna um HTMLCanvasElement offscreen cacheado por chave
+const _texCache = new Map();
+
+function getWinTex(cols, rows, seed, litColors, offColor, faceColor) {
+  const key = `${cols}_${rows}_${seed}_${faceColor}`;
+  if (_texCache.has(key)) return _texCache.get(key);
+
+  const WS = 6, GAP = 2, PAD = 3;
+  const w = PAD*2 + cols*WS + Math.max(0, cols-1)*GAP;
+  const h = PAD*2 + rows*WS + Math.max(0, rows-1)*GAP;
+
+  const off = document.createElement('canvas');
+  off.width = w; off.height = h;
+  const cx = off.getContext('2d');
+
+  // Fundo = cor da face
+  cx.fillStyle = faceColor;
+  cx.fillRect(0, 0, w, h);
+
+  // LCG determinístico igual ao GitCity
+  let s = seed >>> 0;
+  const rand = () => { s = (s * 16807) % 2147483647; return (s-1)/2147483646; };
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const x = PAD + c*(WS+GAP);
+      const y = PAD + r*(WS+GAP);
+      if (rand() < 0.72) {
+        cx.fillStyle = litColors[Math.floor(rand() * litColors.length)];
+      } else {
+        rand(); // consome o rand extra para manter sequência
+        cx.fillStyle = offColor;
+      }
+      cx.fillRect(x, y, WS, WS);
+    }
+  }
+
+  if (_texCache.size > 300) {
+    _texCache.delete(_texCache.keys().next().value);
+  }
+  _texCache.set(key, off);
+  return off;
+}
+
+// ── DRAW BUILDING ─────────────────────────────────────────────────────────────
 function drawBuilding(b, hovered) {
   const p = getScreenBounds(b);
   const isMe = b.isPlayer;
   const selected = b === selectedBuilding;
 
-  // ── CORES BASE ─────────────────────────────────────────────────────────────
-  // GitCity: prédios são caixas escuras sólidas. Cada face tem um tom.
-  // Frente = mais clara, esquerda = média, direita = escura, topo = destaque.
-  let base, edgeColor, edgeW;
+  // ── CORES ─────────────────────────────────────────────────────────────────
+  // Cada face tem cor distinta e 100% opaca, como GitCity
+  let cF, cL, cR, cBk, cTop, edgeColor, edgeW;
 
   if (isMe) {
-    base = { front:[90,35,180], left:[65,25,135], right:[48,18,105], back:[32,12,70], top:[110,55,200] };
-    edgeColor = 'rgba(155,92,246,0.95)'; edgeW = 1.5;
+    cF='#5a1eb4'; cL='#3d1480'; cR='#2d0f60'; cBk='#1e0a40'; cTop='#6e28d4';
+    edgeColor='rgba(155,92,246,0.95)'; edgeW=1.5;
   } else if (selected) {
-    base = { front:[18,80,120], left:[13,60,95], right:[9,44,72], back:[6,28,48], top:[22,140,170] };
-    edgeColor = 'rgba(34,211,238,0.95)'; edgeW = 1.5;
+    cF='#125078'; cL='#0d3c5f'; cR='#092c48'; cBk='#061e30'; cTop='#166690';
+    edgeColor='rgba(34,211,238,0.95)'; edgeW=1.5;
   } else if (hovered) {
-    base = { front:[15,65,105], left:[11,50,82], right:[8,36,62], back:[5,22,40], top:[18,110,138] };
-    edgeColor = 'rgba(34,211,238,0.6)'; edgeW = 0.8;
+    cF='#0f4169'; cL='#0b3252'; cR='#08243e'; cBk='#051828'; cTop='#125580';
+    edgeColor='rgba(34,211,238,0.6)'; edgeW=0.8;
   } else {
-    // Paleta variada — 5 tipos de prédio, todos com contraste claro entre faces
     const type = b.seed % 5;
-    const s = 0.55 + (b.seed % 30) / 100; // brightness variation 0.55..0.85
-    if (type === 0) { // azul escuro
-      base = { front:[Math.round(20*s),Math.round(50*s),Math.round(120*s)], left:[Math.round(14*s),Math.round(36*s),Math.round(90*s)], right:[Math.round(10*s),Math.round(26*s),Math.round(65*s)], back:[Math.round(6*s),Math.round(16*s),Math.round(42*s)], top:[Math.round(28*s),Math.round(68*s),Math.round(150*s)] };
-    } else if (type === 1) { // roxo
-      base = { front:[Math.round(55*s),Math.round(18*s),Math.round(130*s)], left:[Math.round(40*s),Math.round(13*s),Math.round(98*s)], right:[Math.round(28*s),Math.round(9*s),Math.round(72*s)], back:[Math.round(18*s),Math.round(6*s),Math.round(48*s)], top:[Math.round(72*s),Math.round(28*s),Math.round(160*s)] };
-    } else if (type === 2) { // cinza azulado (igual gitcity)
-      base = { front:[Math.round(30*s),Math.round(35*s),Math.round(60*s)], left:[Math.round(22*s),Math.round(26*s),Math.round(46*s)], right:[Math.round(15*s),Math.round(18*s),Math.round(34*s)], back:[Math.round(9*s),Math.round(11*s),Math.round(22*s)], top:[Math.round(42*s),Math.round(50*s),Math.round(80*s)] };
-    } else if (type === 3) { // verde escuro
-      base = { front:[Math.round(12*s),Math.round(55*s),Math.round(75*s)], left:[Math.round(9*s),Math.round(40*s),Math.round(58*s)], right:[Math.round(6*s),Math.round(28*s),Math.round(42*s)], back:[Math.round(4*s),Math.round(18*s),Math.round(28*s)], top:[Math.round(16*s),Math.round(72*s),Math.round(95*s)] };
-    } else { // azul médio
-      base = { front:[Math.round(18*s),Math.round(42*s),Math.round(100*s)], left:[Math.round(13*s),Math.round(30*s),Math.round(75*s)], right:[Math.round(9*s),Math.round(22*s),Math.round(55*s)], back:[Math.round(6*s),Math.round(14*s),Math.round(36*s)], top:[Math.round(24*s),Math.round(56*s),Math.round(125*s)] };
-    }
-    edgeColor = null; edgeW = 0;
+    const TYPES = [
+      ['#142878','#0e1c58','#090f38','#050920','#1a3498'],
+      ['#371282','#260d5e','#19083e','#0d0428','#441894'],
+      ['#1e233c','#161a2e','#0e1020','#08090e','#262d4e'],
+      ['#0c3748','#082836','#051924','#030f14','#0e4458'],
+      ['#122864','#0d1e4c','#081436','#040b20','#162e7a'],
+    ];
+    const v = 0.6 + (b.seed % 28)/100;
+    const adj = (hex) => {
+      const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), bl=parseInt(hex.slice(5,7),16);
+      return `rgb(${Math.min(255,r*v|0)},${Math.min(255,g*v|0)},${Math.min(255,bl*v|0)})`;
+    };
+    [cF,cL,cR,cBk,cTop] = TYPES[type].map(adj);
+    edgeColor=null; edgeW=0;
   }
 
-  // face() substituída por drawFace() com clip
+  // Paleta de janelas — GitCity usa azuis dominantes
+  const litColors = isMe
+    ? ['#c896ff','#a060f0','#d4b0ff','#ffffff']
+    : ['#7ab4ff','#5090e8','#a0c8ff','#d0e8ff','#ffffff','#b090ff','#60e8d0'];
+  const offColor = '#080818';
 
-  // Paleta de janelas — tons de azul dominantes, acentos raros
-  const PAL = [
-    [180,210,255],[140,175,255],[220,235,255],[255,255,255],
-    [110,155,240],[200,160,255],[130,240,215],[255,230,120],
-    [160,195,255],[210,225,255],
-  ];
+  // ── FACE COM TEXTURA ───────────────────────────────────────────────────────
+  // Projeta textura offscreen sobre face isométrica via ctx.transform()
+  // Exatamente como GitCity mapeia textura canvas na face do BoxGeometry
+  const drawFace = (A, B, TL, TR, faceCol, dimAlpha, winSeed, doWin) => {
+    // A=bottom-left, B=bottom-right, TL=top-left, TR=top-right da face
 
-  // Desenha uma face sólida + suas janelas com clip — janelas nunca vazam para outras faces
-  const drawFace = (idxs, color, dimF, seed, stroke, sw) => {
-    // 1) Monta o path da face
+    // 1. Clip para a face (garante que textura não vaza)
+    ctx.save();
     ctx.beginPath();
-    ctx.moveTo(p[idxs[0]].x, p[idxs[0]].y);
-    for (let i = 1; i < idxs.length; i++) ctx.lineTo(p[idxs[i]].x, p[idxs[i]].y);
+    ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y);
+    ctx.lineTo(TR.x,TR.y); ctx.lineTo(TL.x,TL.y);
     ctx.closePath();
 
-    // 2) Preenche sólido
-    ctx.fillStyle = `rgb(${color[0]},${color[1]},${color[2]})`;
+    // 2. Preenche sólido
+    ctx.fillStyle = faceCol;
     ctx.fill();
-    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = sw; ctx.stroke(); }
+    if (edgeColor) { ctx.strokeStyle=edgeColor; ctx.lineWidth=edgeW; ctx.stroke(); }
 
-    // 3) Sem janelas nessa face? Sai
-    if (dimF <= 0) return;
+    // 3. Textura de janelas projetada sobre a face
+    if (doWin) {
+      ctx.clip();
 
-    // 4) Clippa para a face — janelas desenhadas aqui ficam DENTRO da face
-    ctx.save();
-    ctx.clip();
+      // Tamanho da face em pixels de tela
+      const fw = Math.hypot(B.x-A.x, B.y-A.y);
+      const fh = Math.hypot(TL.x-A.x, TL.y-A.y);
 
-    const BL=p[idxs[0]], BR=p[idxs[1]], TL=p[idxs[2]], TR=p[idxs[3]];
-    const faceW = Math.hypot(BR.x-BL.x, BR.y-BL.y);
-    const faceH = Math.hypot(TL.x-BL.x, TL.y-BL.y);
+      if (fw >= 14 && fh >= 14) {
+        // Cols/rows: quantas janelas cabem (WS=6, GAP=2, PAD=3 → célula 8px)
+        const cols = Math.max(1, Math.round((fw - 6) / 8));
+        const rows = Math.max(1, Math.round((fh - 6) / 8));
 
-    if (faceW >= 6 && faceH >= 8) {
-      const cols = Math.max(1, Math.round(faceW / 15));
-      const rows = Math.max(1, Math.round(faceH / 15));
-      const GAP = 0.28;
+        const tex = getWinTex(cols, rows, winSeed, litColors, offColor, faceCol);
 
-      for (let c = 0; c < cols; c++) {
-        for (let r = 0; r < rows; r++) {
-          const ls = Math.sin(seed*1.3 + c*127.1 + r*311.7);
-          if (ls < (dimF < 0.7 ? 0.15 : -0.55)) continue;
+        // ctx.transform projeta (0,0)→(tw,th) sobre a face isométrica
+        // Vetor horizontal da face: A→B normalizado por largura da textura
+        // Vetor vertical da face: A→TL normalizado por altura da textura
+        const tw = tex.width, th = tex.height;
+        const ux=(B.x-A.x)/tw, uy=(B.y-A.y)/tw;
+        const vx=(TL.x-A.x)/th, vy=(TL.y-A.y)/th;
 
-          const u0=(c+GAP*.5)/cols, u1=(c+1-GAP*.5)/cols;
-          const v0=1-(r+1-GAP*.5)/rows, v1=1-(r+GAP*.5)/rows;
-
-          const P=(u,v)=>({
-            x:lerp(lerp(BL.x,BR.x,u),lerp(TL.x,TR.x,u),v),
-            y:lerp(lerp(BL.y,BR.y,u),lerp(TL.y,TR.y,u),v),
-          });
-
-          const ci=Math.abs(Math.floor(Math.sin(seed*.7+c*47+r*83)*999))%PAL.length;
-          let [R,G,B]=isMe?[210,160,255]:PAL[ci];
-          R=(R*dimF)|0; G=(G*dimF)|0; B=(B*dimF)|0;
-
-          const flk=0.88+Math.sin(seed+c*13+r*19+animFrame*.0007)*.09;
-          ctx.fillStyle=`rgba(${R},${G},${B},${flk.toFixed(2)})`;
-
-          const q0=P(u0,v0),q1=P(u1,v0),q2=P(u1,v1),q3=P(u0,v1);
-          ctx.beginPath();
-          ctx.moveTo(q0.x,q0.y); ctx.lineTo(q1.x,q1.y);
-          ctx.lineTo(q2.x,q2.y); ctx.lineTo(q3.x,q3.y);
-          ctx.closePath(); ctx.fill();
-        }
+        ctx.transform(ux, uy, vx, vy, A.x, A.y);
+        ctx.globalAlpha = dimAlpha;
+        ctx.drawImage(tex, 0, 0);
+        ctx.globalAlpha = 1;
       }
     }
-
     ctx.restore();
   };
 
-  // Ordem painter + clip por face. idxs para drawFace: [BL, BR, TL, TR]
-  // face() antiga removida — tudo via drawFace agora
-  const s = b.x*0.031 + b.seed;
-  // Fundo (sem janelas — geralmente oculto)
-  ctx.beginPath(); ctx.moveTo(p[2].x,p[2].y); ctx.lineTo(p[3].x,p[3].y); ctx.lineTo(p[7].x,p[7].y); ctx.lineTo(p[6].x,p[6].y); ctx.closePath();
-  ctx.fillStyle=`rgb(${base.back[0]},${base.back[1]},${base.back[2]})`; ctx.fill();
-  // Esquerda
-  drawFace([3,0,7,4], base.left,  0.65, s+10, edgeColor, edgeW);
-  // Direita
-  drawFace([1,2,5,6], base.right, 0.50, s+20, edgeColor, edgeW);
-  // Frente
-  drawFace([0,1,4,5], base.front, 1.00, s,    edgeColor, edgeW);
-  // Topo — sólido sem janelas
-  ctx.beginPath(); ctx.moveTo(p[4].x,p[4].y); ctx.lineTo(p[5].x,p[5].y); ctx.lineTo(p[6].x,p[6].y); ctx.lineTo(p[7].x,p[7].y); ctx.closePath();
-  ctx.fillStyle=`rgb(${base.top[0]},${base.top[1]},${base.top[2]})`; ctx.fill();
-  if(edgeColor){ctx.strokeStyle=edgeColor;ctx.lineWidth=edgeW;ctx.stroke();}
+  const s = ((b.x * 31 + b.seed) * 16807) % 2147483647;
+
+  // ── ORDEM PAINTER ─────────────────────────────────────────────────────────
+  // Fundo — sólido sem janelas (raramente visível)
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(p[2].x,p[2].y); ctx.lineTo(p[3].x,p[3].y);
+  ctx.lineTo(p[7].x,p[7].y); ctx.lineTo(p[6].x,p[6].y);
+  ctx.closePath(); ctx.fillStyle=cBk; ctx.fill();
+  ctx.restore();
+
+  // Esquerda (lateral)
+  drawFace(p[3],p[0],p[7],p[4], cL, 0.70, s+10, true);
+  // Direita (lateral)
+  drawFace(p[1],p[2],p[5],p[6], cR, 0.50, s+20, true);
+  // Frente (face principal — mais clara, mais janelas)
+  drawFace(p[0],p[1],p[4],p[5], cF, 1.00, s,    true);
+  // Topo — sólido, sem janelas
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(p[4].x,p[4].y); ctx.lineTo(p[5].x,p[5].y);
+  ctx.lineTo(p[6].x,p[6].y); ctx.lineTo(p[7].x,p[7].y);
+  ctx.closePath(); ctx.fillStyle=cTop; ctx.fill();
+  if (edgeColor) { ctx.strokeStyle=edgeColor; ctx.lineWidth=edgeW; ctx.stroke(); }
+  ctx.restore();
 
   // ── PINÁCULO ──────────────────────────────────────────────────────────────
-  const rc = { x:(p[4].x+p[5].x+p[6].x+p[7].x)/4, y:(p[4].y+p[5].y+p[6].y+p[7].y)/4 };
+  const rc = {x:(p[4].x+p[5].x+p[6].x+p[7].x)/4, y:(p[4].y+p[5].y+p[6].y+p[7].y)/4};
   const pinH = Math.max(10, Math.min(36, b.h * camZoom * 0.16));
-  const tipX = rc.x, tipY = rc.y - pinH;
   const pinW = Math.max(4, b.w * camZoom * 0.12);
+  const tipX = rc.x, tipY = rc.y - pinH;
   const pb = [
-    { x:rc.x-pinW*0.9, y:rc.y+pinW*0.3 },
-    { x:rc.x,          y:rc.y-pinW*0.2 },
-    { x:rc.x+pinW*0.9, y:rc.y+pinW*0.3 },
-    { x:rc.x,          y:rc.y+pinW*0.8 },
+    {x:rc.x-pinW*0.9, y:rc.y+pinW*0.3},
+    {x:rc.x,          y:rc.y-pinW*0.2},
+    {x:rc.x+pinW*0.9, y:rc.y+pinW*0.3},
+    {x:rc.x,          y:rc.y+pinW*0.8},
   ];
   const pC = isMe?'155,92,246':selected?'34,211,238':'120,75,210';
   const pA = isMe?0.9:selected?1.0:0.65;
@@ -828,23 +868,22 @@ function drawBuilding(b, hovered) {
   // ── SELEÇÃO ───────────────────────────────────────────────────────────────
   if (selected) {
     const pulse = Math.sin(animFrame*.08);
-    const ringR = pinW*1.4+pulse*3;
-    ctx.beginPath(); ctx.arc(rc.x,rc.y,ringR,0,Math.PI*2);
+    ctx.beginPath(); ctx.arc(rc.x,rc.y,pinW*1.4+pulse*3,0,Math.PI*2);
     ctx.strokeStyle=`rgba(34,211,238,${0.55+pulse*0.2})`; ctx.lineWidth=1.5; ctx.stroke();
-    ctx.beginPath(); ctx.arc(rc.x,rc.y,ringR*1.7,0,Math.PI*2);
+    ctx.beginPath(); ctx.arc(rc.x,rc.y,pinW*2.4+pulse*3,0,Math.PI*2);
     ctx.strokeStyle=`rgba(34,211,238,${0.2+pulse*0.1})`; ctx.lineWidth=0.8; ctx.stroke();
     const bLen=60+pulse*15;
-    const bGrad=ctx.createLinearGradient(0,tipY,0,tipY-bLen);
-    bGrad.addColorStop(0,`rgba(34,211,238,${0.6+pulse*0.2})`); bGrad.addColorStop(1,'rgba(34,211,238,0)');
+    const g=ctx.createLinearGradient(0,tipY,0,tipY-bLen);
+    g.addColorStop(0,`rgba(34,211,238,${0.6+pulse*0.2})`); g.addColorStop(1,'rgba(34,211,238,0)');
     ctx.beginPath(); ctx.moveTo(tipX-1,tipY); ctx.lineTo(tipX+1,tipY); ctx.lineTo(tipX,tipY-bLen); ctx.closePath();
-    ctx.fillStyle=bGrad; ctx.fill();
+    ctx.fillStyle=g; ctx.fill();
     ctx.beginPath(); ctx.arc(tipX,tipY,2.5+pulse*1.5,0,Math.PI*2);
     ctx.fillStyle=`rgba(34,211,238,${0.8+pulse*0.2})`; ctx.fill();
   }
 
-  // ── PLAYER BEACON ─────────────────────────────────────────────────────────
+  // ── BEACON (meu prédio) ───────────────────────────────────────────────────
   if (isMe) {
-    const tc={x:(p[4].x+p[5].x+p[6].x+p[7].x)/4, y:(p[4].y+p[5].y+p[6].y+p[7].y)/4};
+    const tc={x:rc.x,y:rc.y};
     const pr=5+Math.sin(animFrame*.07)*4;
     ctx.beginPath(); ctx.arc(tc.x,tc.y,pr,0,Math.PI*2);
     ctx.fillStyle=`rgba(34,211,238,${.25+Math.sin(animFrame*.07)*.15})`; ctx.fill();
