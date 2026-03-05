@@ -1426,6 +1426,179 @@ function showError(msg){
 
 document.getElementById('steamInput').addEventListener('keydown',e=>{if(e.key==='Enter')loadProfile();});
 
+
+// ── i18n ──────────────────────────────────────────────────────────────────────
+const TRANSLATIONS = {
+  en: {
+    tagline:        'YOUR GAMING LIBRARY, VISUALIZED',
+    gamersInCity:   'GAMERS IN THE CITY',
+    searchPlaceholder: '🔍  SEARCH GAMER...',
+    myBuilding:     'MY BUILDING',
+    welcomeTag:     '// BUILDINGAMER v2.0',
+    welcomeTitle:   'THE CITY OF<br><em>GAMERS</em>',
+    welcomeDesc:    'Every gamer is a building. The more you played,<br>the taller it grows. Explore the city or add yours.',
+    exploreLabel:   'EXPLORE',
+    exploreSub:     'Browse the city without registering',
+    addLabel:       'ADD MY BUILDING',
+    addSub:         'Connect my SteamID',
+    registerTag:    '// BUILD MY BUILDING',
+    registerTitle:  'ENTER YOUR<br><em>STEAM ID</em>',
+    registerDesc:   'Your building will be generated based on your Steam library and will be visible to everyone in the city.',
+    steamPlaceholder: 'username or SteamID64',
+    buildBtn:       'BUILD',
+    hint:           'How to find it: <a href="https://steamid.io" target="_blank">steamid.io</a> · Profile must be <strong style="color:rgba(34,211,238,0.55)">public</strong>',
+    back:           '◀  BACK',
+    loadingInit:    'INITIALIZING...',
+    loadingCity:    'LOADING THE CITY...',
+    loadingProfile: 'FETCHING PROFILE...',
+    loadingRegister:'REGISTERING IN THE CITY...',
+    loadingBuilding:'BUILDING THE CITY...',
+    games:          'GAMES',
+    hours:          'HOURS',
+    floors:         'FLOORS',
+    rank:           'RANK',
+    topGames:       'TOP GAMES',
+    topGamesFull:   'TOP GAMES BY HOURS PLAYED',
+    viewProfile:    'VIEW FULL PROFILE →',
+    close:          'CLOSE',
+    backToCity:     '◀  BACK TO CITY',
+    clickToView:    '[ CLICK TO VIEW PROFILE ]',
+    hud:            'DRAG=orbit · RIGHT BTN=pan · SCROLL=zoom · CLICK=profile',
+    addBuilding:    '+ ADD MY BUILDING',
+    sincePrefix:    'In the city since ',
+    noGamesData:    'Private library or no games registered.<br><span style="color:rgba(155,92,246,0.6)">Re-register your SteamID to update.</span>',
+    emptyCity:      'THE CITY IS EMPTY. BE THE FIRST.',
+    errorPrefix:    'Error: ',
+    tryAgain:       'Try again.',
+  },
+  pt: {
+    tagline:        'SUA BIBLIOTECA GAMER, VISUALIZADA',
+    gamersInCity:   'GAMERS NA CIDADE',
+    searchPlaceholder: '🔍  BUSCAR GAMER...',
+    myBuilding:     'MEU PRÉDIO',
+    welcomeTag:     '// BUILDINGAMER v2.0',
+    welcomeTitle:   'A CIDADE DOS<br><em>GAMERS</em>',
+    welcomeDesc:    'Cada gamer é um prédio. Quanto mais você jogou,<br>mais alto ele cresce. Explore a cidade ou adicione o seu.',
+    exploreLabel:   'EXPLORAR',
+    exploreSub:     'Ver a cidade sem se registrar',
+    addLabel:       'ADD MEU PRÉDIO',
+    addSub:         'Conectar meu SteamID',
+    registerTag:    '// CONSTRUIR MEU PRÉDIO',
+    registerTitle:  'INSIRA SEU<br><em>STEAM ID</em>',
+    registerDesc:   'Seu prédio será gerado com base na sua biblioteca Steam e ficará visível para todos na cidade.',
+    steamPlaceholder: 'username ou SteamID64',
+    buildBtn:       'BUILD',
+    hint:           'Como encontrar: <a href="https://steamid.io" target="_blank">steamid.io</a> · Perfil deve ser <strong style="color:rgba(34,211,238,0.55)">público</strong>',
+    back:           '◀  VOLTAR',
+    loadingInit:    'INICIALIZANDO...',
+    loadingCity:    'CARREGANDO A CIDADE...',
+    loadingProfile: 'BUSCANDO PERFIL...',
+    loadingRegister:'REGISTRANDO NA CIDADE...',
+    loadingBuilding:'CONSTRUINDO A CIDADE...',
+    games:          'JOGOS',
+    hours:          'HORAS',
+    floors:         'ANDARES',
+    rank:           'RANK',
+    topGames:       'TOP GAMES',
+    topGamesFull:   'TOP GAMES POR HORAS JOGADAS',
+    viewProfile:    'VER PERFIL COMPLETO →',
+    close:          'FECHAR',
+    backToCity:     '◀  VOLTAR À CIDADE',
+    clickToView:    '[ CLIQUE PARA VER PERFIL ]',
+    hud:            'ARRASTAR=orbitar · BOTÃO DIR=pan · SCROLL=zoom · CLIQUE=perfil',
+    addBuilding:    '+ ADD MEU PRÉDIO',
+    sincePrefix:    'Na cidade desde ',
+    noGamesData:    'Biblioteca privada ou sem jogos registrados.<br><span style="color:rgba(155,92,246,0.6)">Re-registre seu SteamID para atualizar.</span>',
+    emptyCity:      'A CIDADE ESTÁ VAZIA. SEJA O PRIMEIRO.',
+    errorPrefix:    'Erro: ',
+    tryAgain:       'Tente novamente.',
+  }
+};
+
+const browserLang = (navigator.language || 'en').toLowerCase().startsWith('pt') ? 'pt' : 'en';
+let currentLang = localStorage.getItem('bgLang') || browserLang;
+
+function t(key) {
+  return (TRANSLATIONS[currentLang] && TRANSLATIONS[currentLang][key]) || (TRANSLATIONS['en'] && TRANSLATIONS['en'][key]) || key;
+}
+
+function setLang(lang) {
+  currentLang = lang;
+  localStorage.setItem('bgLang', lang);
+  applyTranslations();
+  document.querySelectorAll('.lang-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.lang === lang);
+  });
+}
+
+function applyTranslations() {
+  const tl = document.querySelector('.tagline');
+  if (tl) tl.textContent = t('tagline');
+  const cc = document.querySelector('#cityCount');
+  if (cc) cc.innerHTML = '<span id="gamerCount">' + (document.getElementById('gamerCount')?.textContent||'0') + '</span> ' + t('gamersInCity');
+  document.querySelectorAll('input#searchInput').forEach(el => el.placeholder = t('searchPlaceholder'));
+  const mb = document.getElementById('myBuildingBtn');
+  if (mb) mb.innerHTML = '◉ &nbsp;' + t('myBuilding');
+  const wTag = document.querySelector('.welcome-tag');
+  if (wTag) wTag.textContent = t('welcomeTag');
+  const wTitle = document.querySelector('#welcomeScreen h1');
+  if (wTitle) wTitle.innerHTML = t('welcomeTitle');
+  const wDesc = document.querySelector('#welcomeScreen p');
+  if (wDesc) wDesc.innerHTML = t('welcomeDesc');
+  const exploreLabel = document.querySelector('.btn-explore .btn-label');
+  if (exploreLabel) exploreLabel.textContent = t('exploreLabel');
+  const exploreSub = document.querySelector('.btn-explore .btn-sub');
+  if (exploreSub) exploreSub.textContent = t('exploreSub');
+  const addLabel = document.querySelector('.btn-join .btn-label');
+  if (addLabel) addLabel.textContent = t('addLabel');
+  const addSub = document.querySelector('.btn-join .btn-sub');
+  if (addSub) addSub.textContent = t('addSub');
+  const rTag = document.querySelector('.panel-tag');
+  if (rTag) rTag.textContent = t('registerTag');
+  const rTitle = document.querySelector('#registerPanel h2');
+  if (rTitle) rTitle.innerHTML = t('registerTitle');
+  const rDesc = document.querySelector('#registerPanel p');
+  if (rDesc) rDesc.textContent = t('registerDesc');
+  const si = document.getElementById('steamInput');
+  if (si) si.placeholder = t('steamPlaceholder');
+  const bb = document.getElementById('buildBtn');
+  if (bb) bb.textContent = t('buildBtn');
+  const hint = document.querySelector('.hint');
+  if (hint) hint.innerHTML = t('hint');
+  const backBtn = document.querySelector('.btn-back');
+  if (backBtn) backBtn.innerHTML = t('back');
+  document.querySelectorAll('.pc-stat-lbl').forEach((el, i) => {
+    el.textContent = t(['games','hours','floors','rank'][i] || el.textContent);
+  });
+  document.querySelectorAll('.pp-stat-lbl').forEach((el, i) => {
+    el.textContent = t(['games','hours','floors','rank'][i] || el.textContent);
+  });
+  const pcGamesTitle = document.querySelector('.pc-games-title');
+  if (pcGamesTitle) pcGamesTitle.textContent = t('topGames');
+  const btnProfile = document.querySelector('.btn-profile');
+  if (btnProfile) btnProfile.textContent = t('viewProfile');
+  const btnClose = document.querySelector('.btn-close-card');
+  if (btnClose) btnClose.textContent = t('close');
+  const ttClick = document.querySelector('.tt-click');
+  if (ttClick) ttClick.textContent = t('clickToView');
+  const ttRows = document.querySelectorAll('.tt-row');
+  ['hours','games','rank'].forEach((key, i) => {
+    const el = ttRows[i];
+    if (!el) return;
+    const span = el.querySelector('span');
+    if (span) el.innerHTML = t(key) + ' &nbsp;' + span.outerHTML;
+  });
+  const hud = document.getElementById('hud');
+  if (hud) hud.textContent = t('hud');
+  const addBtn = document.getElementById('addBuildingBtn');
+  if (addBtn) addBtn.innerHTML = t('addBuilding');
+  const ppBack = document.querySelector('.profile-page-back');
+  if (ppBack) ppBack.innerHTML = t('backToCity');
+  const ppSection = document.querySelector('.pp-section-title');
+  if (ppSection) ppSection.textContent = t('topGamesFull');
+}
+
+
 // Apply initial translations and mark active lang button
 applyTranslations();
 document.querySelectorAll('.lang-btn').forEach(b => {
