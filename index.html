@@ -690,9 +690,9 @@ function getScreenBounds(b) {
 // Retorna um HTMLCanvasElement offscreen cacheado por chave
 const _texCache = new Map();
 
-function getWinTex(cols, rows, seed, litColors, offColor, faceColor) {
+function getWinTex(cols, rows, seed, litPct, litColors, offColor, faceColor) {
   // Chave por prédio — textura não muda com zoom
-  const key = `${seed}_${cols}x${rows}_${faceColor}`;
+  const key = `${seed}_${cols}x${rows}_${litPct.toFixed(2)}_${faceColor}`;
   if (_texCache.has(key)) return _texCache.get(key);
 
   const WS = 6, GAP = 2, PAD = 3;
@@ -715,7 +715,7 @@ function getWinTex(cols, rows, seed, litColors, offColor, faceColor) {
     for (let c = 0; c < cols; c++) {
       const x = PAD + c*(WS+GAP);
       const y = PAD + r*(WS+GAP);
-      if (rand() < 0.72) {
+      if (rand() < litPct) {
         cx.fillStyle = litColors[Math.floor(rand() * litColors.length)];
       } else {
         rand(); // consome o rand extra para manter sequência
@@ -768,6 +768,11 @@ function drawBuilding(b, hovered) {
     edgeColor=null; edgeW=0;
   }
 
+  // % de janelas acesas baseado em horas totais jogadas
+  // 0h=10%, 500h=40%, 2000h=65%, 5000h+=90%
+  const rawHours = b.hours || 0;
+  const litPct = Math.min(0.90, 0.10 + Math.log1p(rawHours / 100) * 0.18);
+
   // Paleta de janelas — GitCity usa azuis dominantes
   const litColors = isMe
     ? ['#c896ff','#a060f0','#d4b0ff','#ffffff']
@@ -805,7 +810,7 @@ function drawBuilding(b, hovered) {
         const cols = winCols;
         const rows = winRows;
 
-        const tex = getWinTex(cols, rows, winSeed, litColors, offColor, faceCol);
+        const tex = getWinTex(cols, rows, winSeed, litPct, litColors, offColor, faceCol);
 
         // ctx.transform projeta (0,0)→(tw,th) sobre a face isométrica
         // Vetor horizontal da face: A→B normalizado por largura da textura
@@ -827,15 +832,36 @@ function drawBuilding(b, hovered) {
 
   const s = ((b.x * 31 + b.seed) * 16807) % 2147483647;
 
-  // ── ORDEM PAINTER ─────────────────────────────────────────────────────────
-  // Fundo — com janelas (visível quando girando o prédio)
-  drawFace(p[2],p[3],p[6],p[7], cBk, 0.40, s+30, true, b.wCols, b.wRows);
-  // Esquerda
-  drawFace(p[3],p[0],p[7],p[4], cL,  0.65, s+10, true, b.wColsSide, b.wRows);
-  // Direita
-  drawFace(p[1],p[2],p[5],p[6], cR,  0.50, s+20, true, b.wColsSide, b.wRows);
-  // Frente
-  drawFace(p[0],p[1],p[4],p[5], cF,  1.00, s,    true, b.wCols, b.wRows);
+  // ── ORDEM PAINTER DINÂMICA baseada em camAngle ────────────────────────────
+  // As 4 faces verticais têm normais fixas no mundo:
+  //   Frente = normal aponta para -Y (p[0],p[1],p[4],p[5])
+  //   Fundo  = normal aponta para +Y (p[2],p[3],p[6],p[7])
+  //   Esq    = normal aponta para -X (p[3],p[0],p[7],p[4])
+  //   Dir    = normal aponta para +X (p[1],p[2],p[5],p[6])
+  // Câmera está em direção (sin(camAngle), cos(camAngle))
+  // dot(camDir, faceNormal) > 0 → face visível para a câmera
+  // Ordem painter: faces mais atrás primeiro
+
+  // Vetor câmera (projetado no plano XY)
+  const cx = Math.sin(camAngle), cy = Math.cos(camAngle);
+
+  // dot products das 4 faces com a câmera
+  // frente normal = (0,-1), fundo=(0,+1), esq=(-1,0), dir=(+1,0)
+  const dFront = -cy;   // dot((0,-1), (cx,cy))
+  const dBack  =  cy;   // dot((0,+1), (cx,cy))
+  const dLeft  = -cx;   // dot((-1,0), (cx,cy))
+  const dRight =  cx;   // dot((+1,0), (cx,cy))
+
+  // Ordenar 4 faces do mais negativo (mais atrás) para o mais positivo (frente)
+  const faces4 = [
+    { dot: dFront, draw: () => drawFace(p[0],p[1],p[4],p[5], cF, 1.00, s,    true, b.wCols,     b.wRows) },
+    { dot: dBack,  draw: () => drawFace(p[2],p[3],p[6],p[7], cBk,0.40, s+30, true, b.wCols,     b.wRows) },
+    { dot: dLeft,  draw: () => drawFace(p[3],p[0],p[7],p[4], cL, 0.65, s+10, true, b.wColsSide, b.wRows) },
+    { dot: dRight, draw: () => drawFace(p[1],p[2],p[5],p[6], cR, 0.50, s+20, true, b.wColsSide, b.wRows) },
+  ];
+  // Ordenar: menor dot (mais longe da câmera) primeiro
+  faces4.sort((a,b) => a.dot - b.dot);
+  faces4.forEach(f => f.draw());
   // Topo — sólido, sem janelas
   ctx.save();
   ctx.beginPath();
