@@ -597,6 +597,20 @@ function buildCity(gamers) {
     const wRows = Math.min(40, Math.max(3, Math.round(h / 14)));
     buildings.push({ ...g, x:pos.x, y:pos.y, z:0, w, d:w*0.8, h, isPlayer:isMe, lit:0.6+Math.random()*0.35, seed:Math.abs(seedN)%100, wCols, wColsSide, wRows });
   });
+  // Recalcula distrito a partir dos dados de top3 — sempre mais preciso que o valor salvo no banco
+  // Corrige valores legados (DOWNTOWN, UNKNOWN, etc.) e mantém atualizado sem precisar re-registrar
+  buildings.forEach(b => {
+    try {
+      const top3 = typeof b.top3 === 'string' ? JSON.parse(b.top3) : (b.top3 || []);
+      if (top3.length > 0) b.district = top3[0].name || 'INDEPENDENT';
+    } catch(e) {}
+  });
+  assignDistricts(buildings);
+  // Reposition buildings with corrected districts
+  buildings.forEach(b => {
+    const pos = idToPos(b.steamid, b.district);
+    b.x = pos.x; b.y = pos.y;
+  });
   sortBuildings();
   document.getElementById('gamerCount').textContent = gamers.length;
 }
@@ -1353,29 +1367,6 @@ async function loadProfile(){
 }
 
 // ── AUTO-UPDATE: recalcula floors do usuário logado em background ─────────────
-async function silentRefreshMyBuilding(){
-  if(!mySteamId) return;
-  try {
-    const res = await fetch(`/api/steam?steamid=${encodeURIComponent(mySteamId)}`);
-    const data = await res.json();
-    if(data.error || !data.totalHours) return;
-    const floors = Math.max(3, Math.floor((data.totalHours||0)/100) + Math.min(15, Math.floor((data.gameCount||0)/20)));
-    const recentGame = data.recentGame || data.top3?.[0]?.name || 'INDEPENDENT';
-    await sbFetch('gamers?on_conflict=steamid', {
-      method: 'POST',
-      headers: {'Prefer':'resolution=merge-duplicates,return=representation'},
-      body: JSON.stringify({
-        steamid: data.steamid, name: data.name, avatar: data.avatar||'',
-        hours: data.totalHours||0, games: data.gameCount||0, floors,
-        district: recentGame, district_appid: data.recentAppid||null,
-        top3: JSON.stringify(data.top3||[]),
-      })
-    });
-    // Reload city quietly after update
-    await refreshCity();
-  } catch(e){ console.warn('silentRefresh failed:', e); }
-}
-
 // ── AUTO-UPDATE: recalcula floors do usuário logado em background ─────────────
 async function silentRefreshMyBuilding(){
   if(!mySteamId) return;
