@@ -1024,13 +1024,13 @@ window.addEventListener('mousemove',e=>{
     camAngle -= dx * 0.007;
     // Vertical = elevation: drag up → look more from above (increase tilt toward top-down)
     // clamp: 0.04 = nearly horizontal, 1.52 = nearly straight down
-    camTilt = Math.max(0.04, Math.min(1.52, camTilt - dy * 0.005));
+    camTilt = Math.max(0.08, Math.min(1.45, camTilt - dy * 0.004));
   }
 
   if(e.buttons===2||e.buttons===4){
-    // Pan: shift the orbit pivot in world space
-    panDX -= dx;
-    panDY += dy;
+    const panS = camDist * 0.0015;
+    velX -= (dx*Math.cos(camAngle) + dy*Math.sin(camAngle)) * panS;
+    velY -= (-dx*Math.sin(camAngle) + dy*Math.cos(camAngle)) * panS;
   }
 
   lastMouse={x:e.clientX,y:e.clientY};
@@ -1139,7 +1139,7 @@ function selectBuilding(b){
     const k=1-Math.pow(1-Math.min(t,1),3);
     targetX=startX+(focusX-startX)*k;
     targetY=startY+(focusY-startY)*k;
-    radius=startDist+(targetDist-startDist)*k; dRadius=0;
+    camDist=startDist+(targetDist-startDist)*k;
     velX=0; velY=0;
     if(t<1) requestAnimationFrame(focusLerp);
   }
