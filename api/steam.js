@@ -855,36 +855,16 @@ function draw(){
 // ── CAMERA UPDATE (every frame) ───────────────────────────────────────────────
 function updateCamera(){
   if(mode==='welcome')return;
-
-  // Apply spherical deltas with damping (OrbitControls style)
-  theta  += dTheta  * DAMPING;
-  phi    += dPhi    * DAMPING;
-  radius += dRadius * DAMPING;
-
-  dTheta  *= (1 - DAMPING);
-  dPhi    *= (1 - DAMPING);
-  dRadius *= (1 - DAMPING);
-  panDX   *= (1 - DAMPING);
-  panDY   *= (1 - DAMPING);
-
-  // Clamp phi: between 5° (near top-down) and 88° (near horizontal)
-  phi = Math.max(0.09, Math.min(1.54, phi));
-  // Clamp radius
-  radius = Math.max(120, Math.min(2500, radius));
-
-  // Pan: shift target in camera's horizontal plane
-  // pan X = right direction = (cos(theta), 0, -sin(theta)) in world XZ
-  // pan Y = up-ish direction along camera = perpendicular to both right and look
-  const panSpeed = radius * 0.0012;
-  targetX += (panDX * Math.cos(theta) + panDY * Math.sin(theta) * Math.cos(phi)) * panSpeed;
-  targetY += (panDX * Math.sin(theta) - panDY * Math.cos(theta) * Math.cos(phi)) * panSpeed;
-
-  // Sync legacy vars used by iso() and other fns
-  camAngle = theta;
-  camTilt  = phi;
-  camZoom  = 800 / radius;
-  camX     = targetX;
-  camY     = targetY;
+  camAngle += rotVelX;
+  rotVelX *= 0.80;
+  if(Math.abs(rotVelX)<0.0002) rotVelX=0;
+  targetX += velX; targetY += velY;
+  velX *= 0.80; velY *= 0.80;
+  if(Math.abs(velX)<0.05) velX=0;
+  if(Math.abs(velY)<0.05) velY=0;
+  camX = targetX;
+  camY = targetY;
+  camZoom = 800 / camDist;
 }
 
 
@@ -1013,7 +993,7 @@ canvas.addEventListener('touchmove',e=>{
     const dx=e.touches[0].clientX-lastMouse.x;
     const dy=e.touches[0].clientY-lastMouse.y;
     // One finger = orbit rotate
-    dTheta -= dx * 0.008; dPhi -= dy * 0.006;
+    rotVelX += dx * 0.006;
     camTilt = Math.max(0.04, Math.min(1.52, camTilt - dy*.004));
     lastMouse={x:e.touches[0].clientX,y:e.touches[0].clientY};
   }
@@ -1024,8 +1004,9 @@ canvas.addEventListener('touchmove',e=>{
     lastTD=d;
     const cx=(e.touches[0].clientX+e.touches[1].clientX)/2;
     const cy=(e.touches[0].clientY+e.touches[1].clientY)/2;
-    panDX -= (cx-lastTouchCenter.x);
-    panDY += (cy-lastTouchCenter.y);
+    const panS = camDist * 0.001;
+    velX -= (cx-lastTouchCenter.x) * Math.cos(camAngle) * panS;
+    velY += (cx-lastTouchCenter.x) * Math.sin(camAngle) * panS;
     lastTouchCenter={x:cx,y:cy};
   }
 },{passive:false});
@@ -1078,8 +1059,8 @@ function selectBuilding(b){
 
   let t=0;
   const startX=targetX, startY=targetY;
-  const startDist=radius;
-  const targetDist=Math.min(radius, 480);
+  const startDist=camDist;
+  const targetDist=Math.min(camDist, 480);
   function focusLerp(){
     t+=0.055;
     const k=1-Math.pow(1-Math.min(t,1),3);
@@ -1221,7 +1202,7 @@ async function loadProfile(){
     // Auto-select my building
     const myB=buildings.find(b=>b.steamid===mySteamId);
     if(myB)selectBuilding(myB);
-    theta=0.55; phi=1.1; radius=900; targetX=0; targetY=0; dTheta=0; dPhi=0; dRadius=0; panDX=0; panDY=0;
+    camAngle=0.55; camTilt=0.36; camDist=900; targetX=0; targetY=0; velX=0; velY=0; rotVelX=0; camX=0; camY=0;
 
   } catch(err){
     showLoading(false);
