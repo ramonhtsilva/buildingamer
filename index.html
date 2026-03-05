@@ -548,7 +548,12 @@ function buildCity(gamers) {
     const w = Math.max(55, Math.min(130, 44 + g.games * 0.65));
     let seedN = 0;
     for (let k=0;k<g.steamid.length;k++) seedN=(seedN*31+g.steamid.charCodeAt(k))|0;
-    buildings.push({ ...g, x:pos.x, y:pos.y, z:0, w, d:w*0.8, h, isPlayer:isMe, lit:0.6+Math.random()*0.35, seed:Math.abs(seedN)%100 });
+    // cols/rows fixos baseados em tamanho MUNDO (não pixels) — janelas não mudam com zoom
+    // GitCity: windowsPerFloor e floors são propriedades fixas do building
+    const wCols = Math.max(3, Math.round(w / 18));        // janelas por andar (frente)
+    const wColsSide = Math.max(2, Math.round(w*0.8 / 18)); // janelas por andar (lateral)
+    const wRows = g.floors || Math.round(h / 14);          // andares = rows de janelas
+    buildings.push({ ...g, x:pos.x, y:pos.y, z:0, w, d:w*0.8, h, isPlayer:isMe, lit:0.6+Math.random()*0.35, seed:Math.abs(seedN)%100, wCols, wColsSide, wRows });
   });
   sortBuildings();
   document.getElementById('gamerCount').textContent = gamers.length;
@@ -686,7 +691,8 @@ function getScreenBounds(b) {
 const _texCache = new Map();
 
 function getWinTex(cols, rows, seed, litColors, offColor, faceColor) {
-  const key = `${cols}_${rows}_${seed}_${faceColor}`;
+  // Chave por prédio — textura não muda com zoom
+  const key = `${seed}_${cols}x${rows}_${faceColor}`;
   if (_texCache.has(key)) return _texCache.get(key);
 
   const WS = 6, GAP = 2, PAD = 3;
@@ -772,7 +778,7 @@ function drawBuilding(b, hovered) {
   // ── FACE COM TEXTURA ───────────────────────────────────────────────────────
   // Projeta textura offscreen sobre face isométrica via ctx.transform()
   // Exatamente como GitCity mapeia textura canvas na face do BoxGeometry
-  const drawFace = (A, B, TL, TR, faceCol, dimAlpha, winSeed, doWin) => {
+  const drawFace = (A, B, TL, TR, faceCol, dimAlpha, winSeed, doWin, winCols, winRows) => {
     // A=bottom-left, B=bottom-right, TL=top-left, TR=top-right da face
 
     // 1. Clip para a face (garante que textura não vaza)
@@ -795,10 +801,10 @@ function drawBuilding(b, hovered) {
       const fw = Math.hypot(B.x-A.x, B.y-A.y);
       const fh = Math.hypot(TL.x-A.x, TL.y-A.y);
 
-      if (fw >= 14 && fh >= 14) {
-        // Cols/rows: quantas janelas cabem (WS=6, GAP=2, PAD=3 → célula 8px)
-        const cols = Math.max(1, Math.round((fw - 6) / 8));
-        const rows = Math.max(1, Math.round((fh - 6) / 8));
+      if (fw >= 8 && fh >= 8) {
+        // Cols/rows FIXOS do prédio — não dependem do zoom
+        const cols = winCols;
+        const rows = winRows;
 
         const tex = getWinTex(cols, rows, winSeed, litColors, offColor, faceCol);
 
@@ -829,12 +835,12 @@ function drawBuilding(b, hovered) {
   ctx.closePath(); ctx.fillStyle=cBk; ctx.fill();
   ctx.restore();
 
-  // Esquerda (lateral)
-  drawFace(p[3],p[0],p[7],p[4], cL, 0.70, s+10, true);
+  // Esquerda (lateral) — usa wColsSide
+  drawFace(p[3],p[0],p[7],p[4], cL, 0.70, s+10, true, b.wColsSide, b.wRows);
   // Direita (lateral)
-  drawFace(p[1],p[2],p[5],p[6], cR, 0.50, s+20, true);
-  // Frente (face principal — mais clara, mais janelas)
-  drawFace(p[0],p[1],p[4],p[5], cF, 1.00, s,    true);
+  drawFace(p[1],p[2],p[5],p[6], cR, 0.50, s+20, true, b.wColsSide, b.wRows);
+  // Frente — usa wCols
+  drawFace(p[0],p[1],p[4],p[5], cF, 1.00, s,    true, b.wCols, b.wRows);
   // Topo — sólido, sem janelas
   ctx.save();
   ctx.beginPath();
