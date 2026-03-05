@@ -161,7 +161,7 @@ input[type="text"]::placeholder { color:rgba(226,217,243,0.2); font-weight:400; 
 
 /* ── MY BUILDING BTN (after login) ── */
 #myBuildingBtn {
-  position:fixed; top:14px; left:50%; transform:translateX(-50%);
+  position:fixed; top:8px; right:180px;
   z-index:22; display:none;
   background:rgba(155,92,246,0.12); border:1px solid var(--border);
   color:var(--purple); font-family:'Exo 2',sans-serif;
@@ -542,7 +542,9 @@ function buildCity(gamers) {
   gamers.forEach((g,i) => {
     const pos = idToPos(g.steamid, g.district);
     const isMe = g.steamid === mySteamId;
-    const h = Math.max(50, Math.min(480, g.floors * 14));
+    // Height: 1 floor = 7px world units. Min=40 (tiny), Max=900 (skyscraper)
+    // 28 floors → 196px, 62 floors → 434px, 150 floors → 900px
+    const h = Math.max(40, Math.min(900, g.floors * 7));
     const w = Math.max(55, Math.min(130, 44 + g.games * 0.65));
     let seedN = 0;
     for (let k=0;k<g.steamid.length;k++) seedN=(seedN*31+g.steamid.charCodeAt(k))|0;
@@ -680,76 +682,147 @@ function getScreenBounds(b) {
 
 function drawBuilding(b, hovered) {
   const p = getScreenBounds(b);
+  // p[0..3] = bottom corners, p[4..7] = top corners
+  // bottom: 0=FL, 1=FR, 2=BR, 3=BL  (front-left, front-right, back-right, back-left)
+  // top:    4=FL, 5=FR, 6=BR, 7=BL
   const isMe = b.isPlayer;
   const selected = b === selectedBuilding;
   const t = 0.65+Math.sin(animFrame*.035)*.08;
 
-  let fL,fR,fT,sC,sW;
+  // ── COLOUR PALETTE per building ──────────────────────────────────────────
+  let cFront, cLeft, cRight, cBack, cTop, edgeColor, edgeW;
   if (isMe) {
-    fL=`rgba(110,45,210,${t})`; fR=`rgba(65,20,150,${t})`; fT=`rgba(155,92,246,${t+.12})`;
-    sC='rgba(155,92,246,0.95)'; sW=1.5;
+    cFront = `rgba(120,50,230,${t})`; cLeft  = `rgba(85,30,180,${t})`;
+    cRight = `rgba(70,22,160,${t})`; cBack  = `rgba(55,15,130,${t})`;
+    cTop   = `rgba(160,95,255,${t+.1})`;
+    edgeColor = 'rgba(155,92,246,0.95)'; edgeW = 1.5;
   } else if (selected) {
-    fL=`rgba(20,90,130,0.9)`; fR=`rgba(10,55,90,0.9)`; fT=`rgba(34,211,238,0.85)`;
-    sC='rgba(34,211,238,0.9)'; sW=1.5;
+    cFront = `rgba(22,95,140,0.92)`; cLeft  = `rgba(16,75,115,0.92)`;
+    cRight = `rgba(10,55,90,0.92)`;  cBack  = `rgba(7,38,68,0.92)`;
+    cTop   = `rgba(34,211,238,0.88)`;
+    edgeColor = 'rgba(34,211,238,0.95)'; edgeW = 1.5;
   } else if (hovered) {
-    fL=`rgba(15,70,110,0.88)`; fR=`rgba(8,45,80,0.88)`; fT=`rgba(34,211,238,0.7)`;
-    sC='rgba(34,211,238,0.5)'; sW=0.8;
+    cFront = `rgba(18,75,115,0.9)`; cLeft  = `rgba(13,58,95,0.9)`;
+    cRight = `rgba(9,44,76,0.9)`;   cBack  = `rgba(6,32,58,0.9)`;
+    cTop   = `rgba(34,211,238,0.72)`;
+    edgeColor = 'rgba(34,211,238,0.55)'; edgeW = 0.8;
   } else {
-    const v=0.28+(b.seed%40)/100, hue=b.seed%3;
-    if(hue===0){fL=`rgba(${35*v|0},${15*v|0},${95*v|0},0.92)`;fR=`rgba(${20*v|0},${8*v|0},${60*v|0},0.92)`;fT=`rgba(${75*v|0},${35*v|0},${170*v|0},0.96)`;}
-    else if(hue===1){fL=`rgba(${15*v|0},${50*v|0},${90*v|0},0.92)`;fR=`rgba(${8*v|0},${30*v|0},${60*v|0},0.92)`;fT=`rgba(${25*v|0},${90*v|0},${160*v|0},0.96)`;}
-    else{fL=`rgba(${70*v|0},${10*v|0},${80*v|0},0.92)`;fR=`rgba(${45*v|0},${5*v|0},${55*v|0},0.92)`;fT=`rgba(${120*v|0},${20*v|0},${140*v|0},0.96)`;}
-    sC=null; sW=0;
+    const v = 0.30 + (b.seed%40)/100;
+    const hue = b.seed % 3;
+    if (hue===0) {
+      cFront=`rgba(${38*v|0},${16*v|0},${105*v|0},0.94)`;
+      cLeft =`rgba(${30*v|0},${12*v|0},${85*v|0},0.94)`;
+      cRight=`rgba(${22*v|0},${9*v|0},${68*v|0},0.94)`;
+      cBack =`rgba(${16*v|0},${6*v|0},${52*v|0},0.94)`;
+      cTop  =`rgba(${80*v|0},${38*v|0},${185*v|0},0.97)`;
+    } else if (hue===1) {
+      cFront=`rgba(${16*v|0},${55*v|0},${100*v|0},0.94)`;
+      cLeft =`rgba(${12*v|0},${42*v|0},${80*v|0},0.94)`;
+      cRight=`rgba(${9*v|0},${32*v|0},${65*v|0},0.94)`;
+      cBack =`rgba(${6*v|0},${22*v|0},${50*v|0},0.94)`;
+      cTop  =`rgba(${28*v|0},${98*v|0},${175*v|0},0.97)`;
+    } else {
+      cFront=`rgba(${75*v|0},${12*v|0},${88*v|0},0.94)`;
+      cLeft =`rgba(${58*v|0},${9*v|0},${70*v|0},0.94)`;
+      cRight=`rgba(${44*v|0},${6*v|0},${55*v|0},0.94)`;
+      cBack =`rgba(${30*v|0},${4*v|0},${40*v|0},0.94)`;
+      cTop  =`rgba(${128*v|0},${22*v|0},${152*v|0},0.97)`;
+    }
+    edgeColor = null; edgeW = 0;
   }
 
-  const face=(idxs,fill,stroke,sw)=>{
-    ctx.beginPath(); ctx.moveTo(p[idxs[0]].x,p[idxs[0]].y);
-    for(let i=1;i<idxs.length;i++) ctx.lineTo(p[idxs[i]].x,p[idxs[i]].y);
-    ctx.closePath(); ctx.fillStyle=fill; ctx.fill();
-    if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=sw;ctx.stroke();}
+  const face = (idxs, fill, stroke, sw) => {
+    ctx.beginPath(); ctx.moveTo(p[idxs[0]].x, p[idxs[0]].y);
+    for (let i=1; i<idxs.length; i++) ctx.lineTo(p[idxs[i]].x, p[idxs[i]].y);
+    ctx.closePath(); ctx.fillStyle = fill; ctx.fill();
+    if (stroke) { ctx.strokeStyle=stroke; ctx.lineWidth=sw; ctx.stroke(); }
   };
 
-  face([0,4,7,3],fL,sC,sW);
-  face([1,5,6,2],fR,sC?'rgba(155,92,246,0.3)':null,0.5);
-  face([4,5,6,7],fT,sC,sW);
+  // 4 vertical faces + roof
+  // Indices: bottom 0=FL,1=FR,2=BR,3=BL / top 4=FL,5=FR,6=BR,7=BL
+  face([0,1,5,4], cFront, edgeColor, edgeW);  // front face
+  face([0,3,7,4], cLeft,  edgeColor, edgeW);  // left face
+  face([1,2,6,5], cRight, edgeColor ? 'rgba(100,60,200,0.3)' : null, 0.5); // right face
+  face([2,3,7,6], cBack,  null, 0);            // back face (darkest, usually hidden)
+  face([4,5,6,7], cTop,   edgeColor, edgeW);  // roof
 
-  // Windows — front face (brighter, denser)
-  {
-    const cols=Math.max(3,b.w/14|0), rows=Math.max(3,b.h/18|0);
-    for(let c=0;c<cols;c++) for(let r=0;r<rows;r++){
-      const tx=(c+.5)/cols, sy2=(r+.3)/(rows+.3);
-      const seed = Math.sin(b.x*.031+c*2.1+r*3.3);
-      const flicker = Math.sin(b.x*.04+c*1.9+r*2.7+animFrame*.002);
-      if(seed > -0.35){ // ~67% of windows lit
-        const bx=lerp(lerp(p[0].x,p[3].x,tx),lerp(p[4].x,p[7].x,tx),sy2);
-        const by=lerp(lerp(p[0].y,p[3].y,tx),lerp(p[4].y,p[7].y,tx),sy2);
-        const bright = 0.65 + flicker*0.2;
-        // Vary window color: mostly blue-white, some warm yellow, rare green/pink
+  // ── WINDOWS — real rectangular windows with frame ─────────────────────────
+  const drawWindows = (corners, dimmer, bSeed) => {
+    // corners: [bottomLeft, bottomRight, topLeft, topRight] in screen space
+    // We build a grid using bilinear interpolation across the face
+    const [BL, BR, TL, TR] = corners;
+    // How wide/tall is this face in screen pixels approximately?
+    const faceW = Math.hypot(BR.x-BL.x, BR.y-BL.y);
+    const faceH = Math.hypot(TL.x-BL.x, TL.y-BL.y);
+    const cols = Math.max(2, Math.min(12, faceW/22|0));
+    const rows = Math.max(3, Math.min(20, faceH/20|0));
+    // window size in UV space
+    const wU = 0.55/cols, wV = 0.5/rows;
+    const MARGIN_U = (1 - wU*cols*1.3) / (cols+1);
+    const MARGIN_V = (1 - wV*rows*1.5) / (rows+1);
+
+    for (let c=0; c<cols; c++) {
+      for (let r=0; r<rows; r++) {
+        const u = MARGIN_U + c*(wU + MARGIN_U) + wU/2;
+        const v = 1 - (MARGIN_V + r*(wV + MARGIN_V) + wV/2); // v from bottom
+
+        const seed2 = Math.sin(bSeed + c*2.1 + r*3.7) * 0.5 + 0.5;
+        const isLit = seed2 > 0.28; // ~72% lit
+        if (!isLit && !dimmer) continue;
+        const flicker = Math.sin(bSeed*0.1 + c*1.7 + r*2.3 + animFrame*0.0018) * 0.12;
+        const bright = (dimmer ? 0.38 : 0.72) + flicker;
+
+        // bilinear interpolation for window center
+        const wx = lerp(lerp(BL.x,BR.x,u), lerp(TL.x,TR.x,u), 1-v);
+        const wy = lerp(lerp(BL.y,BR.y,u), lerp(TL.y,TR.y,u), 1-v);
+
+        // window half-size in screen px — scale with zoom
+        const hw = Math.max(1.5, faceW/(cols*2.8));
+        const hh = Math.max(2,   faceH/(rows*2.4));
+
+        // pick colour
         const colorSeed = (b.seed + c*7 + r*13) % 20;
-        let wColor;
-        if(colorSeed < 13)      wColor = `rgba(140,185,255,${bright})`; // blue-white (most)
-        else if(colorSeed < 16) wColor = `rgba(255,220,120,${bright})`; // warm yellow
-        else if(colorSeed < 18) wColor = `rgba(100,255,200,${bright*0.8})`; // cyan-green
-        else                    wColor = `rgba(255,140,200,${bright*0.7})`; // pink (rare)
-        if(isMe) wColor = `rgba(210,160,255,${bright})`;
-        ctx.beginPath(); ctx.rect(bx-1.5,by-2.5,3,4);
-        ctx.fillStyle=wColor; ctx.fill();
+        let wR,wG,wB;
+        if (isMe)             { wR=210; wG=160; wB=255; }
+        else if (colorSeed<12){ wR=145; wG=192; wB=255; } // blue-white
+        else if (colorSeed<15){ wR=255; wG=225; wB=130; } // warm yellow
+        else if (colorSeed<17){ wR=110; wG=255; wB=200; } // cyan
+        else if (colorSeed<19){ wR=255; wG=150; wB=210; } // pink
+        else                  { wR=255; wG=255; wB=255; } // white
+
+        // dark window frame
+        ctx.fillStyle = `rgba(8,4,18,0.85)`;
+        ctx.fillRect(wx-hw-1, wy-hh-1, hw*2+2, hh*2+2);
+
+        // glowing interior
+        if (isLit) {
+          // inner glow gradient
+          const wGrad = ctx.createRadialGradient(wx,wy,0, wx,wy, Math.max(hw,hh)*1.4);
+          wGrad.addColorStop(0, `rgba(${wR},${wG},${wB},${bright})`);
+          wGrad.addColorStop(1, `rgba(${wR},${wG},${wB},${bright*0.3})`);
+          ctx.fillStyle = wGrad;
+          ctx.fillRect(wx-hw, wy-hh, hw*2, hh*2);
+          // subtle outer glow
+          ctx.shadowColor = `rgba(${wR},${wG},${wB},0.35)`;
+          ctx.shadowBlur  = 4;
+          ctx.fillStyle   = `rgba(${wR},${wG},${wB},${bright*0.9})`;
+          ctx.fillRect(wx-hw+0.5, wy-hh+0.5, hw*2-1, hh*2-1);
+          ctx.shadowBlur = 0;
+        } else {
+          // unlit — dark glass tint
+          ctx.fillStyle = `rgba(20,30,50,0.6)`;
+          ctx.fillRect(wx-hw, wy-hh, hw*2, hh*2);
+        }
       }
     }
-    // Side face windows (dimmer, same density)
-    const scols=Math.max(2,b.d/14|0), srows=Math.max(3,b.h/18|0);
-    for(let c=0;c<scols;c++) for(let r=0;r<srows;r++){
-      const tx=(c+.5)/scols, sy2=(r+.3)/(srows+.3);
-      const seed = Math.sin(b.y*.031+c*2.3+r*3.1);
-      if(seed > -0.2){ // ~60% on side
-        const bx=lerp(lerp(p[1].x,p[2].x,1-tx),lerp(p[5].x,p[6].x,1-tx),sy2);
-        const by=lerp(lerp(p[1].y,p[2].y,1-tx),lerp(p[5].y,p[6].y,1-tx),sy2);
-        const bright = 0.4 + Math.sin(b.y*.04+c*2+r*3+animFrame*.002)*0.15;
-        ctx.beginPath(); ctx.rect(bx-1.5,by-2.5,3,4);
-        ctx.fillStyle=`rgba(100,150,220,${bright})`; ctx.fill();
-      }
-    }
-  }
+  };
+
+  // Front face: corners BL=p[0], BR=p[1], TL=p[4], TR=p[5]
+  drawWindows([p[0], p[1], p[4], p[5]], false, b.x * 0.031 + b.seed);
+  // Left face:  corners BL=p[3], BR=p[0], TL=p[7], TR=p[4]
+  drawWindows([p[3], p[0], p[7], p[4]], true,  b.y * 0.031 + b.seed + 10);
+  // Right face: corners BL=p[1], BR=p[2], TL=p[5], TR=p[6]
+  drawWindows([p[1], p[2], p[5], p[6]], true,  b.y * 0.031 + b.seed + 20);
 
   // Player beacon
   if(isMe){
@@ -855,18 +928,13 @@ function draw(){
 // ── CAMERA UPDATE (every frame) ───────────────────────────────────────────────
 function updateCamera(){
   if(mode==='welcome')return;
-
-  // Apply rotation inertia with damping (from mouse drag release)
   camAngle += rotVelX;
   rotVelX *= 0.80;
   if(Math.abs(rotVelX)<0.0002) rotVelX=0;
-
-  // Apply pan inertia
   targetX += velX; targetY += velY;
   velX *= 0.80; velY *= 0.80;
   if(Math.abs(velX)<0.05) velX=0;
   if(Math.abs(velY)<0.05) velY=0;
-
   camX = targetX;
   camY = targetY;
   camZoom = 800 / camDist;
@@ -956,11 +1024,10 @@ window.addEventListener('mousemove',e=>{
     camAngle -= dx * 0.007;
     // Vertical = elevation: drag up → look more from above (increase tilt toward top-down)
     // clamp: 0.04 = nearly horizontal, 1.52 = nearly straight down
-    camTilt = Math.max(0.04, Math.min(1.52, camTilt - dy * 0.005));
+    camTilt = Math.max(0.08, Math.min(1.45, camTilt - dy * 0.004));
   }
 
   if(e.buttons===2||e.buttons===4){
-    // Pan: shift the orbit pivot in world space
     const panS = camDist * 0.0015;
     velX -= (dx*Math.cos(camAngle) + dy*Math.sin(camAngle)) * panS;
     velY -= (-dx*Math.sin(camAngle) + dy*Math.cos(camAngle)) * panS;
@@ -1012,7 +1079,7 @@ canvas.addEventListener('touchmove',e=>{
     const cy=(e.touches[0].clientY+e.touches[1].clientY)/2;
     const panS = camDist * 0.001;
     velX -= (cx-lastTouchCenter.x) * Math.cos(camAngle) * panS;
-    velY -= (cx-lastTouchCenter.x) * Math.sin(camAngle) * panS;
+    velY += (cx-lastTouchCenter.x) * Math.sin(camAngle) * panS;
     lastTouchCenter={x:cx,y:cy};
   }
 },{passive:false});
@@ -1208,7 +1275,7 @@ async function loadProfile(){
     // Auto-select my building
     const myB=buildings.find(b=>b.steamid===mySteamId);
     if(myB)selectBuilding(myB);
-    camAngle=0.55; camTilt=0.36; camDist=900; targetX=0; targetY=0; velX=0; velY=0; rotVelX=0; camX=0; camY=0; camZ=280; velX=0; velY=0; velZ=0;
+    camAngle=0.55; camTilt=0.36; camDist=900; targetX=0; targetY=0; velX=0; velY=0; rotVelX=0; camX=0; camY=0;
 
   } catch(err){
     showLoading(false);
