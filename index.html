@@ -746,72 +746,75 @@ function drawBuilding(b, hovered) {
   face([2,3,7,6], cBack,  null, 0);            // back face (darkest, usually hidden)
   face([4,5,6,7], cTop,   edgeColor, edgeW);  // roof
 
-  // ── WINDOWS — real rectangular windows with frame ─────────────────────────
+  // ── WINDOWS — pixel art style, flat solid rectangles in clean grid ────────
   const drawWindows = (corners, dimmer, bSeed) => {
-    // corners: [bottomLeft, bottomRight, topLeft, topRight] in screen space
-    // We build a grid using bilinear interpolation across the face
     const [BL, BR, TL, TR] = corners;
-    // How wide/tall is this face in screen pixels approximately?
     const faceW = Math.hypot(BR.x-BL.x, BR.y-BL.y);
     const faceH = Math.hypot(TL.x-BL.x, TL.y-BL.y);
-    const cols = Math.max(2, Math.min(12, faceW/22|0));
-    const rows = Math.max(3, Math.min(20, faceH/20|0));
-    // window size in UV space
-    const wU = 0.55/cols, wV = 0.5/rows;
-    const MARGIN_U = (1 - wU*cols*1.3) / (cols+1);
-    const MARGIN_V = (1 - wV*rows*1.5) / (rows+1);
+    if (faceW < 6 || faceH < 8) return; // too small to draw windows
 
-    for (let c=0; c<cols; c++) {
-      for (let r=0; r<rows; r++) {
-        const u = MARGIN_U + c*(wU + MARGIN_U) + wU/2;
-        const v = 1 - (MARGIN_V + r*(wV + MARGIN_V) + wV/2); // v from bottom
+    // Grid: ~1 window per 18px wide, 16px tall on the face
+    const cols = Math.max(1, Math.min(10, Math.floor(faceW / 18)));
+    const rows = Math.max(2, Math.min(18, Math.floor(faceH / 16)));
 
-        const seed2 = Math.sin(bSeed + c*2.1 + r*3.7) * 0.5 + 0.5;
-        const isLit = seed2 > 0.28; // ~72% lit
-        if (!isLit && !dimmer) continue;
-        const flicker = Math.sin(bSeed*0.1 + c*1.7 + r*2.3 + animFrame*0.0018) * 0.12;
-        const bright = (dimmer ? 0.38 : 0.72) + flicker;
+    // Window size: ~55% of cell width, ~55% of cell height — pixel art proportions
+    const cellU = 1 / (cols + 1);
+    const cellV = 1 / (rows + 1);
+    const winW = Math.max(2, faceW / (cols + 1) * 0.6);
+    const winH = Math.max(3, faceH / (rows + 1) * 0.55);
 
-        // bilinear interpolation for window center
-        const wx = lerp(lerp(BL.x,BR.x,u), lerp(TL.x,TR.x,u), 1-v);
-        const wy = lerp(lerp(BL.y,BR.y,u), lerp(TL.y,TR.y,u), 1-v);
+    // Window colours — pixel art palette (flat, no gradient)
+    const PALETTES = [
+      [255, 240, 180], // warm yellow  (most common)
+      [180, 220, 255], // cool blue-white
+      [255, 255, 255], // bright white
+      [140, 255, 200], // cyan-green
+      [255, 180, 220], // pink
+    ];
 
-        // window half-size in screen px — scale with zoom
-        const hw = Math.max(1.5, faceW/(cols*2.8));
-        const hh = Math.max(2,   faceH/(rows*2.4));
+    for (let c = 0; c < cols; c++) {
+      for (let r = 0; r < rows; r++) {
+        // UV of window center, evenly spaced with margins
+        const u = (c + 1) * cellU;
+        const v = 1 - (r + 1) * cellV; // v=0 at top
 
-        // pick colour
-        const colorSeed = (b.seed + c*7 + r*13) % 20;
-        let wR,wG,wB;
-        if (isMe)             { wR=210; wG=160; wB=255; }
-        else if (colorSeed<12){ wR=145; wG=192; wB=255; } // blue-white
-        else if (colorSeed<15){ wR=255; wG=225; wB=130; } // warm yellow
-        else if (colorSeed<17){ wR=110; wG=255; wB=200; } // cyan
-        else if (colorSeed<19){ wR=255; wG=150; wB=210; } // pink
-        else                  { wR=255; wG=255; wB=255; } // white
+        // Deterministic lit/unlit per window (no animFrame → stable)
+        const wSeed = Math.sin(bSeed + c * 127.1 + r * 311.7);
+        const isLit = wSeed > (dimmer ? -0.1 : -0.4); // 55% front, 45% side
 
-        // dark window frame
-        ctx.fillStyle = `rgba(8,4,18,0.85)`;
-        ctx.fillRect(wx-hw-1, wy-hh-1, hw*2+2, hh*2+2);
+        // Bilinear interpolation for window centre on the skewed face
+        const wx = lerp(lerp(BL.x, BR.x, u), lerp(TL.x, TR.x, u), v);
+        const wy = lerp(lerp(BL.y, BR.y, u), lerp(TL.y, TR.y, u), v);
 
-        // glowing interior
+        // Slight flicker only for lit windows (very subtle, slow)
+        const flicker = isLit
+          ? 0.85 + Math.sin(bSeed * 3.1 + c * 17 + r * 23 + animFrame * 0.0012) * 0.1
+          : 1;
+
+        // Pixel art window: 1px dark frame then solid colour fill
+        const hw = winW * 0.5, hh = winH * 0.5;
+
         if (isLit) {
-          // inner glow gradient
-          const wGrad = ctx.createRadialGradient(wx,wy,0, wx,wy, Math.max(hw,hh)*1.4);
-          wGrad.addColorStop(0, `rgba(${wR},${wG},${wB},${bright})`);
-          wGrad.addColorStop(1, `rgba(${wR},${wG},${wB},${bright*0.3})`);
-          ctx.fillStyle = wGrad;
-          ctx.fillRect(wx-hw, wy-hh, hw*2, hh*2);
-          // subtle outer glow
-          ctx.shadowColor = `rgba(${wR},${wG},${wB},0.35)`;
-          ctx.shadowBlur  = 4;
-          ctx.fillStyle   = `rgba(${wR},${wG},${wB},${bright*0.9})`;
-          ctx.fillRect(wx-hw+0.5, wy-hh+0.5, hw*2-1, hh*2-1);
-          ctx.shadowBlur = 0;
+          // Choose palette colour deterministically
+          const ci = Math.abs(Math.floor(wSeed * 100)) % PALETTES.length;
+          const [wR, wG, wB] = isMe ? [210, 160, 255] : PALETTES[ci];
+          const alpha = (dimmer ? 0.55 : 0.88) * flicker;
+
+          // 1px dark surround (pixel art frame)
+          ctx.fillStyle = 'rgba(0,0,0,0.7)';
+          ctx.fillRect(wx - hw - 1, wy - hh - 1, winW + 2, winH + 2);
+          // Solid lit window
+          ctx.fillStyle = `rgba(${wR},${wG},${wB},${alpha})`;
+          ctx.fillRect(wx - hw, wy - hh, winW, winH);
+          // Top-left highlight pixel (pixel art glint)
+          ctx.fillStyle = `rgba(255,255,255,${alpha * 0.5})`;
+          ctx.fillRect(wx - hw, wy - hh, Math.max(1, winW * 0.35), Math.max(1, winH * 0.3));
         } else {
-          // unlit — dark glass tint
-          ctx.fillStyle = `rgba(20,30,50,0.6)`;
-          ctx.fillRect(wx-hw, wy-hh, hw*2, hh*2);
+          // Unlit: very dark, barely visible — like glass with no light
+          ctx.fillStyle = 'rgba(0,0,0,0.6)';
+          ctx.fillRect(wx - hw - 1, wy - hh - 1, winW + 2, winH + 2);
+          ctx.fillStyle = dimmer ? 'rgba(10,15,30,0.5)' : 'rgba(15,20,45,0.7)';
+          ctx.fillRect(wx - hw, wy - hh, winW, winH);
         }
       }
     }
@@ -928,13 +931,15 @@ function draw(){
 // ── CAMERA UPDATE (every frame) ───────────────────────────────────────────────
 function updateCamera(){
   if(mode==='welcome')return;
+  // Orbit inertia: damping 0.88 → longer coast after drag release
   camAngle += rotVelX;
-  rotVelX *= 0.80;
-  if(Math.abs(rotVelX)<0.0002) rotVelX=0;
+  rotVelX *= 0.88;
+  if(Math.abs(rotVelX)<0.00015) rotVelX=0;
+  // Pan inertia
   targetX += velX; targetY += velY;
-  velX *= 0.80; velY *= 0.80;
-  if(Math.abs(velX)<0.05) velX=0;
-  if(Math.abs(velY)<0.05) velY=0;
+  velX *= 0.82; velY *= 0.82;
+  if(Math.abs(velX)<0.04) velX=0;
+  if(Math.abs(velY)<0.04) velY=0;
   camX = targetX;
   camY = targetY;
   camZoom = 800 / camDist;
@@ -1020,11 +1025,10 @@ window.addEventListener('mousemove',e=>{
   const dy=e.clientY-lastMouse.y;
 
   if(e.buttons===1){
-    // Horizontal = rotate azimuth around vertical axis (unlimited)
-    camAngle -= dx * 0.007;
-    // Vertical = elevation: drag up → look more from above (increase tilt toward top-down)
-    // clamp: 0.04 = nearly horizontal, 1.52 = nearly straight down
-    camTilt = Math.max(0.08, Math.min(1.45, camTilt - dy * 0.004));
+    // Horizontal drag → accumulate rotational velocity (inertia on release)
+    rotVelX -= dx * 0.006;
+    // Vertical → elevation, immediate (no inertia, feels more controlled)
+    camTilt = Math.max(0.10, Math.min(1.35, camTilt - dy * 0.003));
   }
 
   if(e.buttons===2||e.buttons===4){
