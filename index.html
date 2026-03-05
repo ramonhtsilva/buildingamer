@@ -377,8 +377,8 @@ function idToPos(id,district){
 // ── WINDOW TEXTURE CACHE ──────────────────────────────────────────────────────
 const _texCache=new Map();
 
-function makeWindowTexture(cols,rows,seed,isMe){
-  const key=`${cols}x${rows}_${seed}_${isMe?1:0}`;
+function makeWindowTexture(cols,rows,seed,isMe,faceColorHex){
+  const key=`${cols}x${rows}_${seed}_${isMe?1:0}_${faceColorHex||0}`;
   if(_texCache.has(key)) return _texCache.get(key);
 
   const WS=8, GAP=2, PAD=4;
@@ -388,7 +388,9 @@ function makeWindowTexture(cols,rows,seed,isMe){
   offCanvas.width=w; offCanvas.height=h;
   const cx=offCanvas.getContext('2d');
 
-  cx.fillStyle='#040208';
+  // Bake face color as background so texture is self-contained
+  const bgHex = faceColorHex ? '#' + faceColorHex.toString(16).padStart(6,'0') : '#040208';
+  cx.fillStyle=bgHex;
   cx.fillRect(0,0,w,h);
 
   let s=seed>>>0;
@@ -572,9 +574,10 @@ function buildCity(gamers){
 
     function makeface(w,h,color,winCols,winRows,winSeed){
       const geo=new THREE.PlaneGeometry(w,h);
-      const winTex=makeWindowTexture(winCols,winRows,winSeed,isMe);
+      const winTex=makeWindowTexture(winCols,winRows,winSeed,isMe,color);
+      // color=0xffffff so texture shows unmodified — face bg is baked into texture
       const mat=new THREE.MeshBasicMaterial({
-        color,map:winTex,side:THREE.FrontSide,
+        color:0xffffff, map:winTex, side:THREE.DoubleSide,
         transparent:false
       });
       return new THREE.Mesh(geo,mat);
@@ -605,7 +608,7 @@ function buildCity(gamers){
 
     // Top face
     const topGeo=new THREE.PlaneGeometry(bw,bd);
-    const topMat=new THREE.MeshBasicMaterial({color:cTop,side:THREE.FrontSide});
+    const topMat=new THREE.MeshBasicMaterial({color:cTop,side:THREE.DoubleSide});
     const top=new THREE.Mesh(topGeo,topMat);
     top.rotation.x=-Math.PI/2;
     top.position.set(pos.x,bh,pos.z);
