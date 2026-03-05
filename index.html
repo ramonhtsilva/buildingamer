@@ -577,39 +577,32 @@ function idToPos(id, district) {
 // ── BUILD CITY ────────────────────────────────────────────────────────────────
 function buildCity(gamers) {
   buildings = [];
+
+  // 1. Corrige district de cada gamer ANTES de qualquer posicionamento
+  //    Usa top3[0].name (sempre atualizado) em vez do valor salvo no banco
+  gamers.forEach(g => {
+    try {
+      const top3 = typeof g.top3 === 'string' ? JSON.parse(g.top3) : (g.top3 || []);
+      if (top3.length > 0) g.district = top3[0].name || 'INDEPENDENT';
+    } catch(e) {}
+  });
+
+  // 2. Limpa districtMap e reconstrói do zero com valores corretos — sem sobreposição
+  Object.keys(districtMap).forEach(k => delete districtMap[k]);
   assignDistricts(gamers);
+
+  // 3. Cria buildings já com posições corretas
   gamers.forEach((g,i) => {
     const pos = idToPos(g.steamid, g.district);
     const isMe = g.steamid === mySteamId;
-    // Height: 1 floor = 7px world units. Min=40 (tiny), Max=900 (skyscraper)
-    // 28 floors → 196px, 62 floors → 434px, 150 floors → 900px
     const h = Math.max(40, Math.min(900, g.floors * 7));
     const w = Math.max(55, Math.min(130, 44 + g.games * 0.65));
     let seedN = 0;
     for (let k=0;k<g.steamid.length;k++) seedN=(seedN*31+g.steamid.charCodeAt(k))|0;
-    // cols/rows fixos baseados em tamanho MUNDO (não pixels) — janelas não mudam com zoom
-    // GitCity: windowsPerFloor e floors são propriedades fixas do building
-    // Janelas decorativas: grid proporcional ao prédio, caps para visual limpo
-    // Cols: ~1 janela a cada 18 unidades de largura
-    // Rows: ~1 janela a cada 14 unidades de altura, máx 40 rows (evita prédio do Igor com 146 filas!)
     const wCols = Math.max(2, Math.round(w / 18));
     const wColsSide = Math.max(2, Math.round(w*0.8 / 18));
     const wRows = Math.min(40, Math.max(3, Math.round(h / 14)));
     buildings.push({ ...g, x:pos.x, y:pos.y, z:0, w, d:w*0.8, h, isPlayer:isMe, lit:0.6+Math.random()*0.35, seed:Math.abs(seedN)%100, wCols, wColsSide, wRows });
-  });
-  // Recalcula distrito a partir dos dados de top3 — sempre mais preciso que o valor salvo no banco
-  // Corrige valores legados (DOWNTOWN, UNKNOWN, etc.) e mantém atualizado sem precisar re-registrar
-  buildings.forEach(b => {
-    try {
-      const top3 = typeof b.top3 === 'string' ? JSON.parse(b.top3) : (b.top3 || []);
-      if (top3.length > 0) b.district = top3[0].name || 'INDEPENDENT';
-    } catch(e) {}
-  });
-  assignDistricts(buildings);
-  // Reposition buildings with corrected districts
-  buildings.forEach(b => {
-    const pos = idToPos(b.steamid, b.district);
-    b.x = pos.x; b.y = pos.y;
   });
   sortBuildings();
   document.getElementById('gamerCount').textContent = gamers.length;
