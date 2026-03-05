@@ -817,7 +817,9 @@ function drawBuilding(b, hovered) {
 
         ctx.transform(ux, uy, vx, vy, A.x, A.y);
         ctx.globalAlpha = dimAlpha;
+        ctx.imageSmoothingEnabled = false; // NearestFilter — pixels nítidos como GitCity
         ctx.drawImage(tex, 0, 0);
+        ctx.imageSmoothingEnabled = true;
         ctx.globalAlpha = 1;
       }
     }
@@ -911,6 +913,8 @@ function drawBuilding(b, hovered) {
 function draw(){
   animFrame++;
   updateCamera();
+  ctx.imageSmoothingEnabled = false;
+  ctx.imageSmoothingEnabled = false;
   ctx.clearRect(0,0,W,H);
   drawSky(); drawGround();
   if(animFrame-lastSort>90){sortBuildings();lastSort=animFrame;}
