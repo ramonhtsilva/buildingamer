@@ -589,9 +589,12 @@ function buildCity(gamers) {
     for (let k=0;k<g.steamid.length;k++) seedN=(seedN*31+g.steamid.charCodeAt(k))|0;
     // cols/rows fixos baseados em tamanho MUNDO (não pixels) — janelas não mudam com zoom
     // GitCity: windowsPerFloor e floors são propriedades fixas do building
-    const wCols = Math.max(3, Math.round(w / 18));        // janelas por andar (frente)
-    const wColsSide = Math.max(2, Math.round(w*0.8 / 18)); // janelas por andar (lateral)
-    const wRows = g.floors || Math.round(h / 14);          // andares = rows de janelas
+    // Janelas decorativas: grid proporcional ao prédio, caps para visual limpo
+    // Cols: ~1 janela a cada 18 unidades de largura
+    // Rows: ~1 janela a cada 14 unidades de altura, máx 40 rows (evita prédio do Igor com 146 filas!)
+    const wCols = Math.max(2, Math.round(w / 18));
+    const wColsSide = Math.max(2, Math.round(w*0.8 / 18));
+    const wRows = Math.min(40, Math.max(3, Math.round(h / 14)));
     buildings.push({ ...g, x:pos.x, y:pos.y, z:0, w, d:w*0.8, h, isPlayer:isMe, lit:0.6+Math.random()*0.35, seed:Math.abs(seedN)%100, wCols, wColsSide, wRows });
   });
   sortBuildings();
@@ -731,7 +734,7 @@ const _texCache = new Map();
 
 function getWinTex(cols, rows, seed, litPct, litColors, offColor, faceColor) {
   // Chave por prédio — textura não muda com zoom
-  const key = `${seed}_${cols}x${rows}_${litPct.toFixed(2)}_${faceColor}`;
+  const key = `${seed}_${cols}x${rows}_${faceColor}`;
   if (_texCache.has(key)) return _texCache.get(key);
 
   const WS = 6, GAP = 2, PAD = 3;
@@ -807,16 +810,15 @@ function drawBuilding(b, hovered) {
     edgeColor=null; edgeW=0;
   }
 
-  // % de janelas acesas baseado em horas totais jogadas
-  // 0h=10%, 500h=40%, 2000h=65%, 5000h+=90%
-  const rawHours = b.hours || 0;
-  const litPct = Math.min(0.90, 0.10 + Math.log1p(rawHours / 100) * 0.18);
+  // Janelas 100% decorativas — padrão fixo por seed, independente de horas
+  // ~65% acesas (valor estético, não funcional)
+  const litPct = 0.65;
 
-  // Paleta de janelas — GitCity usa azuis dominantes
+  // Paleta: amarelos e brancos como luz de apartamento real
   const litColors = isMe
-    ? ['#c896ff','#a060f0','#d4b0ff','#ffffff']
-    : ['#7ab4ff','#5090e8','#a0c8ff','#d0e8ff','#ffffff','#b090ff','#60e8d0'];
-  const offColor = '#080818';
+    ? ['#fff0a0','#ffe060','#ffffff','#ffd700','#fffacd']  // amarelo dourado p/ player
+    : ['#ffe066','#ffd700','#fff3b0','#ffffff','#fffacd','#ffeaa0','#f5deb3'];
+  const offColor = '#0a0808'; // apagada = quase preto
 
   // ── FACE COM TEXTURA ───────────────────────────────────────────────────────
   // Projeta textura offscreen sobre face isométrica via ctx.transform()
