@@ -161,7 +161,7 @@ input[type="text"]::placeholder { color:rgba(226,217,243,0.2); font-weight:400; 
 
 /* ── MY BUILDING BTN (after login) ── */
 #myBuildingBtn {
-  position:fixed; top:8px; right:180px;
+  position:fixed; top:12px; left:calc(50% + 140px);
   z-index:22; display:none;
   background:rgba(155,92,246,0.12); border:1px solid var(--border);
   color:var(--purple); font-family:'Exo 2',sans-serif;
@@ -710,23 +710,26 @@ function drawBuilding(b, hovered) {
     const v = 0.30 + (b.seed%40)/100;
     const hue = b.seed % 3;
     if (hue===0) {
-      cFront=`rgba(${38*v|0},${16*v|0},${105*v|0},0.94)`;
-      cLeft =`rgba(${30*v|0},${12*v|0},${85*v|0},0.94)`;
-      cRight=`rgba(${22*v|0},${9*v|0},${68*v|0},0.94)`;
-      cBack =`rgba(${16*v|0},${6*v|0},${52*v|0},0.94)`;
-      cTop  =`rgba(${80*v|0},${38*v|0},${185*v|0},0.97)`;
+      // Purple/dark blue — 100% opaque, distinct face shading
+      cFront=`rgb(${38*v|0},${16*v|0},${105*v|0})`;
+      cLeft =`rgb(${28*v|0},${11*v|0},${78*v|0})`;
+      cRight=`rgb(${20*v|0},${8*v|0},${60*v|0})`;
+      cBack =`rgb(${13*v|0},${5*v|0},${42*v|0})`;
+      cTop  =`rgb(${55*v|0},${26*v|0},${130*v|0})`;
     } else if (hue===1) {
-      cFront=`rgba(${16*v|0},${55*v|0},${100*v|0},0.94)`;
-      cLeft =`rgba(${12*v|0},${42*v|0},${80*v|0},0.94)`;
-      cRight=`rgba(${9*v|0},${32*v|0},${65*v|0},0.94)`;
-      cBack =`rgba(${6*v|0},${22*v|0},${50*v|0},0.94)`;
-      cTop  =`rgba(${28*v|0},${98*v|0},${175*v|0},0.97)`;
+      // Dark teal/blue
+      cFront=`rgb(${16*v|0},${52*v|0},${95*v|0})`;
+      cLeft =`rgb(${11*v|0},${38*v|0},${72*v|0})`;
+      cRight=`rgb(${8*v|0},${28*v|0},${55*v|0})`;
+      cBack =`rgb(${5*v|0},${18*v|0},${38*v|0})`;
+      cTop  =`rgb(${22*v|0},${75*v|0},${145*v|0})`;
     } else {
-      cFront=`rgba(${75*v|0},${12*v|0},${88*v|0},0.94)`;
-      cLeft =`rgba(${58*v|0},${9*v|0},${70*v|0},0.94)`;
-      cRight=`rgba(${44*v|0},${6*v|0},${55*v|0},0.94)`;
-      cBack =`rgba(${30*v|0},${4*v|0},${40*v|0},0.94)`;
-      cTop  =`rgba(${128*v|0},${22*v|0},${152*v|0},0.97)`;
+      // Dark magenta/indigo
+      cFront=`rgb(${68*v|0},${10*v|0},${80*v|0})`;
+      cLeft =`rgb(${50*v|0},${7*v|0},${60*v|0})`;
+      cRight=`rgb(${36*v|0},${5*v|0},${44*v|0})`;
+      cBack =`rgb(${22*v|0},${3*v|0},${28*v|0})`;
+      cTop  =`rgb(${95*v|0},${16*v|0},${115*v|0})`;
     }
     edgeColor = null; edgeW = 0;
   }
@@ -746,76 +749,69 @@ function drawBuilding(b, hovered) {
   face([2,3,7,6], cBack,  null, 0);            // back face (darkest, usually hidden)
   face([4,5,6,7], cTop,   edgeColor, edgeW);  // roof
 
-  // ── WINDOWS — pixel art style, flat solid rectangles in clean grid ────────
-  const drawWindows = (corners, dimmer, bSeed) => {
+  // ── WINDOWS — GitCity style: large square tiles, flat colors, dense grid ─────
+  const drawWindows = (corners, sideDim, bSeed) => {
     const [BL, BR, TL, TR] = corners;
     const faceW = Math.hypot(BR.x-BL.x, BR.y-BL.y);
     const faceH = Math.hypot(TL.x-BL.x, TL.y-BL.y);
-    if (faceW < 6 || faceH < 8) return; // too small to draw windows
+    if (faceW < 8 || faceH < 10) return;
 
-    // Grid: ~1 window per 18px wide, 16px tall on the face
-    const cols = Math.max(1, Math.min(10, Math.floor(faceW / 18)));
-    const rows = Math.max(2, Math.min(18, Math.floor(faceH / 16)));
+    // GitCity: windows fill nearly the entire face in a tight grid
+    // ~1 window per 14px wide, 13px tall — large and prominent
+    const cols = Math.max(1, Math.round(faceW / 14));
+    const rows = Math.max(1, Math.round(faceH / 13));
 
-    // Window size: ~55% of cell width, ~55% of cell height — pixel art proportions
-    const cellU = 1 / (cols + 1);
-    const cellV = 1 / (rows + 1);
-    const winW = Math.max(2, faceW / (cols + 1) * 0.6);
-    const winH = Math.max(3, faceH / (rows + 1) * 0.55);
+    // Window occupies ~75% of cell — large, nearly touching
+    const cellW = faceW / cols;
+    const cellH = faceH / rows;
+    const winRatio = 0.72;
 
-    // Window colours — pixel art palette (flat, no gradient)
-    const PALETTES = [
-      [255, 240, 180], // warm yellow  (most common)
-      [180, 220, 255], // cool blue-white
-      [255, 255, 255], // bright white
-      [140, 255, 200], // cyan-green
-      [255, 180, 220], // pink
+    // GitCity colour palette: mostly blue tones, some white/yellow accents
+    // Colours are per-window, deterministic
+    const COLS = [
+      [100, 160, 255], // blue (dominant)
+      [140, 190, 255], // light blue
+      [200, 225, 255], // very light blue / white-blue
+      [255, 255, 255], // white
+      [255, 240, 160], // warm yellow (rare accent)
+      [ 80, 220, 200], // cyan accent (rare)
+      [200, 140, 255], // purple accent (rare)
     ];
+    const WEIGHTS = [0, 0, 0, 1, 1, 2, 5, 6]; // cumulative: blue=3/8, lblue=2/8, ...
 
     for (let c = 0; c < cols; c++) {
       for (let r = 0; r < rows; r++) {
-        // UV of window center, evenly spaced with margins
-        const u = (c + 1) * cellU;
-        const v = 1 - (r + 1) * cellV; // v=0 at top
+        // UV of cell centre
+        const u = (c + 0.5) / cols;
+        const v = 1 - (r + 0.5) / rows;
 
-        // Deterministic lit/unlit per window (no animFrame → stable)
-        const wSeed = Math.sin(bSeed + c * 127.1 + r * 311.7);
-        const isLit = wSeed > (dimmer ? -0.1 : -0.4); // 55% front, 45% side
+        // Deterministic lit/unlit — ~80% lit on front, 65% on sides
+        const litSeed = Math.sin(bSeed * 1.1 + c * 127.1 + r * 311.7);
+        const litThreshold = sideDim ? 0.3 : -0.6;
+        if (litSeed < litThreshold) continue; // unlit window — skip (face shows through = dark)
 
-        // Bilinear interpolation for window centre on the skewed face
+        // Screen position via bilinear interp
         const wx = lerp(lerp(BL.x, BR.x, u), lerp(TL.x, TR.x, u), v);
         const wy = lerp(lerp(BL.y, BR.y, u), lerp(TL.y, TR.y, u), v);
 
-        // Slight flicker only for lit windows (very subtle, slow)
-        const flicker = isLit
-          ? 0.85 + Math.sin(bSeed * 3.1 + c * 17 + r * 23 + animFrame * 0.0012) * 0.1
-          : 1;
+        // Window pixel size — same cell ratio
+        const hw = (cellW * winRatio) * 0.5;
+        const hh = (cellH * winRatio) * 0.5;
 
-        // Pixel art window: 1px dark frame then solid colour fill
-        const hw = winW * 0.5, hh = winH * 0.5;
+        // Pick colour — weighted toward blues
+        const cSeed = Math.abs(Math.floor(Math.sin(bSeed + c * 53.3 + r * 97.1) * 1000)) % 8;
+        let [wR, wG, wB] = isMe ? [210, 160, 255] : COLS[Math.min(cSeed, COLS.length-1)];
 
-        if (isLit) {
-          // Choose palette colour deterministically
-          const ci = Math.abs(Math.floor(wSeed * 100)) % PALETTES.length;
-          const [wR, wG, wB] = isMe ? [210, 160, 255] : PALETTES[ci];
-          const alpha = (dimmer ? 0.55 : 0.88) * flicker;
+        // Side faces: desaturate and dim slightly
+        if (sideDim) { wR = wR*0.6|0; wG = wG*0.7|0; wB = wB*0.8|0; }
 
-          // 1px dark surround (pixel art frame)
-          ctx.fillStyle = 'rgba(0,0,0,0.7)';
-          ctx.fillRect(wx - hw - 1, wy - hh - 1, winW + 2, winH + 2);
-          // Solid lit window
-          ctx.fillStyle = `rgba(${wR},${wG},${wB},${alpha})`;
-          ctx.fillRect(wx - hw, wy - hh, winW, winH);
-          // Top-left highlight pixel (pixel art glint)
-          ctx.fillStyle = `rgba(255,255,255,${alpha * 0.5})`;
-          ctx.fillRect(wx - hw, wy - hh, Math.max(1, winW * 0.35), Math.max(1, winH * 0.3));
-        } else {
-          // Unlit: very dark, barely visible — like glass with no light
-          ctx.fillStyle = 'rgba(0,0,0,0.6)';
-          ctx.fillRect(wx - hw - 1, wy - hh - 1, winW + 2, winH + 2);
-          ctx.fillStyle = dimmer ? 'rgba(10,15,30,0.5)' : 'rgba(15,20,45,0.7)';
-          ctx.fillRect(wx - hw, wy - hh, winW, winH);
-        }
+        // Very subtle slow flicker (only ~10% variation, very slow)
+        const flicker = 0.9 + Math.sin(bSeed*2.3 + c*11 + r*17 + animFrame*0.0008) * 0.08;
+        const alpha = flicker.toFixed(2);
+
+        // Flat solid square — no frame, no gradient, just the window
+        ctx.fillStyle = `rgba(${wR},${wG},${wB},${alpha})`;
+        ctx.fillRect(wx - hw, wy - hh, hw * 2, hh * 2);
       }
     }
   };
