@@ -6,381 +6,169 @@
 <title>BUILDINGAMER — Your Gaming Library, Visualized</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Exo+2:wght@300;400;700;900&display=swap');
-
 :root {
-  --bg:      #06040f;
-  --purple:  #9b5cf6;
-  --purple2: #7c3aed;
-  --cyan:    #22d3ee;
-  --cyan2:   #0891b2;
-  --pink:    #e879f9;
-  --dark:    #1a1035;
-  --border:  rgba(155,92,246,0.2);
-  --border2: rgba(34,211,238,0.2);
-  --text:    #e2d9f3;
-  --muted:   rgba(226,217,243,0.4);
+  --bg:#06040f; --purple:#9b5cf6; --purple2:#7c3aed; --cyan:#22d3ee;
+  --cyan2:#0891b2; --pink:#e879f9; --dark:#1a1035;
+  --border:rgba(155,92,246,0.2); --border2:rgba(34,211,238,0.2);
+  --text:#e2d9f3; --muted:rgba(226,217,243,0.4);
 }
-
-* { margin:0; padding:0; box-sizing:border-box; }
-body { background:var(--bg); color:var(--text); font-family:'Rajdhani',sans-serif; overflow:hidden; height:100vh; width:100vw; }
-
-#cityCanvas { position:fixed; inset:0; width:100%; height:100%; cursor:grab; }
-#cityCanvas:active { cursor:grabbing; }
-
-/* Search bar */
-#searchBar { position:fixed; top:12px; left:50%; transform:translateX(-50%); z-index:20; display:none; align-items:center; gap:8px; }
-#searchInput { background:rgba(6,4,15,0.92); border:1px solid var(--border); color:var(--text); font-family:'Rajdhani',sans-serif; font-size:13px; letter-spacing:1px; padding:7px 14px; width:240px; outline:none; }
-#searchInput:focus { border-color:var(--cyan); box-shadow:0 0 12px rgba(34,211,238,0.15); }
-#searchInput::placeholder { color:var(--muted); }
-#searchResults { position:absolute; top:36px; left:0; width:240px; background:rgba(6,4,15,0.97); border:1px solid var(--border); z-index:21; display:none; }
-.search-item { padding:8px 14px; cursor:pointer; font-size:12px; letter-spacing:1px; border-bottom:1px solid rgba(155,92,246,0.08); display:flex; align-items:center; gap:10px; }
-.search-item:hover { background:rgba(155,92,246,0.1); }
-.search-item img { width:24px; height:24px; border-radius:2px; }
-.search-item-name { color:var(--text); }
-.search-item-district { font-size:9px; color:var(--cyan); opacity:0.7; margin-top:1px; }
-
-#scanlines { position:fixed; inset:0; pointer-events:none; z-index:6; background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.03) 3px,rgba(0,0,0,0.03) 4px); }
-
-.corner { position:fixed; z-index:15; width:32px; height:32px; pointer-events:none; opacity:0.2; }
-.corner-tl { top:68px; left:10px; border-top:1px solid var(--cyan); border-left:1px solid var(--cyan); }
-.corner-tr { top:68px; right:10px; border-top:1px solid var(--cyan); border-right:1px solid var(--cyan); }
-.corner-bl { bottom:10px; left:10px; border-bottom:1px solid var(--purple); border-left:1px solid var(--purple); }
-.corner-br { bottom:10px; right:10px; border-bottom:1px solid var(--purple); border-right:1px solid var(--purple); }
-
-/* ── HEADER ── */
-#header {
-  position:fixed; top:0; left:0; right:0; z-index:20;
-  padding:14px 24px;
-  display:flex; align-items:center; justify-content:space-between;
-  background:linear-gradient(to bottom,rgba(6,4,15,0.98) 0%,transparent 100%);
-  border-bottom:1px solid rgba(155,92,246,0.07);
-}
-.logo { font-family:'Exo 2',sans-serif; font-weight:900; font-size:20px; letter-spacing:3px; }
-.logo .b { color:var(--cyan); text-shadow:0 0 16px rgba(34,211,238,0.5); }
-.logo .g { color:var(--purple); text-shadow:0 0 16px rgba(155,92,246,0.5); }
-.tagline { font-size:9px; color:var(--muted); letter-spacing:2px; margin-top:2px; }
-#cityCount { font-family:'Exo 2',sans-serif; font-size:11px; letter-spacing:2px; color:var(--muted); padding:5px 14px; border:1px solid var(--border); background:rgba(155,92,246,0.04); }
-#cityCount span { color:var(--cyan); font-weight:700; font-size:14px; }
-
-/* ── WELCOME SCREEN ── */
-#welcomeScreen {
-  position:fixed; inset:0; z-index:40;
-  display:flex; align-items:center; justify-content:center;
-  background:rgba(6,4,15,0.92);
-  backdrop-filter:blur(8px);
-}
-.welcome-box {
-  width:540px; max-width:95vw;
-  background:rgba(6,4,15,0.98);
-  border:1px solid var(--border);
-  padding:48px;
-  box-shadow:0 0 80px rgba(155,92,246,0.1),0 0 160px rgba(34,211,238,0.04);
-}
-.welcome-tag { font-size:9px; letter-spacing:4px; color:var(--cyan); margin-bottom:10px; opacity:0.6; }
-.welcome-box h1 { font-family:'Exo 2',sans-serif; font-size:30px; font-weight:900; letter-spacing:2px; color:#fff; line-height:1.05; margin-bottom:8px; }
-.welcome-box h1 em { font-style:normal; color:var(--purple); text-shadow:0 0 20px rgba(155,92,246,0.4); }
-.welcome-box p { font-size:13px; color:var(--muted); margin-bottom:36px; line-height:1.7; }
-
-.welcome-actions { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-
-.btn-explore {
-  background:transparent; border:1px solid var(--border2); color:var(--cyan);
-  font-family:'Exo 2',sans-serif; font-size:12px; font-weight:700; letter-spacing:2px;
-  padding:18px 16px; cursor:pointer; transition:all 0.15s; text-align:center;
-}
-.btn-explore:hover { background:rgba(34,211,238,0.06); border-color:var(--cyan); box-shadow:0 0 16px rgba(34,211,238,0.1); }
-.btn-explore .btn-icon { font-size:20px; display:block; margin-bottom:6px; }
-.btn-explore .btn-label { display:block; }
-.btn-explore .btn-sub { display:block; font-size:9px; font-weight:400; opacity:0.5; margin-top:3px; letter-spacing:1px; font-family:'Rajdhani',sans-serif; }
-
-.btn-join {
-  background:var(--purple2); border:1px solid var(--purple); color:#fff;
-  font-family:'Exo 2',sans-serif; font-size:12px; font-weight:700; letter-spacing:2px;
-  padding:18px 16px; cursor:pointer; transition:all 0.15s; text-align:center;
-}
-.btn-join:hover { background:var(--purple); box-shadow:0 0 24px rgba(155,92,246,0.3); }
-.btn-join .btn-icon { font-size:20px; display:block; margin-bottom:6px; }
-.btn-join .btn-label { display:block; }
-.btn-join .btn-sub { display:block; font-size:9px; font-weight:400; opacity:0.6; margin-top:3px; letter-spacing:1px; font-family:'Rajdhani',sans-serif; }
-
-/* ── REGISTER PANEL ── */
-#registerPanel {
-  position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
-  z-index:35; width:460px; max-width:95vw;
-  background:rgba(6,4,15,0.98); border:1px solid var(--border);
-  padding:40px; display:none;
-  box-shadow:0 0 60px rgba(155,92,246,0.1);
-  backdrop-filter:blur(20px);
-}
-.panel-tag { font-size:9px; letter-spacing:4px; color:var(--cyan); margin-bottom:8px; opacity:0.6; }
-#registerPanel h2 { font-family:'Exo 2',sans-serif; font-size:22px; font-weight:900; letter-spacing:2px; color:#fff; margin-bottom:6px; }
-#registerPanel h2 em { font-style:normal; color:var(--purple); }
-#registerPanel p { font-size:12px; color:var(--muted); margin-bottom:24px; line-height:1.6; }
-
-.input-wrap { position:relative; margin-bottom:10px; }
-input[type="text"] {
-  width:100%; background:rgba(13,8,32,0.9);
-  border:1px solid var(--border); border-bottom:2px solid var(--purple2);
-  color:var(--text); font-family:'Rajdhani',sans-serif;
-  font-size:15px; font-weight:600; padding:13px 110px 13px 16px;
-  outline:none; transition:all 0.2s; letter-spacing:1px;
-}
-input[type="text"]:focus { border-color:var(--purple); border-bottom-color:var(--cyan); box-shadow:0 0 16px rgba(155,92,246,0.1); }
-input[type="text"]::placeholder { color:rgba(226,217,243,0.2); font-weight:400; }
-
-.btn-build {
-  position:absolute; right:0; top:0; bottom:0;
-  background:var(--purple); border:none; color:#fff;
-  font-family:'Exo 2',sans-serif; font-size:11px; font-weight:700; letter-spacing:2px;
-  padding:0 18px; cursor:pointer; transition:all 0.15s;
-}
-.btn-build:hover { background:var(--pink); box-shadow:0 0 16px rgba(232,121,249,0.3); }
-.btn-build:disabled { background:var(--dark); color:var(--muted); cursor:not-allowed; }
-
-.btn-back {
-  width:100%; background:transparent; border:1px solid rgba(155,92,246,0.1);
-  color:var(--muted); font-family:'Rajdhani',sans-serif;
-  font-size:10px; letter-spacing:2px; padding:9px; cursor:pointer; transition:all 0.15s; margin-top:8px;
-}
-.btn-back:hover { border-color:var(--border); color:var(--text); }
-
-.hint { font-size:10px; color:rgba(226,217,243,0.22); margin-top:12px; line-height:1.7; }
-.hint a { color:rgba(34,211,238,0.45); text-decoration:none; }
-.hint a:hover { color:var(--cyan); }
-
-#errorMsg { font-size:11px; color:#f87171; margin-top:10px; display:none; padding:9px 12px; background:rgba(248,113,113,0.05); border-left:2px solid #f87171; }
-
-/* ── LOADING ── */
-#loadingOverlay { position:fixed; inset:0; z-index:50; background:rgba(6,4,15,0.97); display:none; flex-direction:column; align-items:center; justify-content:center; gap:20px; }
-.loading-logo { font-family:'Exo 2',sans-serif; font-size:10px; letter-spacing:6px; color:var(--muted); }
-#loadingText { font-family:'Exo 2',sans-serif; font-size:12px; letter-spacing:3px; color:var(--purple); animation:pulse 1.5s infinite; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
-.loading-bar-wrap { width:240px; height:1px; background:rgba(155,92,246,0.15); overflow:hidden; }
-.loading-bar-fill { height:100%; background:linear-gradient(90deg,var(--purple),var(--cyan)); animation:loadBar 1.8s ease-in-out infinite; }
-@keyframes loadBar { 0%{width:0%;margin-left:0} 50%{width:70%;margin-left:10%} 100%{width:0%;margin-left:100%} }
-
-/* ── MY BUILDING BTN (after login) ── */
-#myBuildingBtn {
-  position:fixed; top:12px; left:calc(50% + 140px);
-  z-index:22; display:none;
-  background:rgba(155,92,246,0.12); border:1px solid var(--border);
-  color:var(--purple); font-family:'Exo 2',sans-serif;
-  font-size:10px; font-weight:700; letter-spacing:2px;
-  padding:6px 16px; cursor:pointer; transition:all 0.15s;
-}
-#myBuildingBtn:hover { background:rgba(155,92,246,0.22); }
-
-/* ── PLAYER CARD (click on building) ── */
-#playerCard {
-  position:fixed; top:70px; right:20px; z-index:20;
-  background:rgba(6,4,15,0.97); border:1px solid var(--border);
-  border-top:2px solid var(--purple);
-  padding:0; width:260px; display:none;
-  backdrop-filter:blur(16px);
-  box-shadow:0 8px 32px rgba(0,0,0,0.5);
-}
-
-.pc-header {
-  padding:16px 18px 14px;
-  border-bottom:1px solid var(--border);
-  display:flex; gap:12px; align-items:center;
-}
-.avatar-frame { position:relative; width:46px; height:46px; flex-shrink:0; }
-.avatar-frame img { width:100%; height:100%; object-fit:cover; border:1px solid var(--purple2); background:var(--dark); }
-.avatar-ring { position:absolute; inset:-3px; border:1px solid var(--cyan); animation:ringPulse 2.5s infinite; pointer-events:none; }
-@keyframes ringPulse { 0%,100%{opacity:0.8;box-shadow:0 0 5px var(--cyan)} 50%{opacity:0.2;box-shadow:0 0 12px var(--cyan)} }
-.pc-name { font-family:'Exo 2',sans-serif; font-size:14px; font-weight:700; color:#fff; margin-bottom:2px; }
-.pc-district { font-size:9px; letter-spacing:2px; color:var(--cyan); opacity:0.7; }
-
-.pc-stats { display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--border); border-bottom:1px solid var(--border); }
-.pc-stat { background:rgba(6,4,15,0.9); padding:10px 12px; text-align:center; }
-.pc-stat-val { font-family:'Exo 2',sans-serif; font-size:18px; font-weight:700; color:var(--purple); display:block; line-height:1; margin-bottom:3px; }
-.pc-stat-val.c { color:var(--cyan); }
-.pc-stat-lbl { font-size:8px; letter-spacing:1.5px; color:var(--muted); }
-
-.pc-games { padding:12px 18px; border-bottom:1px solid var(--border); }
-.pc-games-title { font-size:8px; letter-spacing:2px; color:var(--muted); margin-bottom:8px; }
-.game-row { display:flex; align-items:center; gap:8px; margin-bottom:5px; }
-.game-name { font-size:10px; color:var(--text); opacity:0.7; width:70px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex-shrink:0; }
-.game-track { flex:1; height:2px; background:rgba(155,92,246,0.1); }
-.game-fill { height:100%; background:linear-gradient(90deg,var(--purple2),var(--cyan)); }
-.game-hrs { font-size:9px; color:var(--muted); width:30px; text-align:right; flex-shrink:0; }
-
-.pc-actions { padding:12px 18px; display:flex; flex-direction:column; gap:6px; }
-.btn-profile {
-  width:100%; background:var(--purple2); border:1px solid var(--purple); color:#fff;
-  font-family:'Exo 2',sans-serif; font-size:10px; font-weight:700; letter-spacing:2px;
-  padding:10px; cursor:pointer; transition:all 0.15s; text-align:center;
-}
-.btn-profile:hover { background:var(--purple); box-shadow:0 0 16px rgba(155,92,246,0.3); }
-.btn-close-card {
-  width:100%; background:transparent; border:1px solid rgba(155,92,246,0.1);
-  color:var(--muted); font-family:'Rajdhani',sans-serif;
-  font-size:10px; letter-spacing:2px; padding:7px; cursor:pointer; transition:all 0.15s;
-}
-.btn-close-card:hover { border-color:var(--border); color:var(--text); }
-
-/* ── TOOLTIP ── */
-#tooltip {
-  position:fixed; z-index:25;
-  background:rgba(6,4,15,0.97); border:1px solid var(--border); border-left:2px solid var(--cyan);
-  padding:9px 13px; pointer-events:none; display:none;
-  backdrop-filter:blur(8px); min-width:140px;
-}
-.tt-name { font-family:'Exo 2',sans-serif; font-size:12px; font-weight:700; color:#fff; margin-bottom:4px; }
-.tt-row { color:var(--muted); margin-bottom:1px; font-size:10px; }
-.tt-row span { color:var(--cyan); font-weight:600; }
-.tt-click { font-size:9px; color:rgba(155,92,246,0.5); margin-top:5px; letter-spacing:1px; }
-
-/* ── HUD ── */
-#hud { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); z-index:20; display:none; font-size:9px; letter-spacing:2px; color:var(--muted); background:rgba(6,4,15,0.85); border:1px solid var(--border); padding:7px 18px; }
-
-/* ── ADD BUILDING BTN (explore mode) ── */
-#addBuildingBtn {
-  position:fixed; bottom:16px; right:20px; z-index:22; display:none;
-  background:var(--purple2); border:1px solid var(--purple); color:#fff;
-  font-family:'Exo 2',sans-serif; font-size:10px; font-weight:700; letter-spacing:2px;
-  padding:10px 20px; cursor:pointer; transition:all 0.15s;
-}
-#addBuildingBtn:hover { background:var(--purple); box-shadow:0 0 20px rgba(155,92,246,0.3); }
-
-/* ── PROFILE PAGE ── */
-#profilePage {
-  position:fixed; inset:0; z-index:45; display:none;
-  background:rgba(6,4,15,0.98); backdrop-filter:blur(20px);
-  overflow-y:auto;
-}
-.profile-page-inner { max-width:700px; margin:0 auto; padding:80px 24px 40px; }
-.profile-page-back {
-  font-family:'Exo 2',sans-serif; font-size:10px; letter-spacing:2px;
-  color:var(--muted); background:transparent; border:1px solid var(--border);
-  padding:7px 16px; cursor:pointer; transition:all 0.15s; margin-bottom:32px; display:inline-block;
-}
-.profile-page-back:hover { color:var(--cyan); border-color:var(--border2); }
-
-.pp-hero { display:flex; gap:24px; align-items:center; margin-bottom:32px; padding-bottom:24px; border-bottom:1px solid var(--border); }
-.pp-avatar-wrap { position:relative; width:80px; height:80px; flex-shrink:0; }
-.pp-avatar-wrap img { width:100%; height:100%; object-fit:cover; border:2px solid var(--purple); }
-.pp-avatar-ring { position:absolute; inset:-5px; border:1px solid var(--cyan); animation:ringPulse 2.5s infinite; }
-.pp-name { font-family:'Exo 2',sans-serif; font-size:28px; font-weight:900; color:#fff; letter-spacing:2px; margin-bottom:4px; }
-.pp-district-badge { display:inline-block; font-size:9px; letter-spacing:3px; color:var(--cyan); border:1px solid var(--border2); padding:3px 10px; margin-bottom:8px; }
-.pp-since { font-size:11px; color:var(--muted); }
-
-.pp-stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:28px; }
-.pp-stat-box { background:rgba(155,92,246,0.05); border:1px solid var(--border); padding:16px 12px; text-align:center; }
-.pp-stat-val { font-family:'Exo 2',sans-serif; font-size:24px; font-weight:700; color:var(--purple); display:block; margin-bottom:4px; }
-.pp-stat-val.c { color:var(--cyan); }
-.pp-stat-lbl { font-size:8px; letter-spacing:2px; color:var(--muted); }
-
-.pp-section-title { font-size:9px; letter-spacing:3px; color:var(--muted); margin-bottom:12px; }
-.pp-games-list { display:flex; flex-direction:column; gap:6px; margin-bottom:28px; }
-.pp-game-row { display:flex; align-items:center; gap:12px; padding:8px 12px; background:rgba(155,92,246,0.03); border:1px solid rgba(155,92,246,0.08); }
-.pp-game-rank { font-family:'Exo 2',sans-serif; font-size:11px; color:var(--muted); width:20px; flex-shrink:0; }
-.pp-game-name { font-size:13px; font-weight:600; flex:1; }
-.pp-game-track { width:120px; height:3px; background:rgba(155,92,246,0.1); flex-shrink:0; }
-.pp-game-fill { height:100%; background:linear-gradient(90deg,var(--purple2),var(--cyan)); }
-.pp-game-hrs { font-family:'Exo 2',sans-serif; font-size:11px; color:var(--cyan); width:40px; text-align:right; flex-shrink:0; }
-
-.pp-building-preview { border:1px solid var(--border); padding:20px; text-align:center; background:rgba(155,92,246,0.03); }
-.pp-building-canvas { width:100%; max-width:300px; height:200px; margin:0 auto; display:block; }
-
-/* Language toggle */
-#langToggle {
-  position: fixed;
-  bottom: 16px;
-  left: 16px;
-  z-index: 50;
-  display: flex;
-  gap: 2px;
-  background: rgba(6,4,15,0.85);
-  border: 1px solid rgba(155,92,246,0.25);
-  border-radius: 4px;
-  overflow: hidden;
-}
-.lang-btn {
-  padding: 5px 10px;
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  color: rgba(226,217,243,0.4);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  transition: color 0.2s, background 0.2s;
-}
-.lang-btn:hover { color: rgba(226,217,243,0.8); }
-.lang-btn.active {
-  color: #22d3ee;
-  background: rgba(34,211,238,0.08);
-}
-
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;overflow:hidden;height:100vh;width:100vw;}
+#cityCanvas{position:fixed;inset:0;width:100%;height:100%;cursor:grab;}
+#cityCanvas:active{cursor:grabbing;}
+#scanlines{position:fixed;inset:0;pointer-events:none;z-index:6;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.03) 3px,rgba(0,0,0,0.03) 4px);}
+.corner{position:fixed;z-index:15;width:32px;height:32px;pointer-events:none;opacity:0.2;}
+.corner-tl{top:68px;left:10px;border-top:1px solid var(--cyan);border-left:1px solid var(--cyan);}
+.corner-tr{top:68px;right:10px;border-top:1px solid var(--cyan);border-right:1px solid var(--cyan);}
+.corner-bl{bottom:10px;left:10px;border-bottom:1px solid var(--purple);border-left:1px solid var(--purple);}
+.corner-br{bottom:10px;right:10px;border-bottom:1px solid var(--purple);border-right:1px solid var(--purple);}
+#header{position:fixed;top:0;left:0;right:0;z-index:20;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(to bottom,rgba(6,4,15,0.98) 0%,transparent 100%);border-bottom:1px solid rgba(155,92,246,0.07);}
+.logo{font-family:'Exo 2',sans-serif;font-weight:900;font-size:20px;letter-spacing:3px;}
+.logo .b{color:var(--cyan);text-shadow:0 0 16px rgba(34,211,238,0.5);}
+.logo .g{color:var(--purple);text-shadow:0 0 16px rgba(155,92,246,0.5);}
+.tagline{font-size:9px;color:var(--muted);letter-spacing:2px;margin-top:2px;}
+#cityCount{font-family:'Exo 2',sans-serif;font-size:11px;letter-spacing:2px;color:var(--muted);padding:5px 14px;border:1px solid var(--border);background:rgba(155,92,246,0.04);}
+#cityCount span{color:var(--cyan);font-weight:700;font-size:14px;}
+#welcomeScreen{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(6,4,15,0.92);backdrop-filter:blur(8px);}
+.welcome-box{width:540px;max-width:95vw;background:rgba(6,4,15,0.98);border:1px solid var(--border);padding:48px;box-shadow:0 0 80px rgba(155,92,246,0.1),0 0 160px rgba(34,211,238,0.04);}
+.welcome-tag{font-size:9px;letter-spacing:4px;color:var(--cyan);margin-bottom:10px;opacity:0.6;}
+.welcome-box h1{font-family:'Exo 2',sans-serif;font-size:30px;font-weight:900;letter-spacing:2px;color:#fff;line-height:1.05;margin-bottom:8px;}
+.welcome-box h1 em{font-style:normal;color:var(--purple);text-shadow:0 0 20px rgba(155,92,246,0.4);}
+.welcome-box p{font-size:13px;color:var(--muted);margin-bottom:36px;line-height:1.7;}
+.welcome-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.btn-explore{background:transparent;border:1px solid var(--border2);color:var(--cyan);font-family:'Exo 2',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;padding:18px 16px;cursor:pointer;transition:all 0.15s;text-align:center;}
+.btn-explore:hover{background:rgba(34,211,238,0.06);border-color:var(--cyan);box-shadow:0 0 16px rgba(34,211,238,0.1);}
+.btn-explore .btn-icon{font-size:20px;display:block;margin-bottom:6px;}
+.btn-explore .btn-label{display:block;}
+.btn-explore .btn-sub{display:block;font-size:9px;font-weight:400;opacity:0.5;margin-top:3px;letter-spacing:1px;font-family:'Rajdhani',sans-serif;}
+.btn-join{background:var(--purple2);border:1px solid var(--purple);color:#fff;font-family:'Exo 2',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;padding:18px 16px;cursor:pointer;transition:all 0.15s;text-align:center;}
+.btn-join:hover{background:var(--purple);box-shadow:0 0 24px rgba(155,92,246,0.3);}
+.btn-join .btn-icon{font-size:20px;display:block;margin-bottom:6px;}
+.btn-join .btn-label{display:block;}
+.btn-join .btn-sub{display:block;font-size:9px;font-weight:400;opacity:0.6;margin-top:3px;letter-spacing:1px;font-family:'Rajdhani',sans-serif;}
+#registerPanel{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:35;width:460px;max-width:95vw;background:rgba(6,4,15,0.98);border:1px solid var(--border);padding:40px;display:none;box-shadow:0 0 60px rgba(155,92,246,0.1);backdrop-filter:blur(20px);}
+.panel-tag{font-size:9px;letter-spacing:4px;color:var(--cyan);margin-bottom:8px;opacity:0.6;}
+#registerPanel h2{font-family:'Exo 2',sans-serif;font-size:22px;font-weight:900;letter-spacing:2px;color:#fff;margin-bottom:6px;}
+#registerPanel h2 em{font-style:normal;color:var(--purple);}
+#registerPanel p{font-size:12px;color:var(--muted);margin-bottom:24px;line-height:1.6;}
+.input-wrap{position:relative;margin-bottom:10px;}
+input[type="text"]{width:100%;background:rgba(13,8,32,0.9);border:1px solid var(--border);border-bottom:2px solid var(--purple2);color:var(--text);font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:600;padding:13px 110px 13px 16px;outline:none;transition:all 0.2s;letter-spacing:1px;}
+input[type="text"]:focus{border-color:var(--purple);border-bottom-color:var(--cyan);box-shadow:0 0 16px rgba(155,92,246,0.1);}
+input[type="text"]::placeholder{color:rgba(226,217,243,0.2);font-weight:400;}
+.btn-build{position:absolute;right:0;top:0;bottom:0;background:var(--purple);border:none;color:#fff;font-family:'Exo 2',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;padding:0 18px;cursor:pointer;transition:all 0.15s;}
+.btn-build:hover{background:var(--pink);box-shadow:0 0 16px rgba(232,121,249,0.3);}
+.btn-build:disabled{background:var(--dark);color:var(--muted);cursor:not-allowed;}
+.btn-back{width:100%;background:transparent;border:1px solid rgba(155,92,246,0.1);color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:10px;letter-spacing:2px;padding:9px;cursor:pointer;transition:all 0.15s;margin-top:8px;}
+.btn-back:hover{border-color:var(--border);color:var(--text);}
+.hint{font-size:10px;color:rgba(226,217,243,0.22);margin-top:12px;line-height:1.7;}
+.hint a{color:rgba(34,211,238,0.45);text-decoration:none;}
+#errorMsg{font-size:11px;color:#f87171;margin-top:10px;display:none;padding:9px 12px;background:rgba(248,113,113,0.05);border-left:2px solid #f87171;}
+#loadingOverlay{position:fixed;inset:0;z-index:50;background:rgba(6,4,15,0.97);display:none;flex-direction:column;align-items:center;justify-content:center;gap:20px;}
+.loading-logo{font-family:'Exo 2',sans-serif;font-size:10px;letter-spacing:6px;color:var(--muted);}
+#loadingText{font-family:'Exo 2',sans-serif;font-size:12px;letter-spacing:3px;color:var(--purple);animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.loading-bar-wrap{width:240px;height:1px;background:rgba(155,92,246,0.15);overflow:hidden;}
+.loading-bar-fill{height:100%;background:linear-gradient(90deg,var(--purple),var(--cyan));animation:loadBar 1.8s ease-in-out infinite;}
+@keyframes loadBar{0%{width:0%;margin-left:0}50%{width:70%;margin-left:10%}100%{width:0%;margin-left:100%}}
+#myBuildingBtn{position:fixed;top:12px;left:calc(50% + 140px);z-index:22;display:none;background:rgba(155,92,246,0.12);border:1px solid var(--border);color:var(--purple);font-family:'Exo 2',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;padding:6px 16px;cursor:pointer;transition:all 0.15s;}
+#myBuildingBtn:hover{background:rgba(155,92,246,0.22);}
+#playerCard{position:fixed;top:70px;right:20px;z-index:20;background:rgba(6,4,15,0.97);border:1px solid var(--border);border-top:2px solid var(--purple);padding:0;width:260px;display:none;backdrop-filter:blur(16px);box-shadow:0 8px 32px rgba(0,0,0,0.5);}
+.pc-header{padding:16px 18px 14px;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:center;}
+.avatar-frame{position:relative;width:46px;height:46px;flex-shrink:0;}
+.avatar-frame img{width:100%;height:100%;object-fit:cover;border:1px solid var(--purple2);background:var(--dark);}
+.avatar-ring{position:absolute;inset:-3px;border:1px solid var(--cyan);animation:ringPulse 2.5s infinite;pointer-events:none;}
+@keyframes ringPulse{0%,100%{opacity:0.8;box-shadow:0 0 5px var(--cyan)}50%{opacity:0.2;box-shadow:0 0 12px var(--cyan)}}
+.pc-name{font-family:'Exo 2',sans-serif;font-size:14px;font-weight:700;color:#fff;margin-bottom:2px;}
+.pc-district{font-size:9px;letter-spacing:2px;color:var(--cyan);opacity:0.7;}
+.pc-stats{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border-bottom:1px solid var(--border);}
+.pc-stat{background:rgba(6,4,15,0.9);padding:10px 12px;text-align:center;}
+.pc-stat-val{font-family:'Exo 2',sans-serif;font-size:18px;font-weight:700;color:var(--purple);display:block;line-height:1;margin-bottom:3px;}
+.pc-stat-val.c{color:var(--cyan);}
+.pc-stat-lbl{font-size:8px;letter-spacing:1.5px;color:var(--muted);}
+.pc-games{padding:12px 18px;border-bottom:1px solid var(--border);}
+.pc-games-title{font-size:8px;letter-spacing:2px;color:var(--muted);margin-bottom:8px;}
+.game-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.game-name{font-size:10px;color:var(--text);opacity:0.7;width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0;}
+.game-track{flex:1;height:2px;background:rgba(155,92,246,0.1);}
+.game-fill{height:100%;background:linear-gradient(90deg,var(--purple2),var(--cyan));}
+.game-hrs{font-size:9px;color:var(--muted);width:30px;text-align:right;flex-shrink:0;}
+.pc-actions{padding:12px 18px;display:flex;flex-direction:column;gap:6px;}
+.btn-profile{width:100%;background:var(--purple2);border:1px solid var(--purple);color:#fff;font-family:'Exo 2',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;padding:10px;cursor:pointer;transition:all 0.15s;text-align:center;}
+.btn-profile:hover{background:var(--purple);box-shadow:0 0 16px rgba(155,92,246,0.3);}
+.btn-close-card{width:100%;background:transparent;border:1px solid rgba(155,92,246,0.1);color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:10px;letter-spacing:2px;padding:7px;cursor:pointer;transition:all 0.15s;}
+.btn-close-card:hover{border-color:var(--border);color:var(--text);}
+#tooltip{position:fixed;z-index:25;background:rgba(6,4,15,0.97);border:1px solid var(--border);border-left:2px solid var(--cyan);padding:9px 13px;pointer-events:none;display:none;backdrop-filter:blur(8px);min-width:140px;}
+.tt-name{font-family:'Exo 2',sans-serif;font-size:12px;font-weight:700;color:#fff;margin-bottom:4px;}
+.tt-row{color:var(--muted);margin-bottom:1px;font-size:10px;}
+.tt-row span{color:var(--cyan);font-weight:600;}
+.tt-click{font-size:9px;color:rgba(155,92,246,0.5);margin-top:5px;letter-spacing:1px;}
+#hud{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:20;display:none;font-size:9px;letter-spacing:2px;color:var(--muted);background:rgba(6,4,15,0.85);border:1px solid var(--border);padding:7px 18px;}
+#addBuildingBtn{position:fixed;bottom:16px;right:20px;z-index:22;display:none;background:var(--purple2);border:1px solid var(--purple);color:#fff;font-family:'Exo 2',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;padding:10px 20px;cursor:pointer;transition:all 0.15s;}
+#addBuildingBtn:hover{background:var(--purple);box-shadow:0 0 20px rgba(155,92,246,0.3);}
+#profilePage{position:fixed;inset:0;z-index:45;display:none;background:rgba(6,4,15,0.98);backdrop-filter:blur(20px);overflow-y:auto;}
+.profile-page-inner{max-width:700px;margin:0 auto;padding:80px 24px 40px;}
+.profile-page-back{font-family:'Exo 2',sans-serif;font-size:10px;letter-spacing:2px;color:var(--muted);background:transparent;border:1px solid var(--border);padding:7px 16px;cursor:pointer;transition:all 0.15s;margin-bottom:32px;display:inline-block;}
+.profile-page-back:hover{color:var(--cyan);border-color:var(--border2);}
+.pp-hero{display:flex;gap:24px;align-items:center;margin-bottom:32px;padding-bottom:24px;border-bottom:1px solid var(--border);}
+.pp-avatar-wrap{position:relative;width:80px;height:80px;flex-shrink:0;}
+.pp-avatar-wrap img{width:100%;height:100%;object-fit:cover;border:2px solid var(--purple);}
+.pp-avatar-ring{position:absolute;inset:-5px;border:1px solid var(--cyan);animation:ringPulse 2.5s infinite;}
+.pp-name{font-family:'Exo 2',sans-serif;font-size:28px;font-weight:900;color:#fff;letter-spacing:2px;margin-bottom:4px;}
+.pp-district-badge{display:inline-block;font-size:9px;letter-spacing:3px;color:var(--cyan);border:1px solid var(--border2);padding:3px 10px;margin-bottom:8px;}
+.pp-since{font-size:11px;color:var(--muted);}
+.pp-stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:28px;}
+.pp-stat-box{background:rgba(155,92,246,0.05);border:1px solid var(--border);padding:16px 12px;text-align:center;}
+.pp-stat-val{font-family:'Exo 2',sans-serif;font-size:24px;font-weight:700;color:var(--purple);display:block;margin-bottom:4px;}
+.pp-stat-val.c{color:var(--cyan);}
+.pp-stat-lbl{font-size:8px;letter-spacing:2px;color:var(--muted);}
+.pp-section-title{font-size:9px;letter-spacing:3px;color:var(--muted);margin-bottom:12px;}
+.pp-games-list{display:flex;flex-direction:column;gap:6px;margin-bottom:28px;}
+.pp-game-row{display:flex;align-items:center;gap:12px;padding:8px 12px;background:rgba(155,92,246,0.03);border:1px solid rgba(155,92,246,0.08);}
+.pp-game-rank{font-family:'Exo 2',sans-serif;font-size:11px;color:var(--muted);width:20px;flex-shrink:0;}
+.pp-game-name{font-size:13px;font-weight:600;flex:1;}
+.pp-game-track{width:120px;height:3px;background:rgba(155,92,246,0.1);flex-shrink:0;}
+.pp-game-fill{height:100%;background:linear-gradient(90deg,var(--purple2),var(--cyan));}
+.pp-game-hrs{font-family:'Exo 2',sans-serif;font-size:11px;color:var(--cyan);width:40px;text-align:right;flex-shrink:0;}
+#langToggle{position:fixed;bottom:16px;left:16px;z-index:50;display:flex;gap:2px;background:rgba(6,4,15,0.85);border:1px solid rgba(155,92,246,0.25);border-radius:4px;overflow:hidden;}
+.lang-btn{padding:5px 10px;font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;color:rgba(226,217,243,0.4);background:transparent;border:none;cursor:pointer;transition:color 0.2s,background 0.2s;}
+.lang-btn:hover{color:rgba(226,217,243,0.8);}
+.lang-btn.active{color:#22d3ee;background:rgba(34,211,238,0.08);}
 </style>
 </head>
 <body>
-
-<!-- LANG TOGGLE -->
 <div id="langToggle">
   <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
   <button class="lang-btn" data-lang="pt" onclick="setLang('pt')">PT</button>
 </div>
-
-
 <canvas id="cityCanvas"></canvas>
 <div id="scanlines"></div>
-<div class="corner corner-tl"></div>
-<div class="corner corner-tr"></div>
-<div class="corner corner-bl"></div>
-<div class="corner corner-br"></div>
-
-<!-- HEADER -->
+<div class="corner corner-tl"></div><div class="corner corner-tr"></div>
+<div class="corner corner-bl"></div><div class="corner corner-br"></div>
 <div id="header">
   <div>
     <div class="logo"><span class="b">BUILDIN</span><span class="g">GAMER</span></div>
     <div class="tagline">YOUR GAMING LIBRARY, VISUALIZED</div>
   </div>
   <div id="cityCount"><span id="gamerCount">0</span> GAMERS IN THE CITY</div>
-
-<div id="searchBar" style="position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:20;display:none;align-items:center;">
-  <div style="position:relative">
-    <input id="searchInput" style="background:rgba(6,4,15,0.92);border:1px solid rgba(155,92,246,0.3);color:#e2d9f3;font-family:'Rajdhani',sans-serif;font-size:13px;letter-spacing:1px;padding:7px 14px;width:240px;outline:none;" placeholder="🔍  BUSCAR GAMER..." autocomplete="off" oninput="onSearch(this.value)" onblur="setTimeout(()=>{const r=document.getElementById('searchResults');if(r)r.style.display='none'},200)"/>
-    <div id="searchResults" style="position:absolute;top:36px;left:0;width:240px;background:rgba(6,4,15,0.97);border:1px solid rgba(155,92,246,0.2);z-index:21;display:none;"></div>
+  <div id="searchBar" style="position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:20;display:none;align-items:center;">
+    <div style="position:relative">
+      <input id="searchInput" style="background:rgba(6,4,15,0.92);border:1px solid rgba(155,92,246,0.3);color:#e2d9f3;font-family:'Rajdhani',sans-serif;font-size:13px;letter-spacing:1px;padding:7px 14px;width:240px;outline:none;" placeholder="🔍  BUSCAR GAMER..." autocomplete="off" oninput="onSearch(this.value)" onblur="setTimeout(()=>{const r=document.getElementById('searchResults');if(r)r.style.display='none'},200)"/>
+      <div id="searchResults" style="position:absolute;top:36px;left:0;width:240px;background:rgba(6,4,15,0.97);border:1px solid rgba(155,92,246,0.2);z-index:21;display:none;"></div>
+    </div>
   </div>
 </div>
-
-<div id="searchBar">
-  <div style="position:relative">
-    <input id="searchInput" placeholder="🔍  BUSCAR GAMER..." autocomplete="off" oninput="onSearch(this.value)" onblur="setTimeout(()=>document.getElementById('searchResults').style.display='none',200)"/>
-    <div id="searchResults"></div>
-  </div>
-</div>
-</div>
-
-<!-- MY BUILDING BTN -->
 <button id="myBuildingBtn" onclick="focusMyBuilding()">◉ &nbsp;MEU PRÉDIO</button>
-
-<!-- WELCOME SCREEN -->
 <div id="welcomeScreen">
   <div class="welcome-box">
     <div class="welcome-tag">// BUILDINGAMER v2.0</div>
     <h1>A CIDADE DOS<br><em>GAMERS</em></h1>
     <p>Cada gamer é um prédio. Quanto mais você jogou,<br>mais alto ele cresce. Explore a cidade ou adicione o seu.</p>
     <div class="welcome-actions">
-      <button class="btn-explore" onclick="enterExplore()">
-        <span class="btn-icon">🏙️</span>
-        <span class="btn-label">EXPLORAR</span>
-        <span class="btn-sub">Ver a cidade sem se registrar</span>
-      </button>
-      <button class="btn-join" onclick="enterRegister()">
-        <span class="btn-icon">🏗️</span>
-        <span class="btn-label">ADD MEU PRÉDIO</span>
-        <span class="btn-sub">Conectar meu SteamID</span>
-      </button>
+      <button class="btn-explore" onclick="enterExplore()"><span class="btn-icon">🏙️</span><span class="btn-label">EXPLORAR</span><span class="btn-sub">Ver a cidade sem se registrar</span></button>
+      <button class="btn-join" onclick="enterRegister()"><span class="btn-icon">🏗️</span><span class="btn-label">ADD MEU PRÉDIO</span><span class="btn-sub">Conectar meu SteamID</span></button>
     </div>
   </div>
 </div>
-
-<!-- REGISTER PANEL -->
 <div id="registerPanel">
   <div class="panel-tag">// CONSTRUIR MEU PRÉDIO</div>
   <h2>INSIRA SEU<br><em>STEAM ID</em></h2>
@@ -393,25 +181,15 @@ input[type="text"]::placeholder { color:rgba(226,217,243,0.2); font-weight:400; 
   <div class="hint">Ex: <strong>hakamzinho</strong> ou steamcommunity.com/id/hakamzinho · Perfil deve ser <strong style="color:rgba(34,211,238,0.55)">público</strong></div>
   <button class="btn-back" onclick="backToWelcome()">◀ &nbsp;VOLTAR</button>
 </div>
-
-<!-- LOADING -->
 <div id="loadingOverlay">
   <div class="loading-logo">BUILDINGAMER</div>
   <div id="loadingText">INICIALIZANDO...</div>
   <div class="loading-bar-wrap"><div class="loading-bar-fill"></div></div>
 </div>
-
-<!-- PLAYER CARD -->
 <div id="playerCard">
   <div class="pc-header">
-    <div class="avatar-frame">
-      <img id="pcAvatar" src="" alt="">
-      <div class="avatar-ring"></div>
-    </div>
-    <div>
-      <div class="pc-name" id="pcName">—</div>
-      <div class="pc-district" id="pcDistrict">—</div>
-    </div>
+    <div class="avatar-frame"><img id="pcAvatar" src="" alt=""><div class="avatar-ring"></div></div>
+    <div><div class="pc-name" id="pcName">—</div><div class="pc-district" id="pcDistrict">—</div></div>
   </div>
   <div class="pc-stats">
     <div class="pc-stat"><span class="pc-stat-val" id="pcGames">—</span><span class="pc-stat-lbl">GAMES</span></div>
@@ -428,8 +206,6 @@ input[type="text"]::placeholder { color:rgba(226,217,243,0.2); font-weight:400; 
     <button class="btn-close-card" onclick="closePlayerCard()">FECHAR</button>
   </div>
 </div>
-
-<!-- TOOLTIP -->
 <div id="tooltip">
   <div class="tt-name" id="ttName"></div>
   <div class="tt-row">HOURS &nbsp;<span id="ttHours"></span></div>
@@ -437,29 +213,15 @@ input[type="text"]::placeholder { color:rgba(226,217,243,0.2); font-weight:400; 
   <div class="tt-row">RANK &nbsp;&nbsp;<span id="ttRank"></span></div>
   <div class="tt-click">[ CLIQUE PARA VER PERFIL ]</div>
 </div>
-
-<!-- HUD -->
 <div id="hud">ARRASTAR=orbitar &nbsp;·&nbsp; BOTÃO DIR=pan &nbsp;·&nbsp; SCROLL=zoom &nbsp;·&nbsp; CLIQUE=perfil</div>
-
-<!-- ADD BUILDING BTN (explore mode) -->
 <button id="addBuildingBtn" onclick="enterRegister()">+ &nbsp;ADD MEU PRÉDIO</button>
-<!-- FAKE TOGGLE (dev only) -->
 <button id="fakeToggleBtn" onclick="toggleFakeBuildings()" style="position:fixed;bottom:50px;left:16px;z-index:50;background:rgba(6,4,15,0.85);border:1px solid rgba(155,92,246,0.3);color:rgba(226,217,243,0.5);font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;padding:5px 10px;cursor:pointer;">🏙️ +100 FAKE</button>
-
-<!-- PROFILE PAGE -->
 <div id="profilePage">
   <div class="profile-page-inner">
     <button class="profile-page-back" onclick="closeProfilePage()">◀ &nbsp;VOLTAR À CIDADE</button>
     <div class="pp-hero">
-      <div class="pp-avatar-wrap">
-        <img id="ppAvatar" src="" alt="">
-        <div class="pp-avatar-ring"></div>
-      </div>
-      <div>
-        <div class="pp-name" id="ppName">—</div>
-        <div class="pp-district-badge" id="ppDistrict">—</div>
-        <div class="pp-since" id="ppSince">—</div>
-      </div>
+      <div class="pp-avatar-wrap"><img id="ppAvatar" src="" alt=""><div class="pp-avatar-ring"></div></div>
+      <div><div class="pp-name" id="ppName">—</div><div class="pp-district-badge" id="ppDistrict">—</div><div class="pp-since" id="ppSince">—</div></div>
     </div>
     <div class="pp-stats-row">
       <div class="pp-stat-box"><span class="pp-stat-val" id="ppGames">—</span><span class="pp-stat-lbl">GAMES</span></div>
@@ -472,617 +234,488 @@ input[type="text"]::placeholder { color:rgba(226,217,243,0.2); font-weight:400; 
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 // ── CONFIG ────────────────────────────────────────────────────────────────────
 const SUPABASE_URL  = 'https://ntfyvegjurjefnynhnyx.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im50Znl2ZWdqdXJqZWZueW5obnl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1ODE3MDAsImV4cCI6MjA4ODE1NzcwMH0.0_1BdPPECsWnzltC-tL8j1AQmZWoTcAjfOj28Uxy9h4';
 
-async function sbFetch(path, opts = {}) {
-  const { headers: extraHeaders, ...restOpts } = opts;
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+async function sbFetch(path, opts={}) {
+  const {headers:extraHeaders,...restOpts}=opts;
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/${path}`,{
     ...restOpts,
-    headers: {
-      'apikey': SUPABASE_ANON,
-      'Authorization': `Bearer ${SUPABASE_ANON}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=representation',
-      ...(extraHeaders || {}),
-    },
+    headers:{'apikey':SUPABASE_ANON,'Authorization':`Bearer ${SUPABASE_ANON}`,'Content-Type':'application/json','Prefer':'return=representation',...(extraHeaders||{})},
   });
-  if (!res.ok) console.error('Supabase error:', res.status, await res.text());
+  if(!res.ok) console.error('Supabase error:',res.status,await res.text());
   return res;
 }
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
-let cityGamers    = [];
-let buildings     = [];
-let mySteamId     = localStorage.getItem('bg_steamid') || null;
-let selectedBuilding = null;
-let camAngle = 0.55, camTilt = 0.36, camZoom = 0.9;
-let camX=0, camY=0;
-let lastMouse = {x:0,y:0};
-let hoveredBuilding = null;
-let animFrame = 0, lastSort = 0;
-let mode = 'welcome'; // welcome | explore | city
-// Camera orbit state
-let targetX=0, targetY=0;
-let camDist=900;
-let velX=0, velY=0;
-let rotVelX=0;
+let cityGamers=[], buildingObjects=[], mySteamId=localStorage.getItem('bg_steamid')||null;
+let selectedBuilding=null, hoveredBuilding=null;
+let mode='welcome';
+let showFake=false;
+
+// ── THREE.JS SETUP ─────────────────────────────────────────────────────────────
+const canvas=document.getElementById('cityCanvas');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setClearColor(0x06040f,1);
+renderer.shadowMap.enabled=false;
+
+const scene=new THREE.Scene();
+
+// Orthographic camera for isometric view
+let W=window.innerWidth, H=window.innerHeight;
+const ORTHO_SIZE=900;
+let aspect=W/H;
+const camera=new THREE.OrthographicCamera(
+  -ORTHO_SIZE*aspect, ORTHO_SIZE*aspect,
+  ORTHO_SIZE, -ORTHO_SIZE, -10000, 10000
+);
+
+// Isometric angle: 45° azimuth, ~35.26° elevation (true iso)
+// We use a fixed rotation and move via pan/zoom
+camera.position.set(800,800,800);
+camera.lookAt(0,0,0);
+
+renderer.setSize(W,H);
+
+function onResize(){
+  W=window.innerWidth; H=window.innerHeight;
+  aspect=W/H;
+  renderer.setSize(W,H);
+  camera.left=-ORTHO_SIZE*aspect*camZoom;
+  camera.right=ORTHO_SIZE*aspect*camZoom;
+  camera.top=ORTHO_SIZE*camZoom;
+  camera.bottom=-ORTHO_SIZE*camZoom;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize',onResize);
+
+// ── CAMERA STATE ──────────────────────────────────────────────────────────────
+let camAngle=Math.PI/4;    // azimuth (radians)
+let camElevation=0.6;      // elevation angle (radians, ~35°)
+let camZoom=1.0;           // ortho scale
+let camDist=1200;          // radius from target
+let targetX=0, targetZ=0;  // pan target (world X/Z)
+let velX=0, velZ=0;        // pan inertia
+let rotVel=0;              // rotation inertia
 let isDragging=false;
-let clickStartX=0, clickStartY=0;
+let lastMouse={x:0,y:0};
+let clickStart={x:0,y:0};
 
-// ── CANVAS ────────────────────────────────────────────────────────────────────
-const canvas = document.getElementById('cityCanvas');
-const ctx    = canvas.getContext('2d');
-let W, H;
-function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
-resize(); window.addEventListener('resize', resize);
-
-// ── ISO PROJECTION ────────────────────────────────────────────────────────────
-function iso(x, y, z) {
-  const wx = x - camX, wy = y - camY;
-  const rx = wx*Math.cos(camAngle) - wy*Math.sin(camAngle);
-  const ry = wx*Math.sin(camAngle) + wy*Math.cos(camAngle);
-  return {
-    x: W/2 + rx*camZoom,
-    y: H/2 + (ry*Math.sin(camTilt) - z*Math.cos(camTilt))*camZoom
-  };
+function updateCamera(){
+  if(mode==='welcome') return;
+  // Pan inertia
+  targetX+=velX; targetZ+=velZ;
+  velX*=0.82; velZ*=0.82;
+  if(Math.abs(velX)<0.1) velX=0;
+  if(Math.abs(velZ)<0.1) velZ=0;
+  // Camera position on sphere around target
+  const cx=targetX+camDist*Math.sin(camElevation)*Math.sin(camAngle);
+  const cy=camDist*Math.cos(camElevation);
+  const cz=targetZ+camDist*Math.sin(camElevation)*Math.cos(camAngle);
+  camera.position.set(cx,cy,cz);
+  camera.lookAt(targetX,0,targetZ);
+  // Update ortho frustum based on zoom
+  const hs=ORTHO_SIZE*camZoom;
+  camera.left=-hs*aspect; camera.right=hs*aspect;
+  camera.top=hs; camera.bottom=-hs;
+  camera.updateProjectionMatrix();
 }
 
-// ── DISTRICT SYSTEM ──────────────────────────────────────────────────────────
-// Each unique district (game name) gets a fixed center position and color
-const districtMap = {}; // name → {cx, cy, color, appid}
+// ── DISTRICT SYSTEM ───────────────────────────────────────────────────────────
+const districtMap={};
 
-function hashStr(s) {
-  let h = 0;
-  for (let i=0;i<s.length;i++) h = (Math.imul(31,h)+s.charCodeAt(i))|0;
+function hashStr(s){
+  let h=0;
+  for(let i=0;i<s.length;i++) h=(Math.imul(31,h)+s.charCodeAt(i))|0;
   return h;
 }
 
-function getDistrictColor(name) {
-  const h = Math.abs(hashStr(name));
-  const hue = h % 360;
-  return { hue, css: `hsl(${hue},70%,45%)`, glow: `hsla(${hue},70%,55%,0.15)`, dim: `hsla(${hue},50%,25%,0.18)` };
+function getDistrictColor(name){
+  const h=Math.abs(hashStr(name));
+  const hue=h%360;
+  return {hue, css:`hsl(${hue},70%,45%)`, hex:hslToHex(hue,70,45), glowHex:hslToHex(hue,70,55)};
 }
 
-function assignDistricts(gamers) {
-  // Collect unique districts and assign grid positions
-  const names = [...new Set(gamers.map(g => g.district || 'UNKNOWN'))];
-  const cols = Math.ceil(Math.sqrt(names.length));
-  const DIST_SPACING = 1400; // spacing between district centers
-  names.forEach((name, i) => {
-    if (districtMap[name]) return; // already assigned
-    const col = i % cols, row = Math.floor(i / cols);
-    const cx = (col - cols/2 + 0.5) * DIST_SPACING;
-    const cy = (row - Math.ceil(names.length/cols)/2 + 0.5) * DIST_SPACING;
-    districtMap[name] = { cx, cy, color: getDistrictColor(name), appid: null };
+function hslToHex(h,s,l){
+  s/=100; l/=100;
+  const a=s*Math.min(l,1-l);
+  const f=n=>{const k=(n+h/30)%12; const c=l-a*Math.max(Math.min(k-3,9-k,1),-1); return Math.round(255*c).toString(16).padStart(2,'0');};
+  return parseInt(`${f(0)}${f(8)}${f(4)}`,16);
+}
+
+function assignDistricts(gamers){
+  const names=[...new Set(gamers.map(g=>g.district||'UNKNOWN'))];
+  const cols=Math.ceil(Math.sqrt(names.length));
+  const DIST_SPACING=1400;
+  names.forEach((name,i)=>{
+    if(districtMap[name]) return;
+    const col=i%cols, row=Math.floor(i/cols);
+    const cx=(col-cols/2+0.5)*DIST_SPACING;
+    const cz=(row-Math.ceil(names.length/cols)/2+0.5)*DIST_SPACING;
+    districtMap[name]={cx,cz,color:getDistrictColor(name)};
   });
 }
 
-function idToPos(id, district) {
-  // Position within district cluster
-  let h = hashStr(id);
-  const d = districtMap[district || 'UNKNOWN'];
-  const cx = d ? d.cx : 0, cy = d ? d.cy : 0;
-  // Spiral-ish grid within district: up to 20x20 slots, 160px spacing
-  const SPACING = 180, SLOTS = 16;
-  const idx = Math.abs(h) % (SLOTS*SLOTS);
-  const gx = (idx % SLOTS) - SLOTS/2 + 0.5;
-  const gy = Math.floor(idx / SLOTS) - SLOTS/2 + 0.5;
+function idToPos(id,district){
+  let h=hashStr(id);
+  const d=districtMap[district||'UNKNOWN'];
+  const cx=d?d.cx:0, cz=d?d.cz:0;
+  const SPACING=180, SLOTS=16;
+  const idx=Math.abs(h)%(SLOTS*SLOTS);
+  const gx=(idx%SLOTS)-SLOTS/2+0.5;
+  const gz=Math.floor(idx/SLOTS)-SLOTS/2+0.5;
   return {
-    x: cx + gx*SPACING + ((Math.abs(h*7) % 50) - 25),
-    y: cy + gy*SPACING + ((Math.abs(h*13) % 50) - 25)
+    x:cx+gx*SPACING+((Math.abs(h*7)%50)-25),
+    z:cz+gz*SPACING+((Math.abs(h*13)%50)-25)
   };
+}
+
+// ── WINDOW TEXTURE CACHE ──────────────────────────────────────────────────────
+const _texCache=new Map();
+
+function makeWindowTexture(cols,rows,seed,isMe){
+  const key=`${cols}x${rows}_${seed}_${isMe?1:0}`;
+  if(_texCache.has(key)) return _texCache.get(key);
+
+  const WS=8, GAP=2, PAD=4;
+  const w=PAD*2+cols*(WS+GAP)-GAP;
+  const h=PAD*2+rows*(WS+GAP)-GAP;
+  const offCanvas=document.createElement('canvas');
+  offCanvas.width=w; offCanvas.height=h;
+  const cx=offCanvas.getContext('2d');
+
+  cx.fillStyle='#040208';
+  cx.fillRect(0,0,w,h);
+
+  let s=seed>>>0;
+  const rand=()=>{s=(s*16807)%2147483647; return(s-1)/2147483646;};
+
+  const litColors=isMe
+    ?['#fff0a0','#ffe060','#ffffff','#ffd700','#fffacd']
+    :['#ffe066','#ffd700','#fff3b0','#ffffff','#fffacd','#ffeaa0','#f5deb3'];
+
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      const x=PAD+c*(WS+GAP);
+      const y=PAD+r*(WS+GAP);
+      if(rand()<0.65){
+        cx.fillStyle=litColors[Math.floor(rand()*litColors.length)];
+      } else {
+        rand();
+        cx.fillStyle='#0a0808';
+      }
+      cx.fillRect(x,y,WS,WS);
+    }
+  }
+
+  const tex=new THREE.CanvasTexture(offCanvas);
+  tex.magFilter=THREE.NearestFilter;
+  tex.minFilter=THREE.NearestFilter;
+  if(_texCache.size>400) {
+    const first=_texCache.keys().next().value;
+    _texCache.get(first).dispose();
+    _texCache.delete(first);
+  }
+  _texCache.set(key,tex);
+  return tex;
+}
+
+// ── DISTRICT FLOOR TILES (Three.js meshes) ────────────────────────────────────
+const districtFloorGroup=new THREE.Group();
+scene.add(districtFloorGroup);
+
+function rebuildDistrictFloors(){
+  while(districtFloorGroup.children.length) districtFloorGroup.remove(districtFloorGroup.children[0]);
+  const DSIZE=700;
+  Object.entries(districtMap).forEach(([name,d])=>{
+    const geo=new THREE.PlaneGeometry(DSIZE*2,DSIZE*2);
+    const mat=new THREE.MeshBasicMaterial({
+      color:d.color.hex,
+      transparent:true,
+      opacity:0.12,
+      side:THREE.DoubleSide
+    });
+    const mesh=new THREE.Mesh(geo,mat);
+    mesh.rotation.x=-Math.PI/2;
+    mesh.position.set(d.cx,0.1,d.cz);
+    districtFloorGroup.add(mesh);
+    // Border lines
+    const pts=[
+      new THREE.Vector3(-DSIZE,0.2,-DSIZE),new THREE.Vector3(DSIZE,0.2,-DSIZE),
+      new THREE.Vector3(DSIZE,0.2,DSIZE),new THREE.Vector3(-DSIZE,0.2,DSIZE),
+      new THREE.Vector3(-DSIZE,0.2,-DSIZE)
+    ];
+    const lineGeo=new THREE.BufferGeometry().setFromPoints(pts);
+    const lineMat=new THREE.LineBasicMaterial({color:d.color.hex,transparent:true,opacity:0.45});
+    const line=new THREE.Line(lineGeo,lineMat);
+    line.position.set(d.cx,0,d.cz);
+    districtFloorGroup.add(line);
+  });
+}
+
+// ── GRID ──────────────────────────────────────────────────────────────────────
+function buildGrid(){
+  const SIZE=14, STEP=200;
+  const mat=new THREE.LineBasicMaterial({color:0x9b5cf6,transparent:true,opacity:0.08});
+  const pts=[];
+  for(let i=-SIZE;i<=SIZE;i++){
+    pts.push(new THREE.Vector3(i*STEP,0,-SIZE*STEP));
+    pts.push(new THREE.Vector3(i*STEP,0, SIZE*STEP));
+    pts.push(new THREE.Vector3(-SIZE*STEP,0,i*STEP));
+    pts.push(new THREE.Vector3( SIZE*STEP,0,i*STEP));
+  }
+  const geo=new THREE.BufferGeometry().setFromPoints(pts);
+  const grid=new THREE.LineSegments(geo,mat);
+  scene.add(grid);
+}
+buildGrid();
+
+// ── DISTRICT LABEL SPRITES ────────────────────────────────────────────────────
+const labelSprites={};
+
+function makeLabelSprite(name, color){
+  const cv=document.createElement('canvas');
+  cv.width=512; cv.height=80;
+  const cx=cv.getContext('2d');
+  cx.fillStyle='rgba(6,4,15,0.75)';
+  cx.roundRect(4,4,504,72,8);
+  cx.fill();
+  cx.strokeStyle=`hsl(${color.hue},70%,55%)`;
+  cx.lineWidth=2;
+  cx.strokeRect(4,4,504,72);
+  cx.font='bold 36px "Exo 2", Rajdhani, sans-serif';
+  cx.fillStyle='#ffffff';
+  cx.textAlign='center';
+  cx.textBaseline='middle';
+  cx.fillText(name.toUpperCase(),256,40);
+  const tex=new THREE.CanvasTexture(cv);
+  const mat=new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false});
+  const sprite=new THREE.Sprite(mat);
+  sprite.scale.set(400,60,1);
+  return sprite;
+}
+
+function rebuildDistrictLabels(){
+  Object.values(labelSprites).forEach(s=>scene.remove(s));
+  Object.keys(labelSprites).forEach(k=>delete labelSprites[k]);
+  Object.entries(districtMap).forEach(([name,d])=>{
+    const sprite=makeLabelSprite(name,d.color);
+    sprite.position.set(d.cx,520,d.cz);
+    scene.add(sprite);
+    labelSprites[name]=sprite;
+  });
 }
 
 // ── BUILD CITY ────────────────────────────────────────────────────────────────
-function buildCity(gamers) {
-  buildings = [];
+// Building type palettes [front, left, right, top]
+const BUILDING_TYPES=[
+  [0x0e1a4a,0x080f2e,0x050a1e,0x111f5a],
+  [0x200a52,0x120630,0x0a0420,0x281264],
+  [0x0a0a12,0x060608,0x040404,0x0e0e1a],
+  [0x061e28,0x031218,0x02080e,0x082430],
+  [0x0a1638,0x060c22,0x040810,0x0c1a44],
+];
+const COLOR_ME    =[0x120830,0x0c0620,0x080410,0x1a0a40];
+const COLOR_SEL   =[0x061828,0x040e18,0x020a10,0x082030];
 
-  // 1. Garante district válido para cada gamer
-  //    district = jogo mais jogado nas últimas 2 semanas (salvo no registro/refresh)
-  //    Só usa top3[0] como fallback se o valor for legado (DOWNTOWN, UNKNOWN, etc.)
-  // Prioridade do district:
-  // 1. recent_game (coluna nova, sempre correto — jogo das últimas 2 semanas)
-  // 2. district (campo legado, pode ser recentGame ou all-time dependendo de quando registrou)
-  // 3. top3[0] como último fallback
-  gamers.forEach(g => {
-    if (g.recent_game && g.recent_game.trim()) {
-      g.district = g.recent_game.trim();
+function buildCity(gamers){
+  // Clear old meshes
+  buildingObjects.forEach(obj=>{
+    obj.meshes.forEach(m=>{m.geometry.dispose(); m.material.dispose(); scene.remove(m);});
+    if(obj.outline){obj.outline.geometry.dispose();obj.outline.material.dispose();scene.remove(obj.outline);}
+  });
+  buildingObjects=[];
+
+  // District cleanup & rebuild
+  gamers.forEach(g=>{
+    if(g.recent_game&&g.recent_game.trim()){
+      g.district=g.recent_game.trim();
     } else {
-      const LEGACY = new Set(['DOWNTOWN','UNKNOWN','MIDTOWN','UPTOWN','OLD TOWN','INDEPENDENT','']);
-      const cur = (g.district || '').trim();
-      if (LEGACY.has(cur.toUpperCase())) {
-        try {
-          const top3 = typeof g.top3 === 'string' ? JSON.parse(g.top3) : (g.top3 || []);
-          if (top3.length > 0) g.district = top3[0].name || 'INDEPENDENT';
-        } catch(e) { g.district = 'INDEPENDENT'; }
+      const LEGACY=new Set(['DOWNTOWN','UNKNOWN','MIDTOWN','UPTOWN','OLD TOWN','INDEPENDENT','']);
+      const cur=(g.district||'').trim();
+      if(LEGACY.has(cur.toUpperCase())){
+        try{const t3=typeof g.top3==='string'?JSON.parse(g.top3):(g.top3||[]);if(t3.length>0)g.district=t3[0].name||'INDEPENDENT';}
+        catch(e){g.district='INDEPENDENT';}
       }
     }
   });
-
-  // 2. Limpa districtMap e reconstrói do zero com valores corretos — sem sobreposição
-  Object.keys(districtMap).forEach(k => delete districtMap[k]);
+  Object.keys(districtMap).forEach(k=>delete districtMap[k]);
   assignDistricts(gamers);
+  rebuildDistrictFloors();
+  rebuildDistrictLabels();
 
-  // 3. Cria buildings já com posições corretas
-  gamers.forEach((g,i) => {
-    const pos = idToPos(g.steamid, g.district);
-    const isMe = g.steamid === mySteamId;
-    const h = Math.max(40, Math.min(900, g.floors * 7));
-    const w = Math.max(55, Math.min(130, 44 + g.games * 0.65));
-    let seedN = 0;
-    for (let k=0;k<g.steamid.length;k++) seedN=(seedN*31+g.steamid.charCodeAt(k))|0;
-    const wCols = Math.max(2, Math.round(w / 18));
-    const wColsSide = Math.max(2, Math.round(w*0.8 / 18));
-    const wRows = Math.min(40, Math.max(3, Math.round(h / 14)));
-    buildings.push({ ...g, x:pos.x, y:pos.y, z:0, w, d:w*0.8, h, isPlayer:isMe, lit:0.6+Math.random()*0.35, seed:Math.abs(seedN)%100, wCols, wColsSide, wRows });
-  });
-  sortBuildings();
-  document.getElementById('gamerCount').textContent = gamers.length;
-}
+  gamers.forEach(g=>{
+    const pos=idToPos(g.steamid,g.district);
+    const isMe=g.steamid===mySteamId;
+    const bh=Math.max(40,Math.min(900,g.floors*7));
+    const bw=Math.max(55,Math.min(130,44+g.games*0.65));
+    const bd=bw*0.8;
 
-function sortBuildings() {
-  buildings.sort((a,b) => {
-    return (a.x*Math.sin(camAngle)+a.y*Math.cos(camAngle)) - (b.x*Math.sin(camAngle)+b.y*Math.cos(camAngle));
-  });
-}
+    let seedN=0;
+    for(let k=0;k<g.steamid.length;k++) seedN=(seedN*31+g.steamid.charCodeAt(k))|0;
+    const seed=Math.abs(seedN)%100;
+    const typeIdx=seed%5;
 
-// ── SKY ───────────────────────────────────────────────────────────────────────
-function drawSky() {
-  const g = ctx.createLinearGradient(0,0,0,H);
-  g.addColorStop(0,'#020108'); g.addColorStop(0.55,'#06040f'); g.addColorStop(1,'#090519');
-  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
-  // Nebulae
-  [[W*.25,H*.25,'155,92,246',.055],[W*.75,H*.3,'34,211,238',.032],[W*.5,H*.18,'232,121,249',.025]].forEach(([x,y,c,a])=>{
-    const ng=ctx.createRadialGradient(x,y,0,x,y,W*.38);
-    ng.addColorStop(0,`rgba(${c},${a})`); ng.addColorStop(1,'transparent');
-    ctx.fillStyle=ng; ctx.fillRect(0,0,W,H);
-  });
-  // Stars
-  for(let i=0;i<160;i++){
-    const sx=((i*137+17)%1000)/1000*W, sy=((i*251+33)%600)/600*(H*.48);
-    ctx.globalAlpha=0.08+Math.sin(animFrame*.01+i)*.07;
-    ctx.fillStyle=i%6===0?'#22d3ee':i%4===0?'#e879f9':'#e2d9f3';
-    ctx.beginPath(); ctx.arc(sx,sy,0.3+(i%4)*.22,0,Math.PI*2); ctx.fill();
-  }
-  ctx.globalAlpha=1;
-}
+    const colors=isMe?COLOR_ME:BUILDING_TYPES[typeIdx];
+    const [cFront,cLeft,cRight,cTop]=colors;
 
-// ── GROUND ────────────────────────────────────────────────────────────────────
-function drawGround() {
-  // Ground glow
-  const gg=ctx.createRadialGradient(W/2,H/2+60,0,W/2,H/2+60,W*.55);
-  gg.addColorStop(0,'rgba(100,40,200,0.06)'); gg.addColorStop(0.5,'rgba(34,211,238,0.02)'); gg.addColorStop(1,'transparent');
-  ctx.fillStyle=gg; ctx.fillRect(0,0,W,H);
+    const wCols=Math.max(2,Math.round(bw/18));
+    const wColsSide=Math.max(2,Math.round(bw*0.8/18));
+    const wRows=Math.min(40,Math.max(3,Math.round(bh/14)));
 
-  // ── District floor tiles ──────────────────────────────────────────────────
-  const DSIZE = 700; // half-width of each district floor
-  Object.entries(districtMap).forEach(([name, d]) => {
-    // Filled isometric floor quad
-    const c0=iso(d.cx-DSIZE,d.cy-DSIZE,0), c1=iso(d.cx+DSIZE,d.cy-DSIZE,0);
-    const c2=iso(d.cx+DSIZE,d.cy+DSIZE,0), c3=iso(d.cx-DSIZE,d.cy+DSIZE,0);
-    ctx.beginPath(); ctx.moveTo(c0.x,c0.y); ctx.lineTo(c1.x,c1.y);
-    ctx.lineTo(c2.x,c2.y); ctx.lineTo(c3.x,c3.y); ctx.closePath();
-    ctx.fillStyle=d.color.dim; ctx.fill();
-    ctx.strokeStyle=d.color.css.replace('hsl','hsla').replace(')',',0.35)'); ctx.lineWidth=1.2; ctx.stroke();
-  });
+    // Create 5 faces as separate meshes (front,back,left,right,top)
+    const meshes=[];
 
-  const SIZE=14, STEP=200;
-  // Major grid
-  ctx.globalAlpha=0.08; ctx.strokeStyle='#9b5cf6'; ctx.lineWidth=0.6;
-  for(let i=-SIZE;i<=SIZE;i++){
-    const a=iso(i*STEP,-SIZE*STEP,0),b=iso(i*STEP,SIZE*STEP,0);
-    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
-    const c=iso(-SIZE*STEP,i*STEP,0),d=iso(SIZE*STEP,i*STEP,0);
-    ctx.beginPath(); ctx.moveTo(c.x,c.y); ctx.lineTo(d.x,d.y); ctx.stroke();
-  }
-  ctx.globalAlpha=1;
-}
-
-// ── District badges (drawn after buildings, on top) ────────────────────────
-function drawDistrictBadges() {
-  if(!buildings.length) return;
-  Object.entries(districtMap).forEach(([name, d]) => {
-    // Position badge above district center
-    const top = iso(d.cx, d.cy, 520);
-    const pulse = Math.sin(animFrame * 0.025) * 0.15;
-    const alpha = 0.55 + pulse;
-
-    // Badge background — translucent pill
-    const label = name.toUpperCase();
-    ctx.font = '700 12px "Exo 2", Rajdhani';
-    const tw = ctx.measureText(label).width;
-    const bw = tw + 28, bh = 22;
-    const bx = top.x - bw/2, by = top.y - bh/2;
-
-    // Glow behind badge
-    const glowR = ctx.createRadialGradient(top.x, top.y, 0, top.x, top.y, bw*0.9);
-    glowR.addColorStop(0, d.color.css.replace('hsl','hsla').replace(')',`,${0.12+pulse})`));
-    glowR.addColorStop(1, 'transparent');
-    ctx.fillStyle = glowR; ctx.beginPath(); ctx.ellipse(top.x, top.y, bw, bh*1.8, 0, 0, Math.PI*2); ctx.fill();
-
-    // Badge pill
-    ctx.globalAlpha = alpha;
-    ctx.fillStyle = `rgba(6,4,15,0.72)`;
-    ctx.strokeStyle = d.color.css.replace('hsl','hsla').replace(')',',0.7)');
-    ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 4); ctx.fill(); ctx.stroke();
-
-    // Animated side bars (scanner lines)
-    const barW = 3 + Math.sin(animFrame*0.04)*2;
-    ctx.fillStyle = d.color.css.replace('hsl','hsla').replace(')',',0.6)');
-    ctx.fillRect(bx - barW - 4, by + bh/2 - 1, barW, 2);
-    ctx.fillRect(bx + bw + 4, by + bh/2 - 1, barW, 2);
-
-    // Text
-    ctx.fillStyle = '#ffffff';
-    ctx.textAlign = 'center';
-    ctx.fillText(label, top.x, top.y + 4);
-    ctx.textAlign = 'left';
-    ctx.globalAlpha = 1;
-
-    // Vertical beam from badge down to ground
-    const ground = iso(d.cx, d.cy, 0);
-    const beamGrad = ctx.createLinearGradient(top.x, ground.y, top.x, top.y);
-    beamGrad.addColorStop(0, d.color.css.replace('hsl','hsla').replace(')',',0)'));
-    beamGrad.addColorStop(0.6, d.color.css.replace('hsl','hsla').replace(')',`,${0.06+pulse})`));
-    beamGrad.addColorStop(1, d.color.css.replace('hsl','hsla').replace(')',`,${0.2+pulse})`));
-    ctx.beginPath(); ctx.moveTo(top.x-1, ground.y); ctx.lineTo(top.x+1, ground.y);
-    ctx.lineTo(top.x, top.y); ctx.closePath();
-    ctx.fillStyle = beamGrad; ctx.fill();
-  });
-}
-
-// ── BUILDING ──────────────────────────────────────────────────────────────────
-function lerp(a,b,t){return a+(b-a)*t;}
-
-function getScreenBounds(b) {
-  // Cache: só recalcula quando câmera muda
-  const camKey = `${camAngle.toFixed(4)}_${camTilt.toFixed(4)}_${camZoom.toFixed(4)}_${(targetX||0).toFixed(1)}_${(targetY||0).toFixed(1)}`;
-  if (b._sp && b._camKey === camKey) return b._sp;
-  const hw=b.w/2,hd=b.d/2;
-  b._sp=[
-    iso(b.x-hw,b.y-hd,b.z),iso(b.x+hw,b.y-hd,b.z),
-    iso(b.x+hw,b.y+hd,b.z),iso(b.x-hw,b.y+hd,b.z),
-    iso(b.x-hw,b.y-hd,b.z+b.h),iso(b.x+hw,b.y-hd,b.z+b.h),
-    iso(b.x+hw,b.y+hd,b.z+b.h),iso(b.x-hw,b.y+hd,b.z+b.h),
-  ];
-  b._camKey = camKey;
-  return b._sp;
-}
-
-// ── WINDOW TEXTURE ────────────────────────────────────────────────────────────
-// Exatamente como o GitCity: WS=6, GAP=2, PAD=3
-// Retorna um HTMLCanvasElement offscreen cacheado por chave
-const _texCache = new Map();
-
-function getWinTex(cols, rows, seed, litPct, litColors, offColor, faceColor) {
-  // Chave por prédio — textura não muda com zoom
-  const key = `${seed}_${cols}x${rows}_${faceColor}`;
-  if (_texCache.has(key)) return _texCache.get(key);
-
-  const WS = 6, GAP = 2, PAD = 3;
-  const w = PAD*2 + cols*WS + Math.max(0, cols-1)*GAP;
-  const h = PAD*2 + rows*WS + Math.max(0, rows-1)*GAP;
-
-  const off = document.createElement('canvas');
-  off.width = w; off.height = h;
-  const cx = off.getContext('2d');
-
-  // Fundo = cor da face
-  cx.fillStyle = faceColor;
-  cx.fillRect(0, 0, w, h);
-
-  // LCG determinístico igual ao GitCity
-  let s = seed >>> 0;
-  const rand = () => { s = (s * 16807) % 2147483647; return (s-1)/2147483646; };
-
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const x = PAD + c*(WS+GAP);
-      const y = PAD + r*(WS+GAP);
-      if (rand() < litPct) {
-        cx.fillStyle = litColors[Math.floor(rand() * litColors.length)];
-      } else {
-        rand(); // consome o rand extra para manter sequência
-        cx.fillStyle = offColor;
-      }
-      cx.fillRect(x, y, WS, WS);
+    function makeface(w,h,color,winCols,winRows,winSeed){
+      const geo=new THREE.PlaneGeometry(w,h);
+      const winTex=makeWindowTexture(winCols,winRows,winSeed,isMe);
+      const mat=new THREE.MeshBasicMaterial({
+        color,map:winTex,side:THREE.FrontSide,
+        transparent:false
+      });
+      return new THREE.Mesh(geo,mat);
     }
-  }
 
-  if (_texCache.size > 300) {
-    _texCache.delete(_texCache.keys().next().value);
-  }
-  _texCache.set(key, off);
-  return off;
+    // Front face (-Z)
+    const front=makeface(bw,bh,cFront,wCols,wRows,seed);
+    front.position.set(pos.x, bh/2, pos.z-bd/2);
+    meshes.push(front); scene.add(front);
+
+    // Back face (+Z)
+    const back=makeface(bw,bh,cFront,wCols,wRows,seed+30);
+    back.rotation.y=Math.PI;
+    back.position.set(pos.x, bh/2, pos.z+bd/2);
+    meshes.push(back); scene.add(back);
+
+    // Left face (-X)
+    const left=makeface(bd,bh,cLeft,wColsSide,wRows,seed+10);
+    left.rotation.y=Math.PI/2;
+    left.position.set(pos.x-bw/2, bh/2, pos.z);
+    meshes.push(left); scene.add(left);
+
+    // Right face (+X)
+    const right=makeface(bd,bh,cRight,wColsSide,wRows,seed+20);
+    right.rotation.y=-Math.PI/2;
+    right.position.set(pos.x+bw/2, bh/2, pos.z);
+    meshes.push(right); scene.add(right);
+
+    // Top face
+    const topGeo=new THREE.PlaneGeometry(bw,bd);
+    const topMat=new THREE.MeshBasicMaterial({color:cTop,side:THREE.FrontSide});
+    const top=new THREE.Mesh(topGeo,topMat);
+    top.rotation.x=-Math.PI/2;
+    top.position.set(pos.x,bh,pos.z);
+    meshes.push(top); scene.add(top);
+
+    // Pin/spire on top
+    const pinH=Math.max(10,Math.min(36,bh*0.16));
+    const pinGeo=new THREE.ConeGeometry(3,pinH,4);
+    const pinMat=new THREE.MeshBasicMaterial({color:isMe?0x9b5cf6:0x7c3aed,transparent:true,opacity:isMe?0.9:0.65});
+    const pin=new THREE.Mesh(pinGeo,pinMat);
+    pin.position.set(pos.x,bh+pinH/2,pos.z);
+    meshes.push(pin); scene.add(pin);
+
+    // Selection/hover outline using EdgesGeometry on a box
+    const boxGeo=new THREE.BoxGeometry(bw+2,bh+2,bd+2);
+    const edgesGeo=new THREE.EdgesGeometry(boxGeo);
+    const edgesMat=new THREE.LineBasicMaterial({color:0x22d3ee,transparent:true,opacity:0,linewidth:2});
+    const outline=new THREE.LineSegments(edgesGeo,edgesMat);
+    outline.position.set(pos.x,bh/2,pos.z);
+    scene.add(outline);
+    boxGeo.dispose();
+
+    buildingObjects.push({
+      ...g, x:pos.x, z:pos.z, h:bh, w:bw, d:bd,
+      isPlayer:isMe, seed, meshes, outline,
+      pinH, tipY:bh+pinH
+    });
+  });
+
+  document.getElementById('gamerCount').textContent=gamers.length;
 }
 
-// ── DRAW BUILDING ─────────────────────────────────────────────────────────────
-function drawBuilding(b, hovered) {
-  const p = getScreenBounds(b);
-  const isMe = b.isPlayer;
-  const selected = b === selectedBuilding;
+// ── RAYCASTING (click / hover) ────────────────────────────────────────────────
+const raycaster=new THREE.Raycaster();
+const mouse2d=new THREE.Vector2();
 
-  // ── CORES ─────────────────────────────────────────────────────────────────
-  // Cada face tem cor distinta e 100% opaca, como GitCity
-  let cF, cL, cR, cBk, cTop, edgeColor, edgeW;
+function getBuildingAt(mx,my){
+  mouse2d.x=(mx/W)*2-1;
+  mouse2d.y=-(my/H)*2+1;
+  raycaster.setFromCamera(mouse2d,camera);
+  // Collect all meshes from all buildings
+  const allMeshes=[];
+  buildingObjects.forEach(b=>b.meshes.slice(0,4).forEach(m=>allMeshes.push({mesh:m,b}))); // only box faces, not pin
+  const hits=raycaster.intersectObjects(allMeshes.map(x=>x.mesh));
+  if(!hits.length) return null;
+  const hitMesh=hits[0].object;
+  return allMeshes.find(x=>x.mesh===hitMesh)?.b||null;
+}
 
-  if (isMe) {
-    cF='#120830'; cL='#0c0620'; cR='#080410'; cBk='#040208'; cTop='#1a0a40';
-    edgeColor='rgba(155,92,246,0.95)'; edgeW=1.5;
-  } else if (selected) {
-    cF='#061828'; cL='#040e18'; cR='#020a10'; cBk='#010408'; cTop='#082030';
-    edgeColor='rgba(34,211,238,0.95)'; edgeW=1.5;
-  } else if (hovered) {
-    cF='#051220'; cL='#030b14'; cR='#02070c'; cBk='#010304'; cTop='#071828';
-    edgeColor='rgba(34,211,238,0.6)'; edgeW=0.8;
+// ── HOVER / SELECT VISUAL STATE ───────────────────────────────────────────────
+function applyBuildingState(b, state){
+  // state: 'normal' | 'hovered' | 'selected' | 'player'
+  if(!b || !b.outline) return;
+  if(state==='selected'||state==='hovered'){
+    b.outline.material.color.setHex(state==='selected'?0x22d3ee:0x22d3ee);
+    b.outline.material.opacity=state==='selected'?0.95:0.5;
   } else {
-    // Base preta com apenas suficiente cor para distinguir faces
-    // frente=mais clara, esquerda=média, direita=escura, fundo=quase preto, topo=acento
-    const type = b.seed % 5;
-    // [frente, esquerda, direita, fundo, topo]
-    // Faces bem distintas mas escuras — janelas dão a cor ao prédio
-    const TYPES = [
-      ['#0e1a4a','#080f2e','#050a1e','#020408','#111f5a'], // azul
-      ['#200a52','#120630','#0a0420','#040108','#281264'], // roxo
-      ['#0a0a12','#060608','#040404','#020202','#0e0e1a'], // cinza quase preto
-      ['#061e28','#031218','#02080e','#010304','#082430'], // petróleo
-      ['#0a1638','#060c22','#040810','#010204','#0c1a44'], // azul marinho
-    ];
-    [cF,cL,cR,cBk,cTop] = TYPES[type];
-    edgeColor=null; edgeW=0;
-  }
-
-  // Janelas 100% decorativas — padrão fixo por seed, independente de horas
-  // ~65% acesas (valor estético, não funcional)
-  const litPct = 0.65;
-
-  // Paleta: amarelos e brancos como luz de apartamento real
-  const litColors = isMe
-    ? ['#fff0a0','#ffe060','#ffffff','#ffd700','#fffacd']  // amarelo dourado p/ player
-    : ['#ffe066','#ffd700','#fff3b0','#ffffff','#fffacd','#ffeaa0','#f5deb3'];
-  const offColor = '#0a0808'; // apagada = quase preto
-
-  // ── FACE COM TEXTURA ───────────────────────────────────────────────────────
-  // Projeta textura offscreen sobre face isométrica via ctx.transform()
-  // Exatamente como GitCity mapeia textura canvas na face do BoxGeometry
-  const drawFace = (A, B, TL, TR, faceCol, dimAlpha, winSeed, doWin, winCols, winRows) => {
-    // A=bottom-left, B=bottom-right, TL=top-left, TR=top-right da face
-
-    // 1. Clip para a face (garante que textura não vaza)
-    ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(A.x,A.y); ctx.lineTo(B.x,B.y);
-    ctx.lineTo(TR.x,TR.y); ctx.lineTo(TL.x,TL.y);
-    ctx.closePath();
-
-    // 2. Preenche sólido
-    ctx.fillStyle = faceCol;
-    ctx.fill();
-    if (edgeColor) { ctx.strokeStyle=edgeColor; ctx.lineWidth=edgeW; ctx.stroke(); }
-
-    // 3. Textura de janelas projetada sobre a face
-    if (doWin) {
-      ctx.clip();
-
-      // Tamanho da face em pixels de tela
-      const fw = Math.hypot(B.x-A.x, B.y-A.y);
-      const fh = Math.hypot(TL.x-A.x, TL.y-A.y);
-
-      if (fw >= 8 && fh >= 8) {
-        // Cols/rows FIXOS do prédio — não dependem do zoom
-        const cols = winCols;
-        const rows = winRows;
-
-        const tex = getWinTex(cols, rows, winSeed, litPct, litColors, offColor, faceCol);
-
-        // ctx.transform projeta (0,0)→(tw,th) sobre a face isométrica
-        // Vetor horizontal da face: A→B normalizado por largura da textura
-        // Vetor vertical da face: A→TL normalizado por altura da textura
-        const tw = tex.width, th = tex.height;
-        const ux=(B.x-A.x)/tw, uy=(B.y-A.y)/tw;
-        const vx=(TL.x-A.x)/th, vy=(TL.y-A.y)/th;
-
-        ctx.transform(ux, uy, vx, vy, A.x, A.y);
-        ctx.globalAlpha = dimAlpha;
-        ctx.imageSmoothingEnabled = false; // NearestFilter — pixels nítidos como GitCity
-        ctx.drawImage(tex, 0, 0);
-        ctx.imageSmoothingEnabled = true;
-        ctx.globalAlpha = 1;
-      }
-    }
-    ctx.restore();
-  };
-
-  const s = ((b.x * 31 + b.seed) * 16807) % 2147483647;
-
-  // ── ORDEM PAINTER DINÂMICA baseada em camAngle ────────────────────────────
-  // As 4 faces verticais têm normais fixas no mundo:
-  //   Frente = normal aponta para -Y (p[0],p[1],p[4],p[5])
-  //   Fundo  = normal aponta para +Y (p[2],p[3],p[6],p[7])
-  //   Esq    = normal aponta para -X (p[3],p[0],p[7],p[4])
-  //   Dir    = normal aponta para +X (p[1],p[2],p[5],p[6])
-  // Câmera está em direção (sin(camAngle), cos(camAngle))
-  // dot(camDir, faceNormal) > 0 → face visível para a câmera
-  // Ordem painter: faces mais atrás primeiro
-
-  // Vetor câmera (projetado no plano XY)
-  const cx = Math.sin(camAngle), cy = Math.cos(camAngle);
-
-  // dot products das 4 faces com a câmera
-  // frente normal = (0,-1), fundo=(0,+1), esq=(-1,0), dir=(+1,0)
-  const dFront = -cy;   // dot((0,-1), (cx,cy))
-  const dBack  =  cy;   // dot((0,+1), (cx,cy))
-  const dLeft  = -cx;   // dot((-1,0), (cx,cy))
-  const dRight =  cx;   // dot((+1,0), (cx,cy))
-
-  // Ordenar 4 faces do mais negativo (mais atrás) para o mais positivo (frente)
-  const faces4 = [
-    { dot: dFront, draw: () => drawFace(p[0],p[1],p[4],p[5], cF, 1.00, s,    true, b.wCols,     b.wRows) },
-    { dot: dBack,  draw: () => drawFace(p[2],p[3],p[6],p[7], cBk,0.85, s+30, true, b.wCols,     b.wRows) },
-    { dot: dLeft,  draw: () => drawFace(p[3],p[0],p[7],p[4], cL, 0.92, s+10, true, b.wColsSide, b.wRows) },
-    { dot: dRight, draw: () => drawFace(p[1],p[2],p[5],p[6], cR, 0.88, s+20, true, b.wColsSide, b.wRows) },
-  ];
-  // Ordenar: menor dot (mais longe da câmera) primeiro
-  faces4.sort((a,b) => a.dot - b.dot);
-  faces4.forEach(f => f.draw());
-  // Topo — sólido, sem janelas
-  ctx.save();
-  ctx.beginPath();
-  ctx.moveTo(p[4].x,p[4].y); ctx.lineTo(p[5].x,p[5].y);
-  ctx.lineTo(p[6].x,p[6].y); ctx.lineTo(p[7].x,p[7].y);
-  ctx.closePath(); ctx.fillStyle=cTop; ctx.fill();
-  if (edgeColor) { ctx.strokeStyle=edgeColor; ctx.lineWidth=edgeW; ctx.stroke(); }
-  ctx.restore();
-
-  // ── PINÁCULO ──────────────────────────────────────────────────────────────
-  const rc = {x:(p[4].x+p[5].x+p[6].x+p[7].x)/4, y:(p[4].y+p[5].y+p[6].y+p[7].y)/4};
-  const pinH = Math.max(10, Math.min(36, b.h * camZoom * 0.16));
-  const pinW = Math.max(4, b.w * camZoom * 0.12);
-  const tipX = rc.x, tipY = rc.y - pinH;
-  const pb = [
-    {x:rc.x-pinW*0.9, y:rc.y+pinW*0.3},
-    {x:rc.x,          y:rc.y-pinW*0.2},
-    {x:rc.x+pinW*0.9, y:rc.y+pinW*0.3},
-    {x:rc.x,          y:rc.y+pinW*0.8},
-  ];
-  const pC = isMe?'155,92,246':selected?'34,211,238':'120,75,210';
-  const pA = isMe?0.9:selected?1.0:0.65;
-  ctx.beginPath(); ctx.moveTo(tipX,tipY); ctx.lineTo(pb[0].x,pb[0].y); ctx.lineTo(pb[3].x,pb[3].y); ctx.closePath();
-  ctx.fillStyle=`rgba(${pC},${pA*0.55})`; ctx.fill();
-  ctx.beginPath(); ctx.moveTo(tipX,tipY); ctx.lineTo(pb[2].x,pb[2].y); ctx.lineTo(pb[3].x,pb[3].y); ctx.closePath();
-  ctx.fillStyle=`rgba(${pC},${pA*0.4})`; ctx.fill();
-  ctx.beginPath(); ctx.moveTo(tipX,tipY); ctx.lineTo(pb[0].x,pb[0].y); ctx.lineTo(pb[1].x,pb[1].y); ctx.lineTo(pb[2].x,pb[2].y); ctx.closePath();
-  ctx.fillStyle=`rgba(${pC},${pA*0.8})`; ctx.fill();
-  b._tipX=tipX; b._tipY=tipY;
-
-  // ── SELEÇÃO ───────────────────────────────────────────────────────────────
-  if (selected) {
-    const pulse = Math.sin(animFrame*.08);
-    ctx.beginPath(); ctx.arc(rc.x,rc.y,pinW*1.4+pulse*3,0,Math.PI*2);
-    ctx.strokeStyle=`rgba(34,211,238,${0.55+pulse*0.2})`; ctx.lineWidth=1.5; ctx.stroke();
-    ctx.beginPath(); ctx.arc(rc.x,rc.y,pinW*2.4+pulse*3,0,Math.PI*2);
-    ctx.strokeStyle=`rgba(34,211,238,${0.2+pulse*0.1})`; ctx.lineWidth=0.8; ctx.stroke();
-    const bLen=60+pulse*15;
-    const g=ctx.createLinearGradient(0,tipY,0,tipY-bLen);
-    g.addColorStop(0,`rgba(34,211,238,${0.6+pulse*0.2})`); g.addColorStop(1,'rgba(34,211,238,0)');
-    ctx.beginPath(); ctx.moveTo(tipX-1,tipY); ctx.lineTo(tipX+1,tipY); ctx.lineTo(tipX,tipY-bLen); ctx.closePath();
-    ctx.fillStyle=g; ctx.fill();
-    ctx.beginPath(); ctx.arc(tipX,tipY,2.5+pulse*1.5,0,Math.PI*2);
-    ctx.fillStyle=`rgba(34,211,238,${0.8+pulse*0.2})`; ctx.fill();
-  }
-
-  // ── BEACON (meu prédio) ───────────────────────────────────────────────────
-  if (isMe) {
-    const tc={x:rc.x,y:rc.y};
-    const pr=5+Math.sin(animFrame*.07)*4;
-    ctx.beginPath(); ctx.arc(tc.x,tc.y,pr,0,Math.PI*2);
-    ctx.fillStyle=`rgba(34,211,238,${.25+Math.sin(animFrame*.07)*.15})`; ctx.fill();
-    ctx.beginPath(); ctx.arc(tc.x,tc.y,2.5,0,Math.PI*2); ctx.fillStyle='#22d3ee'; ctx.fill();
-  }
-
-  // ── NOME ──────────────────────────────────────────────────────────────────
-  if ((hovered||selected) && !isMe) {
-    ctx.font='600 11px Rajdhani'; ctx.fillStyle='rgba(34,211,238,0.9)'; ctx.textAlign='center';
-    ctx.fillText(b.name, tipX, tipY-8); ctx.textAlign='left';
-  }
-  if (isMe) {
-    ctx.font='700 11px Rajdhani'; ctx.fillStyle='rgba(155,92,246,0.9)'; ctx.textAlign='center';
-    ctx.fillText(b.name, tipX, tipY-8); ctx.textAlign='left';
+    b.outline.material.opacity=0;
   }
 }
 
-// ── MAIN LOOP ─────────────────────────────────────────────────────────────────
-let _lastCamState = '';
-let _lastHovered = null;
-let _lastSelected = null;
-let _forceFrames = 0; // frames adicionais após mudança
-
-function draw(){
+// ── RENDER LOOP ───────────────────────────────────────────────────────────────
+let animFrame=0;
+function animate(){
+  requestAnimationFrame(animate);
   animFrame++;
   updateCamera();
 
-  // Detecta se algo mudou (câmera, hover, selected, animações periódicas)
-  const camState = `${camAngle.toFixed(3)}_${camTilt.toFixed(3)}_${camZoom.toFixed(3)}_${(targetX||0).toFixed(0)}_${(targetY||0).toFixed(0)}`;
-  const hasAnimation = (animFrame % 120 < 3); // pulso/glow a cada 2s
-  const stateChanged = camState !== _lastCamState 
-    || hoveredBuilding !== _lastHovered 
-    || selectedBuilding !== _lastSelected
-    || _forceFrames > 0
-    || hasAnimation;
+  // Animate label sprites (pulse opacity)
+  const pulse=0.55+Math.sin(animFrame*0.025)*0.15;
+  Object.values(labelSprites).forEach(s=>{if(s.material)s.material.opacity=pulse;});
 
-  _lastCamState = camState;
-  _lastHovered = hoveredBuilding;
-  _lastSelected = selectedBuilding;
-  if (_forceFrames > 0) _forceFrames--;
-
-  if (!stateChanged) {
-    requestAnimationFrame(draw);
-    return; // skip render — câmera parada, nada mudou
+  // Animate selected building outline pulse
+  if(selectedBuilding&&selectedBuilding.outline){
+    const p=0.7+Math.sin(animFrame*0.08)*0.3;
+    selectedBuilding.outline.material.opacity=p;
   }
 
-  ctx.imageSmoothingEnabled = false;
-  ctx.clearRect(0,0,W,H);
-  drawSky(); drawGround();
-  if(animFrame-lastSort>90){sortBuildings();lastSort=animFrame;}
-  for(const b of buildings) drawBuilding(b,b===hoveredBuilding);
-  drawDistrictBadges();
-  if(buildings.length===0&&mode==='explore'){
-    ctx.font='300 13px "Exo 2"';ctx.fillStyle='rgba(155,92,246,0.2)';ctx.textAlign='center';
-    ctx.fillText(t('emptyCity'),W/2,H/2+80);ctx.textAlign='left';
+  renderer.render(scene,camera);
+}
+animate();
+
+// ── CAMERA FOCUS LERP ─────────────────────────────────────────────────────────
+function focusBuildingCamera(b){
+  const startX=targetX, startZ=targetZ;
+  const startZoom=camZoom;
+  const targetZoom=Math.min(camZoom,0.55);
+  let t=0;
+  function step(){
+    t+=0.055;
+    const k=1-Math.pow(1-Math.min(t,1),3);
+    targetX=startX+(b.x-startX)*k;
+    targetZ=startZ+(b.z-startZ)*k;
+    camZoom=startZoom+(targetZoom-startZoom)*k;
+    velX=0; velZ=0;
+    if(t<1) requestAnimationFrame(step);
   }
-  requestAnimationFrame(draw);
+  step();
 }
 
-// ── CAMERA UPDATE (every frame) ───────────────────────────────────────────────
-function updateCamera(){
-  if(mode==='welcome')return;
-  // Sem inércia de rotação — câmera direta e precisa
-  camAngle += rotVelX;
-  rotVelX *= 0.75;
-  if(Math.abs(rotVelX)<0.001) rotVelX=0;
-  // Pan inertia
-  targetX += velX; targetY += velY;
-  velX *= 0.82; velY *= 0.82;
-  if(Math.abs(velX)<0.04) velX=0;
-  if(Math.abs(velY)<0.04) velY=0;
-  camX = targetX;
-  camY = targetY;
-  camZoom = 800 / camDist;
-}
-
-
-
-
-// ── HIT TEST ─────────────────────────────────────────────────────────────────
-function getBuildingAt(mx,my){
-  let found=null, minScore=999999;
-  for(const b of [...buildings].reverse()){
-    // Usa bounds cacheados do último draw — sem recalcular iso()
-    const p = b._sp || getScreenBounds(b);
-    const minX=Math.min(p[0].x,p[1].x,p[2].x,p[3].x)-8;
-    const maxX=Math.max(p[0].x,p[1].x,p[2].x,p[3].x)+8;
-    const minY=Math.min(p[4].y,p[5].y,p[6].y,p[7].y)-8;
-    const maxY=Math.max(p[0].y,p[1].y,p[2].y,p[3].y)+8;
-    if(mx>=minX&&mx<=maxX&&my>=minY&&my<=maxY){
-      const cx=(p[4].x+p[5].x+p[6].x+p[7].x)/4;
-      const cy=(p[0].y+p[4].y)/2;
-      const d=Math.sqrt((mx-cx)**2+(my-cy)**2);
-      if(d<minScore){minScore=d;found=b;}
-    }
-  }
-  return found;
-}
-
-
-// ── MOUSE ─────────────────────────────────────────────────────────────────────
+// ── MOUSE EVENTS ──────────────────────────────────────────────────────────────
 canvas.addEventListener('mousemove',e=>{
-  if(mode==='welcome')return;
+  if(mode==='welcome') return;
   if(!isDragging){
-    hoveredBuilding=getBuildingAt(e.clientX,e.clientY);
+    const b=getBuildingAt(e.clientX,e.clientY);
+    if(b!==hoveredBuilding){
+      if(hoveredBuilding&&hoveredBuilding!==selectedBuilding) applyBuildingState(hoveredBuilding,'normal');
+      hoveredBuilding=b;
+      if(hoveredBuilding&&hoveredBuilding!==selectedBuilding) applyBuildingState(hoveredBuilding,'hovered');
+    }
     const tt=document.getElementById('tooltip');
     if(hoveredBuilding){
       tt.style.display='block';
@@ -1100,116 +733,83 @@ canvas.addEventListener('mousemove',e=>{
   }
 });
 
-// ── MOUSE: ORBIT (left) + PAN (right) ───────────────────────────────────────
-// Pivot is always targetX/Y — the center of the screen.
-// Left drag = orbit: horizontal → azimuth (unlimited 360°), vertical → elevation
-// Right drag = pan: shifts targetX/Y in world space
-
 canvas.addEventListener('mousedown',e=>{
-  if(mode==='welcome')return;
+  if(mode==='welcome') return;
   e.preventDefault();
-  clickStartX=e.clientX; clickStartY=e.clientY;
+  clickStart={x:e.clientX,y:e.clientY};
   lastMouse={x:e.clientX,y:e.clientY};
   isDragging=true;
   canvas.style.cursor='grabbing';
   document.getElementById('tooltip').style.display='none';
-
-  // On left-button drag: pivot is always camX/camY = targetX/Y = screen center
-  // Nothing to do — targetX/Y IS the world point at screen center by definition
 });
 
 window.addEventListener('mouseup',e=>{
-  const moved=Math.abs(e.clientX-clickStartX)+Math.abs(e.clientY-clickStartY);
+  const moved=Math.abs(e.clientX-clickStart.x)+Math.abs(e.clientY-clickStart.y);
   if(moved<6&&mode!=='welcome'&&e.button===0){
     const b=getBuildingAt(e.clientX,e.clientY);
-    if(b) selectBuilding(b);
-    else closePlayerCard();
+    if(b) selectBuilding(b); else closePlayerCard();
   }
   isDragging=false;
   canvas.style.cursor='default';
 });
 
 window.addEventListener('mousemove',e=>{
-  if(!isDragging||mode==='welcome')return;
+  if(!isDragging||mode==='welcome') return;
   const dx=e.clientX-lastMouse.x;
   const dy=e.clientY-lastMouse.y;
-
   if(e.buttons===1){
-    // Horizontal = orbit direto, sem inércia — controle preciso
-    camAngle -= dx * 0.007;
-    rotVelX = 0; // zera inércia enquanto arrasta
-    camTilt = Math.max(0.08, Math.min(1.20, camTilt - dy * 0.004));
+    camAngle-=dx*0.007;
+    camElevation=Math.max(0.15,Math.min(1.4,camElevation+dy*0.003));
   }
-
   if(e.buttons===2||e.buttons===4){
-    const panS = camDist * 0.0015;
-    velX -= (dx*Math.cos(camAngle) + dy*Math.sin(camAngle)) * panS;
-    velY -= (-dx*Math.sin(camAngle) + dy*Math.cos(camAngle)) * panS;
+    const panS=camZoom*1.8;
+    velX-=(dx*Math.cos(camAngle)+dy*Math.sin(camAngle))*panS;
+    velZ-=(-dx*Math.sin(camAngle)+dy*Math.cos(camAngle))*panS;
   }
-
   lastMouse={x:e.clientX,y:e.clientY};
 });
 
-
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
-
-// Scroll = zoom in/out (change orbit distance)
 canvas.addEventListener('wheel',e=>{
   e.preventDefault();
-  const factor = e.deltaY > 0 ? 1.10 : 0.91;
-  camDist = Math.max(120, Math.min(2500, camDist * factor));
+  camZoom=Math.max(0.08,Math.min(3,camZoom*(e.deltaY>0?1.10:0.91)));
 },{passive:false});
 
 // ── TOUCH ─────────────────────────────────────────────────────────────────────
 let lastTD=0, touchMoved=false, lastTouchCenter={x:0,y:0};
 canvas.addEventListener('touchstart',e=>{
   touchMoved=false;
-  if(e.touches.length===1){
-    lastMouse={x:e.touches[0].clientX,y:e.touches[0].clientY};
-    clickStartX=e.touches[0].clientX; clickStartY=e.touches[0].clientY;
-  }
-  if(e.touches.length===2){
-    lastTD=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
-    lastTouchCenter={x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2};
-  }
+  if(e.touches.length===1){lastMouse={x:e.touches[0].clientX,y:e.touches[0].clientY};clickStart={x:e.touches[0].clientX,y:e.touches[0].clientY};}
+  if(e.touches.length===2){lastTD=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);lastTouchCenter={x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2};}
 },{passive:true});
-
 canvas.addEventListener('touchmove',e=>{
   e.preventDefault(); touchMoved=true;
   if(e.touches.length===1){
-    const dx=e.touches[0].clientX-lastMouse.x;
-    const dy=e.touches[0].clientY-lastMouse.y;
-    // One finger = orbit rotate
-    rotVelX += dx * 0.006;
-    camTilt = Math.max(0.04, Math.min(1.52, camTilt - dy*.004));
+    const dx=e.touches[0].clientX-lastMouse.x, dy=e.touches[0].clientY-lastMouse.y;
+    camAngle-=dx*0.006;
+    camElevation=Math.max(0.1,Math.min(1.4,camElevation+dy*0.004));
     lastMouse={x:e.touches[0].clientX,y:e.touches[0].clientY};
   }
   if(e.touches.length===2){
-    // Two fingers = zoom + pan
     const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
-    camDist = Math.max(120, Math.min(2500, camDist * (lastTD/d)));
-    lastTD=d;
-    const cx=(e.touches[0].clientX+e.touches[1].clientX)/2;
-    const cy=(e.touches[0].clientY+e.touches[1].clientY)/2;
-    const panS = camDist * 0.001;
-    velX -= (cx-lastTouchCenter.x) * Math.cos(camAngle) * panS;
-    velY += (cx-lastTouchCenter.x) * Math.sin(camAngle) * panS;
+    camZoom=Math.max(0.08,Math.min(3,camZoom*(lastTD/d))); lastTD=d;
+    const cx=(e.touches[0].clientX+e.touches[1].clientX)/2, cy=(e.touches[0].clientY+e.touches[1].clientY)/2;
+    const panS=camZoom*1.2;
+    velX-=(cx-lastTouchCenter.x)*Math.cos(camAngle)*panS;
+    velZ+=(cx-lastTouchCenter.x)*Math.sin(camAngle)*panS;
     lastTouchCenter={x:cx,y:cy};
   }
 },{passive:false});
-
 canvas.addEventListener('touchend',e=>{
-  if(!touchMoved&&mode!=='welcome'){
-    const t=e.changedTouches[0];
-    const b=getBuildingAt(t.clientX,t.clientY);
-    if(b) selectBuilding(b); else closePlayerCard();
-  }
+  if(!touchMoved&&mode!=='welcome'){const t=e.changedTouches[0];const b=getBuildingAt(t.clientX,t.clientY);if(b) selectBuilding(b); else closePlayerCard();}
   isDragging=false;
 });
 
 // ── SELECT BUILDING ───────────────────────────────────────────────────────────
 function selectBuilding(b){
+  if(selectedBuilding&&selectedBuilding!==b) applyBuildingState(selectedBuilding,'normal');
   selectedBuilding=b;
+  applyBuildingState(b,'selected');
   document.getElementById('pcAvatar').src=b.avatar||'';
   document.getElementById('pcName').textContent=b.name;
   document.getElementById('pcDistrict').textContent=(b.district||'UNKNOWN').toUpperCase();
@@ -1217,100 +817,65 @@ function selectBuilding(b){
   document.getElementById('pcHours').textContent=b.hours>0?(b.hours>=1000?Math.floor(b.hours/1000)+'k':b.hours):'—';
   document.getElementById('pcFloors').textContent=b.floors||'?';
   document.getElementById('pcRank').textContent='#'+(b.rank||'?');
-
-  // Top games from stored data
   const top3=b.top3||[];
   if(top3.length>0){
     const maxH=top3[0].hours||1;
     document.getElementById('pcGamesList').innerHTML=top3.map(g=>`
-      <div class="game-row">
-        <span class="game-name">${(g.name||'Game').substring(0,14)}</span>
-        <div class="game-track"><div class="game-fill" style="width:${Math.round(g.hours/maxH*100)}%"></div></div>
-        <span class="game-hrs">${g.hours}h</span>
-      </div>`).join('');
+      <div class="game-row"><span class="game-name">${(g.name||'Game').substring(0,14)}</span>
+      <div class="game-track"><div class="game-fill" style="width:${Math.round(g.hours/maxH*100)}%"></div></div>
+      <span class="game-hrs">${g.hours}h</span></div>`).join('');
     document.getElementById('pcGamesWrap').style.display='block';
   } else {
-    document.getElementById('pcGamesList').innerHTML=`<div style="font-size:10px;color:var(--muted);padding:4px 0;line-height:1.6">${t('noGamesData')}</div>`;
+    document.getElementById('pcGamesList').innerHTML=`<div style="font-size:10px;color:var(--muted);padding:4px 0">${t('noGamesData')}</div>`;
     document.getElementById('pcGamesWrap').style.display='block';
   }
   document.getElementById('playerCard').style.display='block';
-  // Smooth focus: pináculo tip lands at screen center
-  // Shift target along camera's depth axis so tip (at tipZ) projects to H/2
-  const pinH = Math.max(12, Math.min(40, b.h * 0.18));
-  const tipZ  = b.h + pinH;
-  // Shift target so tip (at z=tipZ) projects to screen center H/2
-  // Derivation: targetX = b.x - sin(A)*tipZ/tan(T), targetY = b.y - cos(A)*tipZ/tan(T)
-  const D = tipZ / Math.tan(camTilt);
-  const focusX = b.x - Math.sin(camAngle) * D;
-  const focusY = b.y - Math.cos(camAngle) * D;
-
-  let t=0;
-  const startX=targetX, startY=targetY;
-  const startDist=camDist;
-  const targetDist=Math.min(camDist, 480);
-  function focusLerp(){
-    t+=0.055;
-    const k=1-Math.pow(1-Math.min(t,1),3);
-    targetX=startX+(focusX-startX)*k;
-    targetY=startY+(focusY-startY)*k;
-    camDist=startDist+(targetDist-startDist)*k;
-    velX=0; velY=0;
-    if(t<1) requestAnimationFrame(focusLerp);
-  }
-  focusLerp();
+  focusBuildingCamera(b);
 }
 
 function closePlayerCard(){
+  if(selectedBuilding) applyBuildingState(selectedBuilding,'normal');
   selectedBuilding=null;
   document.getElementById('playerCard').style.display='none';
-  // Keep targetX/Y as-is so orbit pivot stays on the last selected building
 }
 
 // ── PROFILE PAGE ──────────────────────────────────────────────────────────────
 function openProfilePage(){
-  if(!selectedBuilding)return;
+  if(!selectedBuilding) return;
   const b=selectedBuilding;
   document.getElementById('ppAvatar').src=b.avatar||'';
   document.getElementById('ppName').textContent=b.name;
   document.getElementById('ppDistrict').textContent=(b.district||'UNKNOWN').toUpperCase();
-  const sinceDateLocale = currentLang === 'pt' ? 'pt-BR' : 'en-US';
-  document.getElementById('ppSince').textContent = t('sincePrefix') + new Date(b.created_at||Date.now()).toLocaleDateString(sinceDateLocale,{month:'long',year:'numeric'});
+  const sinceDateLocale=currentLang==='pt'?'pt-BR':'en-US';
+  document.getElementById('ppSince').textContent=t('sincePrefix')+new Date(b.created_at||Date.now()).toLocaleDateString(sinceDateLocale,{month:'long',year:'numeric'});
   document.getElementById('ppGames').textContent=b.games||'?';
   document.getElementById('ppHours').textContent=b.hours>0?(b.hours>=1000?Math.floor(b.hours/1000)+'k':b.hours):'—';
   document.getElementById('ppFloors').textContent=b.floors||'?';
   document.getElementById('ppRank').textContent='#'+(b.rank||'?');
-
   const top3=b.top3||[];
   if(top3.length>0){
     const maxH=top3[0].hours||1;
     document.getElementById('ppGamesList').innerHTML=top3.map((g,i)=>`
-      <div class="pp-game-row">
-        <span class="pp-game-rank">#${i+1}</span>
-        <span class="pp-game-name">${g.name||'Game'}</span>
-        <div class="pp-game-track"><div class="pp-game-fill" style="width:${Math.round(g.hours/maxH*100)}%"></div></div>
-        <span class="pp-game-hrs">${g.hours}h</span>
-      </div>`).join('');
+      <div class="pp-game-row"><span class="pp-game-rank">#${i+1}</span><span class="pp-game-name">${g.name||'Game'}</span>
+      <div class="pp-game-track"><div class="pp-game-fill" style="width:${Math.round(g.hours/maxH*100)}%"></div></div>
+      <span class="pp-game-hrs">${g.hours}h</span></div>`).join('');
   } else {
     document.getElementById('ppGamesList').innerHTML='<div style="color:var(--muted);font-size:12px;padding:12px 0">Biblioteca privada ou sem jogos registrados.</div>';
   }
   document.getElementById('profilePage').style.display='block';
 }
-
-function closeProfilePage(){
-  document.getElementById('profilePage').style.display='none';
-}
+function closeProfilePage(){ document.getElementById('profilePage').style.display='none'; }
 
 // ── NAVIGATION ────────────────────────────────────────────────────────────────
 async function enterExplore(){
   showSearchBar(true);
   mode='explore';
   document.getElementById('welcomeScreen').style.display='none';
-  showLoading(true, t('loadingCity'));
+  showLoading(true,t('loadingCity'));
   await refreshCity();
   showLoading(false);
   document.getElementById('hud').style.display='flex';
-  // Em background: atualiza floors/distrito do usuário logado
-  setTimeout(silentRefreshMyBuilding, 1500);
+  setTimeout(silentRefreshMyBuilding,1500);
   document.getElementById('addBuildingBtn').style.display='block';
   if(mySteamId) document.getElementById('myBuildingBtn').style.display='block';
 }
@@ -1318,7 +883,6 @@ async function enterExplore(){
 function enterRegister(){
   document.getElementById('welcomeScreen').style.display='none';
   document.getElementById('registerPanel').style.display='block';
-  // Pre-fill if returning user
   if(mySteamId) document.getElementById('steamInput').value=mySteamId;
 }
 
@@ -1328,373 +892,192 @@ function backToWelcome(){
 }
 
 function focusMyBuilding(){
-  // Update URL with steamid for easy sharing
-  if(mySteamId) {
-    const url = new URL(window.location);
-    url.searchParams.set('steamid', mySteamId);
-    window.history.replaceState({}, '', url);
-  }
-  if(!mySteamId)return;
-  const b=buildings.find(b=>b.steamid===mySteamId);
-  if(b){
-    selectBuilding(b);
-    targetX=b.x; targetY=b.y; camDist=400;
-    velX=0; velY=0; rotVelX=0;
-  }
+  if(!mySteamId) return;
+  if(mySteamId){const url=new URL(window.location);url.searchParams.set('steamid',mySteamId);window.history.replaceState({},'',url);}
+  const b=buildingObjects.find(b=>b.steamid===mySteamId);
+  if(b){selectBuilding(b);targetX=b.x;targetZ=b.z;camZoom=0.45;velX=0;velZ=0;}
 }
 
 // ── LOAD PROFILE ──────────────────────────────────────────────────────────────
 async function loadProfile(){
   const input=document.getElementById('steamInput').value.trim();
-  if(!input)return;
+  if(!input) return;
   showError('');
-  showLoading(true, t('loadingProfile'));
+  showLoading(true,t('loadingProfile'));
   document.getElementById('buildBtn').disabled=true;
-
-  try {
+  try{
     const res=await fetch(`/api/steam?steamid=${encodeURIComponent(input)}`);
     const data=await res.json();
-    if(data.error)throw new Error(data.error);
-
-    showLoading(true, t('loadingRegister'));
-    // Floors: 1 andar a cada 100h jogadas. Bônus pequeno por variedade de jogos (máx +15 andares)
-    const floors=Math.max(3, Math.floor((data.totalHours||0)/100) + Math.min(15, Math.floor((data.gameCount||0)/20)));
-    // District = game most played in last 2 weeks (fallback: all-time top game)
-    const recentGame = data.recentGame || data.top3?.[0]?.name || 'INDEPENDENT';
-    const district = recentGame;
-    const districtAppid = data.recentAppid || null;
-
-    // Save to Supabase with top3
+    if(data.error) throw new Error(data.error);
+    showLoading(true,t('loadingRegister'));
+    const floors=Math.max(3,Math.floor((data.totalHours||0)/100)+Math.min(15,Math.floor((data.gameCount||0)/20)));
+    const recentGame=data.recentGame||data.top3?.[0]?.name||'INDEPENDENT';
+    const district=recentGame;
+    const districtAppid=data.recentAppid||null;
     await sbFetch('gamers?on_conflict=steamid',{
       method:'POST',
       headers:{'Prefer':'resolution=merge-duplicates,return=representation'},
-      body:JSON.stringify({
-        steamid:data.steamid, name:data.name, avatar:data.avatar||'',
-        hours:data.totalHours||0, games:data.gameCount||0, floors, district, district_appid:districtAppid,
-        top3:JSON.stringify(data.top3||[]),
-      })
+      body:JSON.stringify({steamid:data.steamid,name:data.name,avatar:data.avatar||'',hours:data.totalHours||0,games:data.gameCount||0,floors,district,district_appid:districtAppid,top3:JSON.stringify(data.top3||[]),recent_game:recentGame,recent_appid:data.recentAppid||null}),
     });
-
-    // Save steamid locally
     mySteamId=data.steamid;
     localStorage.setItem('bg_steamid',mySteamId);
-
-    showLoading(true, t('loadingBuilding'));
+    showLoading(true,t('loadingBuilding'));
     mode='city';
-    _forceFrames = 20;
     await refreshCity();
-
     showLoading(false);
     document.getElementById('registerPanel').style.display='none';
     document.getElementById('hud').style.display='flex';
     showSearchBar(true);
     document.getElementById('addBuildingBtn').style.display='none';
     document.getElementById('myBuildingBtn').style.display='block';
-
-    // Auto-select my building
-    const myB=buildings.find(b=>b.steamid===mySteamId);
-    if(myB)selectBuilding(myB);
-    camAngle=0.55; camTilt=0.36; camDist=900; targetX=0; targetY=0; velX=0; velY=0; rotVelX=0; camX=0; camY=0;
-
-  } catch(err){
+    const myB=buildingObjects.find(b=>b.steamid===mySteamId);
+    if(myB) selectBuilding(myB);
+    camAngle=Math.PI/4; camElevation=0.6; camZoom=1.0; targetX=0; targetZ=0; velX=0; velZ=0;
+  }catch(err){
     showLoading(false);
     showError(t('errorPrefix')+(err.message||t('tryAgain')));
-  } finally {
+  }finally{
     document.getElementById('buildBtn').disabled=false;
   }
 }
 
-// ── AUTO-UPDATE: recalcula floors do usuário logado em background ─────────────
-// ── AUTO-UPDATE: recalcula floors do usuário logado em background ─────────────
+// ── SILENT REFRESH ────────────────────────────────────────────────────────────
 async function silentRefreshMyBuilding(){
   if(!mySteamId) return;
-  try {
-    const res = await fetch(`/api/steam?steamid=${encodeURIComponent(mySteamId)}`);
-    const data = await res.json();
-    if(data.error || !data.totalHours) return;
-    const floors = Math.max(3, Math.floor((data.totalHours||0)/100) + Math.min(15, Math.floor((data.gameCount||0)/20)));
-    const recentGame = data.recentGame || data.top3?.[0]?.name || 'INDEPENDENT';
-    await sbFetch('gamers?on_conflict=steamid', {
-      method: 'POST',
-      headers: {'Prefer':'resolution=merge-duplicates,return=representation'},
-      body: JSON.stringify({
-        steamid: data.steamid, name: data.name, avatar: data.avatar||'',
-        hours: data.totalHours||0, games: data.gameCount||0, floors,
-        district: recentGame, district_appid: data.recentAppid||null,
-        recent_game: recentGame, recent_appid: data.recentAppid||null,
-        top3: JSON.stringify(data.top3||[]),
-      })
+  try{
+    const res=await fetch(`/api/steam?steamid=${encodeURIComponent(mySteamId)}`);
+    const data=await res.json();
+    if(data.error||!data.totalHours) return;
+    const floors=Math.max(3,Math.floor((data.totalHours||0)/100)+Math.min(15,Math.floor((data.gameCount||0)/20)));
+    const recentGame=data.recentGame||data.top3?.[0]?.name||'INDEPENDENT';
+    await sbFetch('gamers?on_conflict=steamid',{
+      method:'POST',
+      headers:{'Prefer':'resolution=merge-duplicates,return=representation'},
+      body:JSON.stringify({steamid:data.steamid,name:data.name,avatar:data.avatar||'',hours:data.totalHours||0,games:data.gameCount||0,floors,district:recentGame,district_appid:data.recentAppid||null,recent_game:recentGame,recent_appid:data.recentAppid||null,top3:JSON.stringify(data.top3||[])}),
     });
     await refreshCity();
-  } catch(e){ console.warn('silentRefresh failed:', e); }
+  }catch(e){console.warn('silentRefresh failed:',e);}
 }
 
-// ── SUPABASE ──────────────────────────────────────────────────────────────────
-// ── FAKE BUILDINGS (demo mode) ────────────────────────────────────────────────
+// ── FAKE BUILDINGS ────────────────────────────────────────────────────────────
+</script>
+<script>
 const FAKE_GAMERS = [{"name": "xX_Destroyer", "steamid": "fake_0000", "hours": 254, "games": 145, "floors": 9, "district": "Path of Exile", "recent_game": "Path of Exile", "top3": "[{\"name\": \"Rust\", \"hours\": 254, \"appid\": 0}, {\"name\": \"GTA V\", \"hours\": 84, \"appid\": 0}, {\"name\": \"GTA V\", \"hours\": 42, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=xX_Destroyer", "created_at": "2024-01-01T00:00:00Z"}, {"name": "NightStalker", "steamid": "fake_0001", "hours": 889, "games": 284, "floors": 22, "district": "Apex Legends", "recent_game": "Apex Legends", "top3": "[{\"name\": \"Deep Rock Galactic\", \"hours\": 889, \"appid\": 0}, {\"name\": \"PUBG: BATTLEGROUNDS\", \"hours\": 296, \"appid\": 0}, {\"name\": \"Stardew Valley\", \"hours\": 148, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=NightStalker", "created_at": "2024-01-01T00:00:00Z"}, {"name": "PixelKnight", "steamid": "fake_0002", "hours": 294, "games": 52, "floors": 4, "district": "Fortnite", "recent_game": "Fortnite", "top3": "[{\"name\": \"Dota 2\", \"hours\": 294, \"appid\": 0}, {\"name\": \"Red Dead Redemption 2\", \"hours\": 98, \"appid\": 0}, {\"name\": \"GTA V\", \"hours\": 49, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=PixelKnight", "created_at": "2024-01-01T00:00:00Z"}, {"name": "GhostSniper", "steamid": "fake_0003", "hours": 267, "games": 292, "floors": 16, "district": "Hollow Knight", "recent_game": "Hollow Knight", "top3": "[{\"name\": \"Hades\", \"hours\": 267, \"appid\": 0}, {\"name\": \"Red Dead Redemption 2\", \"hours\": 89, \"appid\": 0}, {\"name\": \"Destiny 2\", \"hours\": 44, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=GhostSniper", "created_at": "2024-01-01T00:00:00Z"}, {"name": "ThunderBolt", "steamid": "fake_0004", "hours": 4514, "games": 219, "floors": 55, "district": "Path of Exile", "recent_game": "Path of Exile", "top3": "[{\"name\": \"Destiny 2\", \"hours\": 4514, \"appid\": 0}, {\"name\": \"GTA V\", \"hours\": 1504, \"appid\": 0}, {\"name\": \"The Witcher 3\", \"hours\": 752, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=ThunderBolt", "created_at": "2024-01-01T00:00:00Z"}, {"name": "CyberNova", "steamid": "fake_0005", "hours": 6680, "games": 8, "floors": 66, "district": "Stardew Valley", "recent_game": "Stardew Valley", "top3": "[{\"name\": \"Cyberpunk 2077\", \"hours\": 6680, \"appid\": 0}, {\"name\": \"Left 4 Dead 2\", \"hours\": 2226, \"appid\": 0}, {\"name\": \"Monster Hunter: World\", \"hours\": 1113, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=CyberNova", "created_at": "2024-01-01T00:00:00Z"}, {"name": "IronFist", "steamid": "fake_0006", "hours": 3512, "games": 179, "floors": 43, "district": "Elden Ring", "recent_game": "Elden Ring", "top3": "[{\"name\": \"Destiny 2\", \"hours\": 3512, \"appid\": 0}, {\"name\": \"Cyberpunk 2077\", \"hours\": 1170, \"appid\": 0}, {\"name\": \"Apex Legends\", \"hours\": 585, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=IronFist", "created_at": "2024-01-01T00:00:00Z"}, {"name": "ShadowWolf", "steamid": "fake_0007", "hours": 2807, "games": 57, "floors": 30, "district": "Red Dead Redemption 2", "recent_game": "Red Dead Redemption 2", "top3": "[{\"name\": \"Left 4 Dead 2\", \"hours\": 2807, \"appid\": 0}, {\"name\": \"PUBG: BATTLEGROUNDS\", \"hours\": 935, \"appid\": 0}, {\"name\": \"Minecraft\", \"hours\": 467, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=ShadowWolf", "created_at": "2024-01-01T00:00:00Z"}, {"name": "BlazeFury", "steamid": "fake_0008", "hours": 6992, "games": 181, "floors": 78, "district": "Rust", "recent_game": "Rust", "top3": "[{\"name\": \"Valorant\", \"hours\": 6992, \"appid\": 0}, {\"name\": \"Hades\", \"hours\": 2330, \"appid\": 0}, {\"name\": \"Cyberpunk 2077\", \"hours\": 1165, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=BlazeFury", "created_at": "2024-01-01T00:00:00Z"}, {"name": "StormBreaker", "steamid": "fake_0009", "hours": 6027, "games": 240, "floors": 72, "district": "Monster Hunter: World", "recent_game": "Monster Hunter: World", "top3": "[{\"name\": \"Dota 2\", \"hours\": 6027, \"appid\": 0}, {\"name\": \"Terraria\", \"hours\": 2009, \"appid\": 0}, {\"name\": \"Rust\", \"hours\": 1004, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=StormBreaker", "created_at": "2024-01-01T00:00:00Z"}, {"name": "NeonRider", "steamid": "fake_0010", "hours": 695, "games": 287, "floors": 20, "district": "MIR4", "recent_game": "MIR4", "top3": "[{\"name\": \"Minecraft\", \"hours\": 695, \"appid\": 0}, {\"name\": \"Baldur's Gate 3\", \"hours\": 231, \"appid\": 0}, {\"name\": \"Sekiro\", \"hours\": 115, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=NeonRider", "created_at": "2024-01-01T00:00:00Z"}, {"name": "VoidWalker", "steamid": "fake_0011", "hours": 7303, "games": 190, "floors": 82, "district": "Path of Exile", "recent_game": "Path of Exile", "top3": "[{\"name\": \"Hades\", \"hours\": 7303, \"appid\": 0}, {\"name\": \"Stardew Valley\", \"hours\": 2434, \"appid\": 0}, {\"name\": \"Red Dead Redemption 2\", \"hours\": 1217, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=VoidWalker", "created_at": "2024-01-01T00:00:00Z"}, {"name": "CrimsonEdge", "steamid": "fake_0012", "hours": 425, "games": 121, "floors": 10, "district": "Destiny 2", "recent_game": "Destiny 2", "top3": "[{\"name\": \"PUBG: BATTLEGROUNDS\", \"hours\": 425, \"appid\": 0}, {\"name\": \"Left 4 Dead 2\", \"hours\": 141, \"appid\": 0}, {\"name\": \"Baldur's Gate 3\", \"hours\": 70, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=CrimsonEdge", "created_at": "2024-01-01T00:00:00Z"}, {"name": "FrostByte", "steamid": "fake_0013", "hours": 1957, "games": 56, "floors": 21, "district": "PUBG: BATTLEGROUNDS", "recent_game": "PUBG: BATTLEGROUNDS", "top3": "[{\"name\": \"Dead Cells\", \"hours\": 1957, \"appid\": 0}, {\"name\": \"Minecraft\", \"hours\": 652, \"appid\": 0}, {\"name\": \"Cyberpunk 2077\", \"hours\": 326, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=FrostByte", "created_at": "2024-01-01T00:00:00Z"}, {"name": "LightningAce", "steamid": "fake_0014", "hours": 6883, "games": 191, "floors": 77, "district": "The Witcher 3", "recent_game": "The Witcher 3", "top3": "[{\"name\": \"Path of Exile\", \"hours\": 6883, \"appid\": 0}, {\"name\": \"Elden Ring\", \"hours\": 2294, \"appid\": 0}, {\"name\": \"Valorant\", \"hours\": 1147, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=LightningAce", "created_at": "2024-01-01T00:00:00Z"}, {"name": "DarkMatter", "steamid": "fake_0015", "hours": 5540, "games": 141, "floors": 62, "district": "Valorant", "recent_game": "Valorant", "top3": "[{\"name\": \"Red Dead Redemption 2\", \"hours\": 5540, \"appid\": 0}, {\"name\": \"Destiny 2\", \"hours\": 1846, \"appid\": 0}, {\"name\": \"MIR4\", \"hours\": 923, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=DarkMatter", "created_at": "2024-01-01T00:00:00Z"}, {"name": "StarForge", "steamid": "fake_0016", "hours": 634, "games": 92, "floors": 10, "district": "Warframe", "recent_game": "Warframe", "top3": "[{\"name\": \"Path of Exile\", \"hours\": 634, \"appid\": 0}, {\"name\": \"Terraria\", \"hours\": 211, \"appid\": 0}, {\"name\": \"Deep Rock Galactic\", \"hours\": 105, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=StarForge", "created_at": "2024-01-01T00:00:00Z"}, {"name": "IcePhoenix", "steamid": "fake_0017", "hours": 3836, "games": 199, "floors": 47, "district": "GTA V", "recent_game": "GTA V", "top3": "[{\"name\": \"Elden Ring\", \"hours\": 3836, \"appid\": 0}, {\"name\": \"Cyberpunk 2077\", \"hours\": 1278, \"appid\": 0}, {\"name\": \"MIR4\", \"hours\": 639, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=IcePhoenix", "created_at": "2024-01-01T00:00:00Z"}, {"name": "FireHawk", "steamid": "fake_0018", "hours": 4612, "games": 117, "floors": 51, "district": "Path of Exile", "recent_game": "Path of Exile", "top3": "[{\"name\": \"Destiny 2\", \"hours\": 4612, \"appid\": 0}, {\"name\": \"Warframe\", \"hours\": 1537, \"appid\": 0}, {\"name\": \"Call of Duty\", \"hours\": 768, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=FireHawk", "created_at": "2024-01-01T00:00:00Z"}, {"name": "TechWizard", "steamid": "fake_0019", "hours": 6406, "games": 33, "floors": 65, "district": "Sekiro", "recent_game": "Sekiro", "top3": "[{\"name\": \"Left 4 Dead 2\", \"hours\": 6406, \"appid\": 0}, {\"name\": \"GTA V\", \"hours\": 2135, \"appid\": 0}, {\"name\": \"Sekiro\", \"hours\": 1067, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=TechWizard", "created_at": "2024-01-01T00:00:00Z"}, {"name": "QuantumLeap", "steamid": "fake_0020", "hours": 2634, "games": 210, "floors": 36, "district": "Dota 2", "recent_game": "Dota 2", "top3": "[{\"name\": \"Monster Hunter: World\", \"hours\": 2634, \"appid\": 0}, {\"name\": \"Cyberpunk 2077\", \"hours\": 878, \"appid\": 0}, {\"name\": \"PUBG: BATTLEGROUNDS\", \"hours\": 439, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=QuantumLeap", "created_at": "2024-01-01T00:00:00Z"}, {"name": "NebulaDrift", "steamid": "fake_0021", "hours": 7774, "games": 295, "floors": 91, "district": "Red Dead Redemption 2", "recent_game": "Red Dead Redemption 2", "top3": "[{\"name\": \"MIR4\", \"hours\": 7774, \"appid\": 0}, {\"name\": \"Celeste\", \"hours\": 2591, \"appid\": 0}, {\"name\": \"Destiny 2\", \"hours\": 1295, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=NebulaDrift", "created_at": "2024-01-01T00:00:00Z"}, {"name": "SteelGhost", "steamid": "fake_0022", "hours": 5419, "games": 260, "floors": 67, "district": "Call of Duty", "recent_game": "Call of Duty", "top3": "[{\"name\": \"Red Dead Redemption 2\", \"hours\": 5419, \"appid\": 0}, {\"name\": \"Minecraft\", \"hours\": 1806, \"appid\": 0}, {\"name\": \"Celeste\", \"hours\": 903, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=SteelGhost", "created_at": "2024-01-01T00:00:00Z"}, {"name": "ChaosKing", "steamid": "fake_0023", "hours": 3808, "games": 78, "floors": 41, "district": "MIR4", "recent_game": "MIR4", "top3": "[{\"name\": \"Path of Exile\", \"hours\": 3808, \"appid\": 0}, {\"name\": \"Cyberpunk 2077\", \"hours\": 1269, \"appid\": 0}, {\"name\": \"Apex Legends\", \"hours\": 634, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=ChaosKing", "created_at": "2024-01-01T00:00:00Z"}, {"name": "ZenMaster", "steamid": "fake_0024", "hours": 4648, "games": 280, "floors": 60, "district": "GTA V", "recent_game": "GTA V", "top3": "[{\"name\": \"Deep Rock Galactic\", \"hours\": 4648, \"appid\": 0}, {\"name\": \"Cyberpunk 2077\", \"hours\": 1549, \"appid\": 0}, {\"name\": \"Deep Rock Galactic\", \"hours\": 774, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=ZenMaster", "created_at": "2024-01-01T00:00:00Z"}, {"name": "CodeBreaker", "steamid": "fake_0025", "hours": 7404, "games": 209, "floors": 84, "district": "Stardew Valley", "recent_game": "Stardew Valley", "top3": "[{\"name\": \"Fortnite\", \"hours\": 7404, \"appid\": 0}, {\"name\": \"Valorant\", \"hours\": 2468, \"appid\": 0}, {\"name\": \"GTA V\", \"hours\": 1234, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=CodeBreaker", "created_at": "2024-01-01T00:00:00Z"}, {"name": "DataMiner", "steamid": "fake_0026", "hours": 4092, "games": 51, "floors": 42, "district": "Apex Legends", "recent_game": "Apex Legends", "top3": "[{\"name\": \"Hollow Knight\", \"hours\": 4092, \"appid\": 0}, {\"name\": \"Left 4 Dead 2\", \"hours\": 1364, \"appid\": 0}, {\"name\": \"Dota 2\", \"hours\": 682, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=DataMiner", "created_at": "2024-01-01T00:00:00Z"}, {"name": "ByteRunner", "steamid": "fake_0027", "hours": 1302, "games": 86, "floors": 17, "district": "Dead Cells", "recent_game": "Dead Cells", "top3": "[{\"name\": \"Rust\", \"hours\": 1302, \"appid\": 0}, {\"name\": \"Monster Hunter: World\", \"hours\": 434, \"appid\": 0}, {\"name\": \"Warframe\", \"hours\": 217, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=ByteRunner", "created_at": "2024-01-01T00:00:00Z"}, {"name": "CoreHunter", "steamid": "fake_0028", "hours": 570, "games": 202, "floors": 15, "district": "Fortnite", "recent_game": "Fortnite", "top3": "[{\"name\": \"Hades\", \"hours\": 570, \"appid\": 0}, {\"name\": \"Minecraft\", \"hours\": 190, \"appid\": 0}, {\"name\": \"Hades\", \"hours\": 95, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=CoreHunter", "created_at": "2024-01-01T00:00:00Z"}, {"name": "GridLock", "steamid": "fake_0029", "hours": 2109, "games": 288, "floors": 35, "district": "The Witcher 3", "recent_game": "The Witcher 3", "top3": "[{\"name\": \"Hollow Knight\", \"hours\": 2109, \"appid\": 0}, {\"name\": \"Dead Cells\", \"hours\": 703, \"appid\": 0}, {\"name\": \"Counter-Strike 2\", \"hours\": 351, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=GridLock", "created_at": "2024-01-01T00:00:00Z"}, {"name": "MemoryLeak", "steamid": "fake_0030", "hours": 988, "games": 279, "floors": 22, "district": "Warframe", "recent_game": "Warframe", "top3": "[{\"name\": \"Deep Rock Galactic\", \"hours\": 988, \"appid\": 0}, {\"name\": \"Left 4 Dead 2\", \"hours\": 329, \"appid\": 0}, {\"name\": \"Cyberpunk 2077\", \"hours\": 164, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=MemoryLeak", "created_at": "2024-01-01T00:00:00Z"}, {"name": "StackOver", "steamid": "fake_0031", "hours": 2836, "games": 62, "floors": 31, "district": "Left 4 Dead 2", "recent_game": "Left 4 Dead 2", "top3": "[{\"name\": \"Path of Exile\", \"hours\": 2836, \"appid\": 0}, {\"name\": \"Baldur's Gate 3\", \"hours\": 945, \"appid\": 0}, {\"name\": \"Fortnite\", \"hours\": 472, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=StackOver", "created_at": "2024-01-01T00:00:00Z"}, {"name": "NullPointer", "steamid": "fake_0032", "hours": 76, "games": 139, "floors": 6, "district": "Elden Ring", "recent_game": "Elden Ring", "top3": "[{\"name\": \"The Witcher 3\", \"hours\": 76, \"appid\": 0}, {\"name\": \"Hollow Knight\", \"hours\": 25, \"appid\": 0}, {\"name\": \"Left 4 Dead 2\", \"hours\": 12, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=NullPointer", "created_at": "2024-01-01T00:00:00Z"}, {"name": "BitShift", "steamid": "fake_0033", "hours": 7526, "games": 59, "floors": 77, "district": "Elden Ring", "recent_game": "Elden Ring", "top3": "[{\"name\": \"Hollow Knight\", \"hours\": 7526, \"appid\": 0}, {\"name\": \"Dead Cells\", \"hours\": 2508, \"appid\": 0}, {\"name\": \"Path of Exile\", \"hours\": 1254, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=BitShift", "created_at": "2024-01-01T00:00:00Z"}, {"name": "HexCoder", "steamid": "fake_0034", "hours": 5284, "games": 264, "floors": 65, "district": "Baldur's Gate 3", "recent_game": "Baldur's Gate 3", "top3": "[{\"name\": \"Sekiro\", \"hours\": 5284, \"appid\": 0}, {\"name\": \"Hades\", \"hours\": 1761, \"appid\": 0}, {\"name\": \"Red Dead Redemption 2\", \"hours\": 880, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=HexCoder", "created_at": "2024-01-01T00:00:00Z"}, {"name": "BinaryZero", "steamid": "fake_0035", "hours": 6296, "games": 87, "floors": 66, "district": "Apex Legends", "recent_game": "Apex Legends", "top3": "[{\"name\": \"Valorant\", \"hours\": 6296, \"appid\": 0}, {\"name\": \"Terraria\", \"hours\": 2098, \"appid\": 0}, {\"name\": \"Left 4 Dead 2\", \"hours\": 1049, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=BinaryZero", "created_at": "2024-01-01T00:00:00Z"}, {"name": "LogicBomb", "steamid": "fake_0036", "hours": 7574, "games": 5, "floors": 75, "district": "MIR4", "recent_game": "MIR4", "top3": "[{\"name\": \"Hollow Knight\", \"hours\": 7574, \"appid\": 0}, {\"name\": \"Hades\", \"hours\": 2524, \"appid\": 0}, {\"name\": \"Call of Duty\", \"hours\": 1262, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=LogicBomb", "created_at": "2024-01-01T00:00:00Z"}, {"name": "VirusScan", "steamid": "fake_0037", "hours": 966, "games": 190, "floors": 18, "district": "Dark Souls III", "recent_game": "Dark Souls III", "top3": "[{\"name\": \"Counter-Strike 2\", \"hours\": 966, \"appid\": 0}, {\"name\": \"Celeste\", \"hours\": 322, \"appid\": 0}, {\"name\": \"Sekiro\", \"hours\": 161, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=VirusScan", "created_at": "2024-01-01T00:00:00Z"}, {"name": "PhantomByte", "steamid": "fake_0038", "hours": 2011, "games": 34, "floors": 21, "district": "Monster Hunter: World", "recent_game": "Monster Hunter: World", "top3": "[{\"name\": \"Baldur's Gate 3\", \"hours\": 2011, \"appid\": 0}, {\"name\": \"GTA V\", \"hours\": 670, \"appid\": 0}, {\"name\": \"Celeste\", \"hours\": 335, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=PhantomByte", "created_at": "2024-01-01T00:00:00Z"}, {"name": "GlitchHunt", "steamid": "fake_0039", "hours": 751, "games": 253, "floors": 19, "district": "Stardew Valley", "recent_game": "Stardew Valley", "top3": "[{\"name\": \"PUBG: BATTLEGROUNDS\", \"hours\": 751, \"appid\": 0}, {\"name\": \"Sekiro\", \"hours\": 250, \"appid\": 0}, {\"name\": \"PUBG: BATTLEGROUNDS\", \"hours\": 125, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=GlitchHunt", "created_at": "2024-01-01T00:00:00Z"}, {"name": "PixelPusher", "steamid": "fake_0040", "hours": 6323, "games": 69, "floors": 66, "district": "Left 4 Dead 2", "recent_game": "Left 4 Dead 2", "top3": "[{\"name\": \"Terraria\", \"hours\": 6323, \"appid\": 0}, {\"name\": \"Apex Legends\", \"hours\": 2107, \"appid\": 0}, {\"name\": \"Warframe\", \"hours\": 1053, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=PixelPusher", "created_at": "2024-01-01T00:00:00Z"}, {"name": "VectorAce", "steamid": "fake_0041", "hours": 1402, "games": 140, "floors": 21, "district": "Dark Souls III", "recent_game": "Dark Souls III", "top3": "[{\"name\": \"Terraria\", \"hours\": 1402, \"appid\": 0}, {\"name\": \"Hollow Knight\", \"hours\": 467, \"appid\": 0}, {\"name\": \"Dead Cells\", \"hours\": 233, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=VectorAce", "created_at": "2024-01-01T00:00:00Z"}, {"name": "SplineKing", "steamid": "fake_0042", "hours": 7950, "games": 113, "floors": 84, "district": "Hades", "recent_game": "Hades", "top3": "[{\"name\": \"Fortnite\", \"hours\": 7950, \"appid\": 0}, {\"name\": \"MIR4\", \"hours\": 2650, \"appid\": 0}, {\"name\": \"Terraria\", \"hours\": 1325, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=SplineKing", "created_at": "2024-01-01T00:00:00Z"}, {"name": "RenderGod", "steamid": "fake_0043", "hours": 5701, "games": 107, "floors": 62, "district": "Left 4 Dead 2", "recent_game": "Left 4 Dead 2", "top3": "[{\"name\": \"Deep Rock Galactic\", \"hours\": 5701, \"appid\": 0}, {\"name\": \"Destiny 2\", \"hours\": 1900, \"appid\": 0}, {\"name\": \"Baldur's Gate 3\", \"hours\": 950, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=RenderGod", "created_at": "2024-01-01T00:00:00Z"}, {"name": "ShaderWitch", "steamid": "fake_0044", "hours": 5373, "games": 196, "floors": 62, "district": "Minecraft", "recent_game": "Minecraft", "top3": "[{\"name\": \"Warframe\", \"hours\": 5373, \"appid\": 0}, {\"name\": \"The Witcher 3\", \"hours\": 1791, \"appid\": 0}, {\"name\": \"Celeste\", \"hours\": 895, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=ShaderWitch", "created_at": "2024-01-01T00:00:00Z"}, {"name": "MeshMaster", "steamid": "fake_0045", "hours": 1041, "games": 131, "floors": 16, "district": "Hollow Knight", "recent_game": "Hollow Knight", "top3": "[{\"name\": \"The Witcher 3\", \"hours\": 1041, \"appid\": 0}, {\"name\": \"GTA V\", \"hours\": 347, \"appid\": 0}, {\"name\": \"PUBG: BATTLEGROUNDS\", \"hours\": 173, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=MeshMaster", "created_at": "2024-01-01T00:00:00Z"}, {"name": "TextureWiz", "steamid": "fake_0046", "hours": 4869, "games": 288, "floors": 62, "district": "Call of Duty", "recent_game": "Call of Duty", "top3": "[{\"name\": \"Counter-Strike 2\", \"hours\": 4869, \"appid\": 0}, {\"name\": \"GTA V\", \"hours\": 1623, \"appid\": 0}, {\"name\": \"Stardew Valley\", \"hours\": 811, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=TextureWiz", "created_at": "2024-01-01T00:00:00Z"}, {"name": "NormalMap", "steamid": "fake_0047", "hours": 631, "games": 35, "floors": 7, "district": "GTA V", "recent_game": "GTA V", "top3": "[{\"name\": \"Counter-Strike 2\", \"hours\": 631, \"appid\": 0}, {\"name\": \"GTA V\", \"hours\": 210, \"appid\": 0}, {\"name\": \"PUBG: BATTLEGROUNDS\", \"hours\": 105, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=NormalMap", "created_at": "2024-01-01T00:00:00Z"}, {"name": "DepthBuffer", "steamid": "fake_0048", "hours": 7092, "games": 174, "floors": 78, "district": "Celeste", "recent_game": "Celeste", "top3": "[{\"name\": \"Dota 2\", \"hours\": 7092, \"appid\": 0}, {\"name\": \"PUBG: BATTLEGROUNDS\", \"hours\": 2364, \"appid\": 0}, {\"name\": \"Hollow Knight\", \"hours\": 1182, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=DepthBuffer", "created_at": "2024-01-01T00:00:00Z"}, {"name": "AlphaBlend", "steamid": "fake_0049", "hours": 5530, "games": 253, "floors": 67, "district": "GTA V", "recent_game": "GTA V", "top3": "[{\"name\": \"Cyberpunk 2077\", \"hours\": 5530, \"appid\": 0}, {\"name\": \"Red Dead Redemption 2\", \"hours\": 1843, \"appid\": 0}, {\"name\": \"Terraria\", \"hours\": 921, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=AlphaBlend", "created_at": "2024-01-01T00:00:00Z"}, {"name": "OmegaStrike", "steamid": "fake_0050", "hours": 7713, "games": 297, "floors": 91, "district": "Apex Legends", "recent_game": "Apex Legends", "top3": "[{\"name\": \"Deep Rock Galactic\", \"hours\": 7713, \"appid\": 0}, {\"name\": \"Stardew Valley\", \"hours\": 2571, \"appid\": 0}, {\"name\": \"Dark Souls III\", \"hours\": 1285, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=OmegaStrike", "created_at": "2024-01-01T00:00:00Z"}, {"name": "AlphaWolf", "steamid": "fake_0051", "hours": 3924, "games": 213, "floors": 49, "district": "GTA V", "recent_game": "GTA V", "top3": "[{\"name\": \"Monster Hunter: World\", \"hours\": 3924, \"appid\": 0}, {\"name\": \"Red Dead Redemption 2\", \"hours\": 1308, \"appid\": 0}, {\"name\": \"Rust\", \"hours\": 654, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=AlphaWolf", "created_at": "2024-01-01T00:00:00Z"}, {"name": "BetaTest", "steamid": "fake_0052", "hours": 3581, "games": 186, "floors": 44, "district": "Rust", "recent_game": "Rust", "top3": "[{\"name\": \"Warframe\", \"hours\": 3581, \"appid\": 0}, {\"name\": \"Fortnite\", \"hours\": 1193, \"appid\": 0}, {\"name\": \"Fortnite\", \"hours\": 596, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=BetaTest", "created_at": "2024-01-01T00:00:00Z"}, {"name": "GammaRay", "steamid": "fake_0053", "hours": 6022, "games": 32, "floors": 61, "district": "The Witcher 3", "recent_game": "The Witcher 3", "top3": "[{\"name\": \"Dead Cells\", \"hours\": 6022, \"appid\": 0}, {\"name\": \"Warframe\", \"hours\": 2007, \"appid\": 0}, {\"name\": \"Path of Exile\", \"hours\": 1003, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=GammaRay", "created_at": "2024-01-01T00:00:00Z"}, {"name": "DeltaForce", "steamid": "fake_0054", "hours": 546, "games": 211, "floors": 15, "district": "Path of Exile", "recent_game": "Path of Exile", "top3": "[{\"name\": \"Rust\", \"hours\": 546, \"appid\": 0}, {\"name\": \"Deep Rock Galactic\", \"hours\": 182, \"appid\": 0}, {\"name\": \"Call of Duty\", \"hours\": 91, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=DeltaForce", "created_at": "2024-01-01T00:00:00Z"}, {"name": "EpsilonZero", "steamid": "fake_0055", "hours": 945, "games": 132, "floors": 15, "district": "Monster Hunter: World", "recent_game": "Monster Hunter: World", "top3": "[{\"name\": \"Dead Cells\", \"hours\": 945, \"appid\": 0}, {\"name\": \"Red Dead Redemption 2\", \"hours\": 315, \"appid\": 0}, {\"name\": \"Red Dead Redemption 2\", \"hours\": 157, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=EpsilonZero", "created_at": "2024-01-01T00:00:00Z"}, {"name": "ZetaQuest", "steamid": "fake_0056", "hours": 1198, "games": 221, "floors": 22, "district": "Terraria", "recent_game": "Terraria", "top3": "[{\"name\": \"The Witcher 3\", \"hours\": 1198, \"appid\": 0}, {\"name\": \"Elden Ring\", \"hours\": 399, \"appid\": 0}, {\"name\": \"Cyberpunk 2077\", \"hours\": 199, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=ZetaQuest", "created_at": "2024-01-01T00:00:00Z"}, {"name": "EtaBoost", "steamid": "fake_0057", "hours": 7213, "games": 43, "floors": 74, "district": "The Witcher 3", "recent_game": "The Witcher 3", "top3": "[{\"name\": \"GTA V\", \"hours\": 7213, \"appid\": 0}, {\"name\": \"The Witcher 3\", \"hours\": 2404, \"appid\": 0}, {\"name\": \"Monster Hunter: World\", \"hours\": 1202, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=EtaBoost", "created_at": "2024-01-01T00:00:00Z"}, {"name": "ThetaWave", "steamid": "fake_0058", "hours": 4558, "games": 55, "floors": 47, "district": "Dead Cells", "recent_game": "Dead Cells", "top3": "[{\"name\": \"Dead Cells\", \"hours\": 4558, \"appid\": 0}, {\"name\": \"Dota 2\", \"hours\": 1519, \"appid\": 0}, {\"name\": \"Path of Exile\", \"hours\": 759, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=ThetaWave", "created_at": "2024-01-01T00:00:00Z"}, {"name": "IotaFlux", "steamid": "fake_0059", "hours": 170, "games": 52, "floors": 3, "district": "Terraria", "recent_game": "Terraria", "top3": "[{\"name\": \"Sekiro\", \"hours\": 170, \"appid\": 0}, {\"name\": \"MIR4\", \"hours\": 56, \"appid\": 0}, {\"name\": \"Left 4 Dead 2\", \"hours\": 28, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=IotaFlux", "created_at": "2024-01-01T00:00:00Z"}, {"name": "KappaKill", "steamid": "fake_0060", "hours": 1412, "games": 213, "floors": 24, "district": "Dead Cells", "recent_game": "Dead Cells", "top3": "[{\"name\": \"GTA V\", \"hours\": 1412, \"appid\": 0}, {\"name\": \"Dark Souls III\", \"hours\": 470, \"appid\": 0}, {\"name\": \"Dark Souls III\", \"hours\": 235, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=KappaKill", "created_at": "2024-01-01T00:00:00Z"}, {"name": "LambdaMan", "steamid": "fake_0061", "hours": 3335, "games": 35, "floors": 34, "district": "Red Dead Redemption 2", "recent_game": "Red Dead Redemption 2", "top3": "[{\"name\": \"Dead Cells\", \"hours\": 3335, \"appid\": 0}, {\"name\": \"Elden Ring\", \"hours\": 1111, \"appid\": 0}, {\"name\": \"Minecraft\", \"hours\": 555, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=LambdaMan", "created_at": "2024-01-01T00:00:00Z"}, {"name": "MuProtocol", "steamid": "fake_0062", "hours": 2222, "games": 237, "floors": 33, "district": "Counter-Strike 2", "recent_game": "Counter-Strike 2", "top3": "[{\"name\": \"Minecraft\", \"hours\": 2222, \"appid\": 0}, {\"name\": \"Baldur's Gate 3\", \"hours\": 740, \"appid\": 0}, {\"name\": \"Fortnite\", \"hours\": 370, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=MuProtocol", "created_at": "2024-01-01T00:00:00Z"}, {"name": "NuBomber", "steamid": "fake_0063", "hours": 6467, "games": 289, "floors": 78, "district": "Destiny 2", "recent_game": "Destiny 2", "top3": "[{\"name\": \"Deep Rock Galactic\", \"hours\": 6467, \"appid\": 0}, {\"name\": \"Warframe\", \"hours\": 2155, \"appid\": 0}, {\"name\": \"Destiny 2\", \"hours\": 1077, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=NuBomber", "created_at": "2024-01-01T00:00:00Z"}, {"name": "XiMaster", "steamid": "fake_0064", "hours": 1605, "games": 156, "floors": 23, "district": "Dark Souls III", "recent_game": "Dark Souls III", "top3": "[{\"name\": \"Apex Legends\", \"hours\": 1605, \"appid\": 0}, {\"name\": \"Red Dead Redemption 2\", \"hours\": 535, \"appid\": 0}, {\"name\": \"Dota 2\", \"hours\": 267, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=XiMaster", "created_at": "2024-01-01T00:00:00Z"}, {"name": "PiCalculus", "steamid": "fake_0065", "hours": 4491, "games": 36, "floors": 45, "district": "Stardew Valley", "recent_game": "Stardew Valley", "top3": "[{\"name\": \"Deep Rock Galactic\", \"hours\": 4491, \"appid\": 0}, {\"name\": \"Deep Rock Galactic\", \"hours\": 1497, \"appid\": 0}, {\"name\": \"Call of Duty\", \"hours\": 748, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=PiCalculus", "created_at": "2024-01-01T00:00:00Z"}, {"name": "RhoBuster", "steamid": "fake_0066", "hours": 4835, "games": 249, "floors": 60, "district": "Dota 2", "recent_game": "Dota 2", "top3": "[{\"name\": \"Dota 2\", \"hours\": 4835, \"appid\": 0}, {\"name\": \"Hollow Knight\", \"hours\": 1611, \"appid\": 0}, {\"name\": \"MIR4\", \"hours\": 805, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=RhoBuster", "created_at": "2024-01-01T00:00:00Z"}, {"name": "SigmaForce", "steamid": "fake_0067", "hours": 1339, "games": 34, "floors": 14, "district": "Dead Cells", "recent_game": "Dead Cells", "top3": "[{\"name\": \"Hollow Knight\", \"hours\": 1339, \"appid\": 0}, {\"name\": \"Hollow Knight\", \"hours\": 446, \"appid\": 0}, {\"name\": \"PUBG: BATTLEGROUNDS\", \"hours\": 223, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=SigmaForce", "created_at": "2024-01-01T00:00:00Z"}, {"name": "TauZero", "steamid": "fake_0068", "hours": 611, "games": 39, "floors": 7, "district": "Dead Cells", "recent_game": "Dead Cells", "top3": "[{\"name\": \"Elden Ring\", \"hours\": 611, \"appid\": 0}, {\"name\": \"Warframe\", \"hours\": 203, \"appid\": 0}, {\"name\": \"Dead Cells\", \"hours\": 101, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=TauZero", "created_at": "2024-01-01T00:00:00Z"}, {"name": "UpsilonPrime", "steamid": "fake_0069", "hours": 1032, "games": 296, "floors": 24, "district": "GTA V", "recent_game": "GTA V", "top3": "[{\"name\": \"Minecraft\", \"hours\": 1032, \"appid\": 0}, {\"name\": \"GTA V\", \"hours\": 344, \"appid\": 0}, {\"name\": \"Stardew Valley\", \"hours\": 172, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=UpsilonPrime", "created_at": "2024-01-01T00:00:00Z"}, {"name": "PhiNominal", "steamid": "fake_0070", "hours": 5123, "games": 46, "floors": 53, "district": "Hades", "recent_game": "Hades", "top3": "[{\"name\": \"Dota 2\", \"hours\": 5123, \"appid\": 0}, {\"name\": \"Fortnite\", \"hours\": 1707, \"appid\": 0}, {\"name\": \"Warframe\", \"hours\": 853, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=PhiNominal", "created_at": "2024-01-01T00:00:00Z"}, {"name": "ChiSquared", "steamid": "fake_0071", "hours": 4332, "games": 166, "floors": 51, "district": "Stardew Valley", "recent_game": "Stardew Valley", "top3": "[{\"name\": \"Stardew Valley\", \"hours\": 4332, \"appid\": 0}, {\"name\": \"MIR4\", \"hours\": 1444, \"appid\": 0}, {\"name\": \"Cyberpunk 2077\", \"hours\": 722, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=ChiSquared", "created_at": "2024-01-01T00:00:00Z"}, {"name": "PsiWarrior", "steamid": "fake_0072", "hours": 5917, "games": 165, "floors": 67, "district": "Red Dead Redemption 2", "recent_game": "Red Dead Redemption 2", "top3": "[{\"name\": \"Warframe\", \"hours\": 5917, \"appid\": 0}, {\"name\": \"GTA V\", \"hours\": 1972, \"appid\": 0}, {\"name\": \"Cyberpunk 2077\", \"hours\": 986, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=PsiWarrior", "created_at": "2024-01-01T00:00:00Z"}, {"name": "OmegaPoint", "steamid": "fake_0073", "hours": 5552, "games": 158, "floors": 62, "district": "Minecraft", "recent_game": "Minecraft", "top3": "[{\"name\": \"Apex Legends\", \"hours\": 5552, \"appid\": 0}, {\"name\": \"The Witcher 3\", \"hours\": 1850, \"appid\": 0}, {\"name\": \"Call of Duty\", \"hours\": 925, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=OmegaPoint", "created_at": "2024-01-01T00:00:00Z"}, {"name": "AlephNull", "steamid": "fake_0074", "hours": 7715, "games": 42, "floors": 79, "district": "MIR4", "recent_game": "MIR4", "top3": "[{\"name\": \"Left 4 Dead 2\", \"hours\": 7715, \"appid\": 0}, {\"name\": \"Counter-Strike 2\", \"hours\": 2571, \"appid\": 0}, {\"name\": \"The Witcher 3\", \"hours\": 1285, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=AlephNull", "created_at": "2024-01-01T00:00:00Z"}, {"name": "BraveHero", "steamid": "fake_0075", "hours": 869, "games": 42, "floors": 10, "district": "Hades", "recent_game": "Hades", "top3": "[{\"name\": \"Stardew Valley\", \"hours\": 869, \"appid\": 0}, {\"name\": \"Terraria\", \"hours\": 289, \"appid\": 0}, {\"name\": \"Red Dead Redemption 2\", \"hours\": 144, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=BraveHero", "created_at": "2024-01-01T00:00:00Z"}, {"name": "CleverFox", "steamid": "fake_0076", "hours": 1135, "games": 183, "floors": 20, "district": "Hollow Knight", "recent_game": "Hollow Knight", "top3": "[{\"name\": \"Cyberpunk 2077\", \"hours\": 1135, \"appid\": 0}, {\"name\": \"Celeste\", \"hours\": 378, \"appid\": 0}, {\"name\": \"PUBG: BATTLEGROUNDS\", \"hours\": 189, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=CleverFox", "created_at": "2024-01-01T00:00:00Z"}, {"name": "DeadEye", "steamid": "fake_0077", "hours": 3077, "games": 150, "floors": 37, "district": "Celeste", "recent_game": "Celeste", "top3": "[{\"name\": \"GTA V\", \"hours\": 3077, \"appid\": 0}, {\"name\": \"Elden Ring\", \"hours\": 1025, \"appid\": 0}, {\"name\": \"The Witcher 3\", \"hours\": 512, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=DeadEye", "created_at": "2024-01-01T00:00:00Z"}, {"name": "EagleEye", "steamid": "fake_0078", "hours": 5813, "games": 159, "floors": 65, "district": "Sekiro", "recent_game": "Sekiro", "top3": "[{\"name\": \"Terraria\", \"hours\": 5813, \"appid\": 0}, {\"name\": \"Hades\", \"hours\": 1937, \"appid\": 0}, {\"name\": \"Monster Hunter: World\", \"hours\": 968, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=EagleEye", "created_at": "2024-01-01T00:00:00Z"}, {"name": "FalconPunch", "steamid": "fake_0079", "hours": 114, "games": 288, "floors": 15, "district": "Path of Exile", "recent_game": "Path of Exile", "top3": "[{\"name\": \"Hollow Knight\", \"hours\": 114, \"appid\": 0}, {\"name\": \"Baldur's Gate 3\", \"hours\": 38, \"appid\": 0}, {\"name\": \"MIR4\", \"hours\": 19, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=FalconPunch", "created_at": "2024-01-01T00:00:00Z"}, {"name": "GrumpyCat", "steamid": "fake_0080", "hours": 7741, "games": 73, "floors": 80, "district": "Warframe", "recent_game": "Warframe", "top3": "[{\"name\": \"Rust\", \"hours\": 7741, \"appid\": 0}, {\"name\": \"Cyberpunk 2077\", \"hours\": 2580, \"appid\": 0}, {\"name\": \"Rust\", \"hours\": 1290, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=GrumpyCat", "created_at": "2024-01-01T00:00:00Z"}, {"name": "HappyDude", "steamid": "fake_0081", "hours": 6131, "games": 288, "floors": 75, "district": "Celeste", "recent_game": "Celeste", "top3": "[{\"name\": \"Rust\", \"hours\": 6131, \"appid\": 0}, {\"name\": \"Apex Legends\", \"hours\": 2043, \"appid\": 0}, {\"name\": \"Cyberpunk 2077\", \"hours\": 1021, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=HappyDude", "created_at": "2024-01-01T00:00:00Z"}, {"name": "IceCold", "steamid": "fake_0082", "hours": 1775, "games": 180, "floors": 26, "district": "Baldur's Gate 3", "recent_game": "Baldur's Gate 3", "top3": "[{\"name\": \"Hades\", \"hours\": 1775, \"appid\": 0}, {\"name\": \"Red Dead Redemption 2\", \"hours\": 591, \"appid\": 0}, {\"name\": \"Warframe\", \"hours\": 295, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=IceCold", "created_at": "2024-01-01T00:00:00Z"}, {"name": "JollyRoger", "steamid": "fake_0083", "hours": 2212, "games": 263, "floors": 35, "district": "Path of Exile", "recent_game": "Path of Exile", "top3": "[{\"name\": \"Dead Cells\", \"hours\": 2212, \"appid\": 0}, {\"name\": \"Dark Souls III\", \"hours\": 737, \"appid\": 0}, {\"name\": \"Cyberpunk 2077\", \"hours\": 368, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=JollyRoger", "created_at": "2024-01-01T00:00:00Z"}, {"name": "KillerBee", "steamid": "fake_0084", "hours": 6981, "games": 31, "floors": 70, "district": "Celeste", "recent_game": "Celeste", "top3": "[{\"name\": \"MIR4\", \"hours\": 6981, \"appid\": 0}, {\"name\": \"PUBG: BATTLEGROUNDS\", \"hours\": 2327, \"appid\": 0}, {\"name\": \"Path of Exile\", \"hours\": 1163, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=KillerBee", "created_at": "2024-01-01T00:00:00Z"}, {"name": "LazyDog", "steamid": "fake_0085", "hours": 2316, "games": 27, "floors": 24, "district": "Fortnite", "recent_game": "Fortnite", "top3": "[{\"name\": \"Sekiro\", \"hours\": 2316, \"appid\": 0}, {\"name\": \"Counter-Strike 2\", \"hours\": 772, \"appid\": 0}, {\"name\": \"Call of Duty\", \"hours\": 386, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=LazyDog", "created_at": "2024-01-01T00:00:00Z"}, {"name": "MadMax", "steamid": "fake_0086", "hours": 5269, "games": 139, "floors": 58, "district": "Left 4 Dead 2", "recent_game": "Left 4 Dead 2", "top3": "[{\"name\": \"Apex Legends\", \"hours\": 5269, \"appid\": 0}, {\"name\": \"Elden Ring\", \"hours\": 1756, \"appid\": 0}, {\"name\": \"Deep Rock Galactic\", \"hours\": 878, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=MadMax", "created_at": "2024-01-01T00:00:00Z"}, {"name": "NightOwl", "steamid": "fake_0087", "hours": 5830, "games": 223, "floors": 69, "district": "The Witcher 3", "recent_game": "The Witcher 3", "top3": "[{\"name\": \"Terraria\", \"hours\": 5830, \"appid\": 0}, {\"name\": \"Terraria\", \"hours\": 1943, \"appid\": 0}, {\"name\": \"Counter-Strike 2\", \"hours\": 971, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=NightOwl", "created_at": "2024-01-01T00:00:00Z"}, {"name": "OldTimer", "steamid": "fake_0088", "hours": 7791, "games": 81, "floors": 81, "district": "Rust", "recent_game": "Rust", "top3": "[{\"name\": \"PUBG: BATTLEGROUNDS\", \"hours\": 7791, \"appid\": 0}, {\"name\": \"Terraria\", \"hours\": 2597, \"appid\": 0}, {\"name\": \"Dota 2\", \"hours\": 1298, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=OldTimer", "created_at": "2024-01-01T00:00:00Z"}, {"name": "ProGamer99", "steamid": "fake_0089", "hours": 4821, "games": 287, "floors": 62, "district": "Sekiro", "recent_game": "Sekiro", "top3": "[{\"name\": \"Valorant\", \"hours\": 4821, \"appid\": 0}, {\"name\": \"Apex Legends\", \"hours\": 1607, \"appid\": 0}, {\"name\": \"Fortnite\", \"hours\": 803, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=ProGamer99", "created_at": "2024-01-01T00:00:00Z"}, {"name": "QuickDraw", "steamid": "fake_0090", "hours": 2575, "games": 191, "floors": 34, "district": "Apex Legends", "recent_game": "Apex Legends", "top3": "[{\"name\": \"Dota 2\", \"hours\": 2575, \"appid\": 0}, {\"name\": \"Celeste\", \"hours\": 858, \"appid\": 0}, {\"name\": \"MIR4\", \"hours\": 429, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=QuickDraw", "created_at": "2024-01-01T00:00:00Z"}, {"name": "RagingBull", "steamid": "fake_0091", "hours": 376, "games": 188, "floors": 12, "district": "Monster Hunter: World", "recent_game": "Monster Hunter: World", "top3": "[{\"name\": \"Dead Cells\", \"hours\": 376, \"appid\": 0}, {\"name\": \"Red Dead Redemption 2\", \"hours\": 125, \"appid\": 0}, {\"name\": \"Warframe\", \"hours\": 62, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=RagingBull", "created_at": "2024-01-01T00:00:00Z"}, {"name": "SlowPoke", "steamid": "fake_0092", "hours": 892, "games": 186, "floors": 17, "district": "GTA V", "recent_game": "GTA V", "top3": "[{\"name\": \"Warframe\", \"hours\": 892, \"appid\": 0}, {\"name\": \"Left 4 Dead 2\", \"hours\": 297, \"appid\": 0}, {\"name\": \"Terraria\", \"hours\": 148, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=SlowPoke", "created_at": "2024-01-01T00:00:00Z"}, {"name": "ToughGuy", "steamid": "fake_0093", "hours": 3379, "games": 84, "floors": 37, "district": "Celeste", "recent_game": "Celeste", "top3": "[{\"name\": \"Dead Cells\", \"hours\": 3379, \"appid\": 0}, {\"name\": \"MIR4\", \"hours\": 1126, \"appid\": 0}, {\"name\": \"MIR4\", \"hours\": 563, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=ToughGuy", "created_at": "2024-01-01T00:00:00Z"}, {"name": "UltraViolet", "steamid": "fake_0094", "hours": 1381, "games": 95, "floors": 17, "district": "GTA V", "recent_game": "GTA V", "top3": "[{\"name\": \"Dead Cells\", \"hours\": 1381, \"appid\": 0}, {\"name\": \"Celeste\", \"hours\": 460, \"appid\": 0}, {\"name\": \"Fortnite\", \"hours\": 230, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=UltraViolet", "created_at": "2024-01-01T00:00:00Z"}, {"name": "ViciousViper", "steamid": "fake_0095", "hours": 6083, "games": 175, "floors": 68, "district": "Counter-Strike 2", "recent_game": "Counter-Strike 2", "top3": "[{\"name\": \"Elden Ring\", \"hours\": 6083, \"appid\": 0}, {\"name\": \"Monster Hunter: World\", \"hours\": 2027, \"appid\": 0}, {\"name\": \"MIR4\", \"hours\": 1013, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=ViciousViper", "created_at": "2024-01-01T00:00:00Z"}, {"name": "WildCard", "steamid": "fake_0096", "hours": 5537, "games": 132, "floors": 61, "district": "Fortnite", "recent_game": "Fortnite", "top3": "[{\"name\": \"Monster Hunter: World\", \"hours\": 5537, \"appid\": 0}, {\"name\": \"Cyberpunk 2077\", \"hours\": 1845, \"appid\": 0}, {\"name\": \"Elden Ring\", \"hours\": 922, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=WildCard", "created_at": "2024-01-01T00:00:00Z"}, {"name": "XenonGas", "steamid": "fake_0097", "hours": 935, "games": 200, "floors": 19, "district": "Monster Hunter: World", "recent_game": "Monster Hunter: World", "top3": "[{\"name\": \"Destiny 2\", \"hours\": 935, \"appid\": 0}, {\"name\": \"Dead Cells\", \"hours\": 311, \"appid\": 0}, {\"name\": \"Dota 2\", \"hours\": 155, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=XenonGas", "created_at": "2024-01-01T00:00:00Z"}, {"name": "YellowCard", "steamid": "fake_0098", "hours": 1872, "games": 107, "floors": 23, "district": "Dead Cells", "recent_game": "Dead Cells", "top3": "[{\"name\": \"Dark Souls III\", \"hours\": 1872, \"appid\": 0}, {\"name\": \"Sekiro\", \"hours\": 624, \"appid\": 0}, {\"name\": \"MIR4\", \"hours\": 312, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=YellowCard", "created_at": "2024-01-01T00:00:00Z"}, {"name": "ZeroHour", "steamid": "fake_0099", "hours": 2550, "games": 121, "floors": 31, "district": "The Witcher 3", "recent_game": "The Witcher 3", "top3": "[{\"name\": \"Valorant\", \"hours\": 2550, \"appid\": 0}, {\"name\": \"GTA V\", \"hours\": 850, \"appid\": 0}, {\"name\": \"Counter-Strike 2\", \"hours\": 425, \"appid\": 0}]", "avatar": "https://api.dicebear.com/7.x/pixel-art/svg?seed=ZeroHour", "created_at": "2024-01-01T00:00:00Z"}];
-let showFake = false;
-
-function toggleFakeBuildings() {
-  showFake = !showFake;
-  const btn = document.getElementById('fakeToggleBtn');
-  if (btn) btn.textContent = showFake ? '🏙️ HIDE FAKE' : '🏙️ +100 FAKE';
+</script>
+<script>
+function toggleFakeBuildings(){
+  showFake=!showFake;
+  const btn=document.getElementById('fakeToggleBtn');
+  if(btn) btn.textContent=showFake?'🏙️ HIDE FAKE':'🏙️ +100 FAKE';
   refreshCity();
 }
 
 async function refreshCity(){
-  try {
+  try{
     const res=await sbFetch('gamers?select=*&order=floors.desc');
     if(!res.ok){cityGamers=[];return;}
     cityGamers=await res.json()||[];
-    // Parse top3 JSON string if needed
     cityGamers.forEach(g=>{
       if(typeof g.top3==='string'){try{g.top3=JSON.parse(g.top3);}catch{g.top3=[];}}
-      else if(!g.top3)g.top3=[];
+      else if(!g.top3) g.top3=[];
     });
     cityGamers.forEach((g,i)=>g.rank=i+1);
-    const allGamers = showFake ? [...cityGamers, ...FAKE_GAMERS] : cityGamers;
+    const allGamers=showFake?[...cityGamers,...FAKE_GAMERS]:cityGamers;
     buildCity(allGamers);
     document.getElementById('gamerCount').textContent=cityGamers.length;
-  } catch(e){ console.error(e); }
+  }catch(e){console.error(e);}
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 function showLoading(show,text){
   document.getElementById('loadingOverlay').style.display=show?'flex':'none';
-  if(text)document.getElementById('loadingText').textContent=text;
+  if(text) document.getElementById('loadingText').textContent=text;
 }
 function showError(msg){
   const el=document.getElementById('errorMsg');
   el.textContent=msg; el.style.display=msg?'block':'none';
 }
-
 document.getElementById('steamInput').addEventListener('keydown',e=>{if(e.key==='Enter')loadProfile();});
 
-
-// ── i18n ──────────────────────────────────────────────────────────────────────
-const TRANSLATIONS = {
-  en: {
-    tagline:        'YOUR GAMING LIBRARY, VISUALIZED',
-    gamersInCity:   'GAMERS IN THE CITY',
-    searchPlaceholder: '🔍  SEARCH GAMER...',
-    myBuilding:     'MY BUILDING',
-    welcomeTag:     '// BUILDINGAMER v2.0',
-    welcomeTitle:   'THE CITY OF<br><em>GAMERS</em>',
-    welcomeDesc:    'Every gamer is a building. The more you played,<br>the taller it grows. Explore the city or add yours.',
-    exploreLabel:   'EXPLORE',
-    exploreSub:     'Browse the city without registering',
-    addLabel:       'ADD MY BUILDING',
-    addSub:         'Connect my SteamID',
-    registerTag:    '// BUILD MY BUILDING',
-    registerTitle:  'ENTER YOUR<br><em>STEAM ID</em>',
-    registerDesc:   'Your building will be generated based on your Steam library and will be visible to everyone in the city.',
-    steamPlaceholder: 'username, URL or SteamID64',
-    buildBtn:       'BUILD',
-    hint:           'Ex: <strong>hakamzinho</strong> or steamcommunity.com/id/hakamzinho · Profile must be <strong style="color:rgba(34,211,238,0.55)">public</strong>',
-    back:           '◀  BACK',
-    loadingInit:    'INITIALIZING...',
-    loadingCity:    'LOADING THE CITY...',
-    loadingProfile: 'FETCHING PROFILE...',
-    loadingRegister:'REGISTERING IN THE CITY...',
-    loadingBuilding:'BUILDING THE CITY...',
-    games:          'GAMES',
-    hours:          'HOURS',
-    floors:         'FLOORS',
-    rank:           'RANK',
-    topGames:       'TOP GAMES',
-    topGamesFull:   'TOP GAMES BY HOURS PLAYED',
-    viewProfile:    'VIEW FULL PROFILE →',
-    close:          'CLOSE',
-    backToCity:     '◀  BACK TO CITY',
-    clickToView:    '[ CLICK TO VIEW PROFILE ]',
-    hud:            'DRAG=orbit · RIGHT BTN=pan · SCROLL=zoom · CLICK=profile',
-    addBuilding:    '+ ADD MY BUILDING',
-    sincePrefix:    'In the city since ',
-    noGamesData:    'Private library or no games registered.<br><span style="color:rgba(155,92,246,0.6)">Re-register your SteamID to update.</span>',
-    emptyCity:      'THE CITY IS EMPTY. BE THE FIRST.',
-    errorPrefix:    'Error: ',
-    tryAgain:       'Try again.',
-  },
-  pt: {
-    tagline:        'SUA BIBLIOTECA GAMER, VISUALIZADA',
-    gamersInCity:   'GAMERS NA CIDADE',
-    searchPlaceholder: '🔍  BUSCAR GAMER...',
-    myBuilding:     'MEU PRÉDIO',
-    welcomeTag:     '// BUILDINGAMER v2.0',
-    welcomeTitle:   'A CIDADE DOS<br><em>GAMERS</em>',
-    welcomeDesc:    'Cada gamer é um prédio. Quanto mais você jogou,<br>mais alto ele cresce. Explore a cidade ou adicione o seu.',
-    exploreLabel:   'EXPLORAR',
-    exploreSub:     'Ver a cidade sem se registrar',
-    addLabel:       'ADD MEU PRÉDIO',
-    addSub:         'Conectar meu SteamID',
-    registerTag:    '// CONSTRUIR MEU PRÉDIO',
-    registerTitle:  'INSIRA SEU<br><em>STEAM ID</em>',
-    registerDesc:   'Seu prédio será gerado com base na sua biblioteca Steam e ficará visível para todos na cidade.',
-    steamPlaceholder: 'username, URL ou SteamID64',
-    buildBtn:       'BUILD',
-    hint:           'Ex: <strong>hakamzinho</strong> ou steamcommunity.com/id/hakamzinho · Perfil deve ser <strong style="color:rgba(34,211,238,0.55)">público</strong>',
-    back:           '◀  VOLTAR',
-    loadingInit:    'INICIALIZANDO...',
-    loadingCity:    'CARREGANDO A CIDADE...',
-    loadingProfile: 'BUSCANDO PERFIL...',
-    loadingRegister:'REGISTRANDO NA CIDADE...',
-    loadingBuilding:'CONSTRUINDO A CIDADE...',
-    games:          'JOGOS',
-    hours:          'HORAS',
-    floors:         'ANDARES',
-    rank:           'RANK',
-    topGames:       'TOP GAMES',
-    topGamesFull:   'TOP GAMES POR HORAS JOGADAS',
-    viewProfile:    'VER PERFIL COMPLETO →',
-    close:          'FECHAR',
-    backToCity:     '◀  VOLTAR À CIDADE',
-    clickToView:    '[ CLIQUE PARA VER PERFIL ]',
-    hud:            'ARRASTAR=orbitar · BOTÃO DIR=pan · SCROLL=zoom · CLIQUE=perfil',
-    addBuilding:    '+ ADD MEU PRÉDIO',
-    sincePrefix:    'Na cidade desde ',
-    noGamesData:    'Biblioteca privada ou sem jogos registrados.<br><span style="color:rgba(155,92,246,0.6)">Re-registre seu SteamID para atualizar.</span>',
-    emptyCity:      'A CIDADE ESTÁ VAZIA. SEJA O PRIMEIRO.',
-    errorPrefix:    'Erro: ',
-    tryAgain:       'Tente novamente.',
-  }
-};
-
-const browserLang = (navigator.language || 'en').toLowerCase().startsWith('pt') ? 'pt' : 'en';
-let currentLang = localStorage.getItem('bgLang') || browserLang;
-
-function t(key) {
-  return (TRANSLATIONS[currentLang] && TRANSLATIONS[currentLang][key]) || (TRANSLATIONS['en'] && TRANSLATIONS['en'][key]) || key;
-}
-
-function setLang(lang) {
-  currentLang = lang;
-  localStorage.setItem('bgLang', lang);
-  applyTranslations();
-  document.querySelectorAll('.lang-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.lang === lang);
-  });
-}
-
-function applyTranslations() {
-  const tl = document.querySelector('.tagline');
-  if (tl) tl.textContent = t('tagline');
-  const cc = document.querySelector('#cityCount');
-  if (cc) cc.innerHTML = '<span id="gamerCount">' + (document.getElementById('gamerCount')?.textContent||'0') + '</span> ' + t('gamersInCity');
-  document.querySelectorAll('input#searchInput').forEach(el => el.placeholder = t('searchPlaceholder'));
-  const mb = document.getElementById('myBuildingBtn');
-  if (mb) mb.innerHTML = '◉ &nbsp;' + t('myBuilding');
-  const wTag = document.querySelector('.welcome-tag');
-  if (wTag) wTag.textContent = t('welcomeTag');
-  const wTitle = document.querySelector('#welcomeScreen h1');
-  if (wTitle) wTitle.innerHTML = t('welcomeTitle');
-  const wDesc = document.querySelector('#welcomeScreen p');
-  if (wDesc) wDesc.innerHTML = t('welcomeDesc');
-  const exploreLabel = document.querySelector('.btn-explore .btn-label');
-  if (exploreLabel) exploreLabel.textContent = t('exploreLabel');
-  const exploreSub = document.querySelector('.btn-explore .btn-sub');
-  if (exploreSub) exploreSub.textContent = t('exploreSub');
-  const addLabel = document.querySelector('.btn-join .btn-label');
-  if (addLabel) addLabel.textContent = t('addLabel');
-  const addSub = document.querySelector('.btn-join .btn-sub');
-  if (addSub) addSub.textContent = t('addSub');
-  const rTag = document.querySelector('.panel-tag');
-  if (rTag) rTag.textContent = t('registerTag');
-  const rTitle = document.querySelector('#registerPanel h2');
-  if (rTitle) rTitle.innerHTML = t('registerTitle');
-  const rDesc = document.querySelector('#registerPanel p');
-  if (rDesc) rDesc.textContent = t('registerDesc');
-  const si = document.getElementById('steamInput');
-  if (si) si.placeholder = t('steamPlaceholder');
-  const bb = document.getElementById('buildBtn');
-  if (bb) bb.textContent = t('buildBtn');
-  const hint = document.querySelector('.hint');
-  if (hint) hint.innerHTML = t('hint');
-  const backBtn = document.querySelector('.btn-back');
-  if (backBtn) backBtn.innerHTML = t('back');
-  document.querySelectorAll('.pc-stat-lbl').forEach((el, i) => {
-    el.textContent = t(['games','hours','floors','rank'][i] || el.textContent);
-  });
-  document.querySelectorAll('.pp-stat-lbl').forEach((el, i) => {
-    el.textContent = t(['games','hours','floors','rank'][i] || el.textContent);
-  });
-  const pcGamesTitle = document.querySelector('.pc-games-title');
-  if (pcGamesTitle) pcGamesTitle.textContent = t('topGames');
-  const btnProfile = document.querySelector('.btn-profile');
-  if (btnProfile) btnProfile.textContent = t('viewProfile');
-  const btnClose = document.querySelector('.btn-close-card');
-  if (btnClose) btnClose.textContent = t('close');
-  const ttClick = document.querySelector('.tt-click');
-  if (ttClick) ttClick.textContent = t('clickToView');
-  const ttRows = document.querySelectorAll('.tt-row');
-  ['hours','games','rank'].forEach((key, i) => {
-    const el = ttRows[i];
-    if (!el) return;
-    const span = el.querySelector('span');
-    if (span) el.innerHTML = t(key) + ' &nbsp;' + span.outerHTML;
-  });
-  const hud = document.getElementById('hud');
-  if (hud) hud.textContent = t('hud');
-  const addBtn = document.getElementById('addBuildingBtn');
-  if (addBtn) addBtn.innerHTML = t('addBuilding');
-  const ppBack = document.querySelector('.profile-page-back');
-  if (ppBack) ppBack.innerHTML = t('backToCity');
-  const ppSection = document.querySelector('.pp-section-title');
-  if (ppSection) ppSection.textContent = t('topGamesFull');
-}
-
-
-// Apply initial translations and mark active lang button
-applyTranslations();
-document.querySelectorAll('.lang-btn').forEach(b => {
-  b.classList.toggle('active', b.dataset.lang === currentLang);
-});
-
-// ── URL: ?steamid=XXXX → auto-focus building ─────────────────────────────────
-(function handleURL(){
-  const params = new URLSearchParams(window.location.search);
-  const sid = params.get('steamid') || params.get('id');
-  if(sid) {
-    mySteamId = sid;
-    localStorage.setItem('bg_steamid', sid);
-  }
-})();
-
 // ── SEARCH ────────────────────────────────────────────────────────────────────
-function onSearch(val) {
-  const q = val.trim().toLowerCase();
-  const el = document.getElementById('searchResults');
-  if(!q || q.length < 2) { el.style.display='none'; return; }
-  const matches = buildings.filter(b =>
-    b.name && b.name.toLowerCase().includes(q)
-  ).slice(0, 8);
-  if(!matches.length) { el.style.display='none'; return; }
-  el.innerHTML = matches.map(b => `
+function onSearch(val){
+  const q=val.trim().toLowerCase();
+  const el=document.getElementById('searchResults');
+  if(!q||q.length<2){el.style.display='none';return;}
+  const matches=buildingObjects.filter(b=>b.name&&b.name.toLowerCase().includes(q)).slice(0,8);
+  if(!matches.length){el.style.display='none';return;}
+  el.innerHTML=matches.map(b=>`
     <div class="search-item" onmousedown="searchFly('${b.steamid}')" style="padding:8px 14px;cursor:pointer;font-size:12px;letter-spacing:1px;border-bottom:1px solid rgba(155,92,246,0.08);display:flex;align-items:center;gap:10px;">
       <img src="${b.avatar||''}" style="width:24px;height:24px;border-radius:2px;" onerror="this.style.display='none'"/>
-      <div>
-        <div style="color:#e2d9f3">${b.name}</div>
-        <div style="font-size:9px;color:#22d3ee;opacity:0.7;margin-top:1px">${(b.district||'').toUpperCase()}</div>
-      </div>
+      <div><div style="color:#e2d9f3">${b.name}</div>
+      <div style="font-size:9px;color:#22d3ee;opacity:0.7;margin-top:1px">${(b.district||'').toUpperCase()}</div></div>
     </div>`).join('');
-  el.style.display = 'block';
+  el.style.display='block';
 }
-
-function searchFly(steamid) {
+function searchFly(steamid){
   document.getElementById('searchResults').style.display='none';
   document.getElementById('searchInput').value='';
-  const b = buildings.find(b=>b.steamid===steamid);
+  const b=buildingObjects.find(b=>b.steamid===steamid);
   if(b) selectBuilding(b);
 }
-
-// Show/hide search bar when in city mode
-function showSearchBar(show) {
-  document.getElementById('searchBar').style.display = show ? 'flex' : 'none';
+function showSearchBar(show){
+  document.getElementById('searchBar').style.display=show?'flex':'none';
 }
 
+// ── i18n ──────────────────────────────────────────────────────────────────────
+const TRANSLATIONS={
+  en:{tagline:'YOUR GAMING LIBRARY, VISUALIZED',gamersInCity:'GAMERS IN THE CITY',searchPlaceholder:'🔍  SEARCH GAMER...',myBuilding:'MY BUILDING',welcomeTag:'// BUILDINGAMER v2.0',welcomeTitle:'THE CITY OF<br><em>GAMERS</em>',welcomeDesc:'Every gamer is a building. The more you played,<br>the taller it grows. Explore the city or add yours.',exploreLabel:'EXPLORE',exploreSub:'Browse the city without registering',addLabel:'ADD MY BUILDING',addSub:'Connect my SteamID',registerTag:'// BUILD MY BUILDING',registerTitle:'ENTER YOUR<br><em>STEAM ID</em>',registerDesc:'Your building will be generated based on your Steam library and will be visible to everyone in the city.',steamPlaceholder:'username, URL or SteamID64',buildBtn:'BUILD',hint:'Ex: <strong>hakamzinho</strong> or steamcommunity.com/id/hakamzinho · Profile must be <strong style="color:rgba(34,211,238,0.55)">public</strong>',back:'◀  BACK',loadingInit:'INITIALIZING...',loadingCity:'LOADING THE CITY...',loadingProfile:'FETCHING PROFILE...',loadingRegister:'REGISTERING IN THE CITY...',loadingBuilding:'BUILDING THE CITY...',games:'GAMES',hours:'HOURS',floors:'FLOORS',rank:'RANK',topGames:'TOP GAMES',topGamesFull:'TOP GAMES BY HOURS PLAYED',viewProfile:'VIEW FULL PROFILE →',close:'CLOSE',backToCity:'◀  BACK TO CITY',clickToView:'[ CLICK TO VIEW PROFILE ]',hud:'DRAG=orbit · RIGHT BTN=pan · SCROLL=zoom · CLICK=profile',addBuilding:'+ ADD MY BUILDING',sincePrefix:'In the city since ',noGamesData:'Private library or no games registered.',emptyCity:'THE CITY IS EMPTY. BE THE FIRST.',errorPrefix:'Error: ',tryAgain:'Try again.'},
+  pt:{tagline:'SUA BIBLIOTECA GAMER, VISUALIZADA',gamersInCity:'GAMERS NA CIDADE',searchPlaceholder:'🔍  BUSCAR GAMER...',myBuilding:'MEU PRÉDIO',welcomeTag:'// BUILDINGAMER v2.0',welcomeTitle:'A CIDADE DOS<br><em>GAMERS</em>',welcomeDesc:'Cada gamer é um prédio. Quanto mais você jogou,<br>mais alto ele cresce. Explore a cidade ou adicione o seu.',exploreLabel:'EXPLORAR',exploreSub:'Ver a cidade sem se registrar',addLabel:'ADD MEU PRÉDIO',addSub:'Conectar meu SteamID',registerTag:'// CONSTRUIR MEU PRÉDIO',registerTitle:'INSIRA SEU<br><em>STEAM ID</em>',registerDesc:'Seu prédio será gerado com base na sua biblioteca Steam e ficará visível para todos na cidade.',steamPlaceholder:'username, URL ou SteamID64',buildBtn:'BUILD',hint:'Ex: <strong>hakamzinho</strong> ou steamcommunity.com/id/hakamzinho · Perfil deve ser <strong style="color:rgba(34,211,238,0.55)">público</strong>',back:'◀  VOLTAR',loadingInit:'INICIALIZANDO...',loadingCity:'CARREGANDO A CIDADE...',loadingProfile:'BUSCANDO PERFIL...',loadingRegister:'REGISTRANDO NA CIDADE...',loadingBuilding:'CONSTRUINDO A CIDADE...',games:'JOGOS',hours:'HORAS',floors:'ANDARES',rank:'RANK',topGames:'TOP GAMES',topGamesFull:'TOP GAMES POR HORAS JOGADAS',viewProfile:'VER PERFIL COMPLETO →',close:'FECHAR',backToCity:'◀  VOLTAR À CIDADE',clickToView:'[ CLIQUE PARA VER PERFIL ]',hud:'ARRASTAR=orbitar · BOTÃO DIR=pan · SCROLL=zoom · CLIQUE=perfil',addBuilding:'+ ADD MEU PRÉDIO',sincePrefix:'Na cidade desde ',noGamesData:'Biblioteca privada ou sem jogos registrados.',emptyCity:'A CIDADE ESTÁ VAZIA. SEJA O PRIMEIRO.',errorPrefix:'Erro: ',tryAgain:'Tente novamente.'}
+};
+const browserLang=(navigator.language||'en').toLowerCase().startsWith('pt')?'pt':'en';
+let currentLang=localStorage.getItem('bgLang')||browserLang;
+function t(key){return(TRANSLATIONS[currentLang]&&TRANSLATIONS[currentLang][key])||(TRANSLATIONS['en']&&TRANSLATIONS['en'][key])||key;}
+function setLang(lang){currentLang=lang;localStorage.setItem('bgLang',lang);applyTranslations();document.querySelectorAll('.lang-btn').forEach(b=>{b.classList.toggle('active',b.dataset.lang===lang);});}
+function applyTranslations(){
+  const tl=document.querySelector('.tagline');if(tl)tl.textContent=t('tagline');
+  const cc=document.querySelector('#cityCount');if(cc)cc.innerHTML='<span id="gamerCount">'+(document.getElementById('gamerCount')?.textContent||'0')+'</span> '+t('gamersInCity');
+  document.querySelectorAll('input#searchInput').forEach(el=>el.placeholder=t('searchPlaceholder'));
+  const mb=document.getElementById('myBuildingBtn');if(mb)mb.innerHTML='◉ &nbsp;'+t('myBuilding');
+  const wTag=document.querySelector('.welcome-tag');if(wTag)wTag.textContent=t('welcomeTag');
+  const wTitle=document.querySelector('#welcomeScreen h1');if(wTitle)wTitle.innerHTML=t('welcomeTitle');
+  const wDesc=document.querySelector('#welcomeScreen p');if(wDesc)wDesc.innerHTML=t('welcomeDesc');
+  const el=document.querySelector('.btn-explore .btn-label');if(el)el.textContent=t('exploreLabel');
+  const es=document.querySelector('.btn-explore .btn-sub');if(es)es.textContent=t('exploreSub');
+  const al=document.querySelector('.btn-join .btn-label');if(al)al.textContent=t('addLabel');
+  const as=document.querySelector('.btn-join .btn-sub');if(as)as.textContent=t('addSub');
+  const rTag=document.querySelector('.panel-tag');if(rTag)rTag.textContent=t('registerTag');
+  const rTitle=document.querySelector('#registerPanel h2');if(rTitle)rTitle.innerHTML=t('registerTitle');
+  const rDesc=document.querySelector('#registerPanel p');if(rDesc)rDesc.textContent=t('registerDesc');
+  const si=document.getElementById('steamInput');if(si)si.placeholder=t('steamPlaceholder');
+  const bb=document.getElementById('buildBtn');if(bb)bb.textContent=t('buildBtn');
+  const hint=document.querySelector('.hint');if(hint)hint.innerHTML=t('hint');
+  const backBtn=document.querySelector('.btn-back');if(backBtn)backBtn.innerHTML=t('back');
+  document.querySelectorAll('.pc-stat-lbl').forEach((el,i)=>{el.textContent=t(['games','hours','floors','rank'][i]||el.textContent);});
+  document.querySelectorAll('.pp-stat-lbl').forEach((el,i)=>{el.textContent=t(['games','hours','floors','rank'][i]||el.textContent);});
+  const pcgt=document.querySelector('.pc-games-title');if(pcgt)pcgt.textContent=t('topGames');
+  const btp=document.querySelector('.btn-profile');if(btp)btp.textContent=t('viewProfile');
+  const btc=document.querySelector('.btn-close-card');if(btc)btc.textContent=t('close');
+  const ttc=document.querySelector('.tt-click');if(ttc)ttc.textContent=t('clickToView');
+  const ttRows=document.querySelectorAll('.tt-row');
+  ['hours','games','rank'].forEach((key,i)=>{const el=ttRows[i];if(!el)return;const span=el.querySelector('span');if(span)el.innerHTML=t(key)+' &nbsp;'+span.outerHTML;});
+  const hud=document.getElementById('hud');if(hud)hud.textContent=t('hud');
+  const addBtn=document.getElementById('addBuildingBtn');if(addBtn)addBtn.innerHTML=t('addBuilding');
+  const ppBack=document.querySelector('.profile-page-back');if(ppBack)ppBack.innerHTML=t('backToCity');
+  const ppSection=document.querySelector('.pp-section-title');if(ppSection)ppSection.textContent=t('topGamesFull');
+}
+applyTranslations();
+document.querySelectorAll('.lang-btn').forEach(b=>{b.classList.toggle('active',b.dataset.lang===currentLang);});
+
+// ── URL PARAMS ────────────────────────────────────────────────────────────────
+(function handleURL(){
+  const params=new URLSearchParams(window.location.search);
+  const sid=params.get('steamid')||params.get('id');
+  if(sid){mySteamId=sid;localStorage.setItem('bg_steamid',sid);}
+})();
+
 // ── INIT ──────────────────────────────────────────────────────────────────────
-// Pre-load city in background while showing welcome
 refreshCity();
-draw();
+onResize();
 </script>
 </body>
 </html>
