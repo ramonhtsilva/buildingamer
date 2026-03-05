@@ -578,13 +578,20 @@ function idToPos(id, district) {
 function buildCity(gamers) {
   buildings = [];
 
-  // 1. Corrige district de cada gamer ANTES de qualquer posicionamento
-  //    Usa top3[0].name (sempre atualizado) em vez do valor salvo no banco
+  // 1. Garante district válido para cada gamer
+  //    district = jogo mais jogado nas últimas 2 semanas (salvo no registro/refresh)
+  //    Só usa top3[0] como fallback se o valor for legado (DOWNTOWN, UNKNOWN, etc.)
+  const LEGACY = new Set(['DOWNTOWN','UNKNOWN','MIDTOWN','UPTOWN','OLD TOWN','INDEPENDENT','']);
   gamers.forEach(g => {
-    try {
-      const top3 = typeof g.top3 === 'string' ? JSON.parse(g.top3) : (g.top3 || []);
-      if (top3.length > 0) g.district = top3[0].name || 'INDEPENDENT';
-    } catch(e) {}
+    const cur = (g.district || '').trim();
+    if (LEGACY.has(cur.toUpperCase())) {
+      // Valor legado — tenta usar top3[0] como fallback temporário
+      try {
+        const top3 = typeof g.top3 === 'string' ? JSON.parse(g.top3) : (g.top3 || []);
+        if (top3.length > 0) g.district = top3[0].name || 'INDEPENDENT';
+      } catch(e) { g.district = 'INDEPENDENT'; }
+    }
+    // Se district já é um nome de jogo válido, mantém como está (é o recentGame)
   });
 
   // 2. Limpa districtMap e reconstrói do zero com valores corretos — sem sobreposição
