@@ -161,7 +161,7 @@ input[type="text"]::placeholder { color:rgba(226,217,243,0.2); font-weight:400; 
 
 /* ── MY BUILDING BTN (after login) ── */
 #myBuildingBtn {
-  position:fixed; top:14px; left:50%; transform:translateX(-50%);
+  position:fixed; top:8px; right:180px;
   z-index:22; display:none;
   background:rgba(155,92,246,0.12); border:1px solid var(--border);
   color:var(--purple); font-family:'Exo 2',sans-serif;
