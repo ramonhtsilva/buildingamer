@@ -133,6 +133,131 @@ input[type="text"]::placeholder{color:rgba(226,217,243,0.2);font-weight:400;}
 .lang-btn{padding:5px 10px;font-family:'Rajdhani',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;color:rgba(226,217,243,0.4);background:transparent;border:none;cursor:pointer;transition:color 0.2s,background 0.2s;}
 .lang-btn:hover{color:rgba(226,217,243,0.8);}
 .lang-btn.active{color:#22d3ee;background:rgba(34,211,238,0.08);}
+
+/* ── LEADERBOARD WIDGET ── */
+#leaderboardWidget{position:fixed;bottom:55px;right:20px;z-index:22;width:260px;display:none;background:rgba(6,4,15,0.95);border:1px solid var(--border);border-top:2px solid var(--cyan);backdrop-filter:blur(16px);}
+.lb-header{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.lb-title{font-family:'Exo 2',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;color:var(--cyan);}
+.lb-see-all{font-size:9px;color:var(--muted);letter-spacing:1px;cursor:pointer;background:none;border:none;padding:0;}
+.lb-see-all:hover{color:var(--cyan);}
+.lb-row{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid rgba(155,92,246,0.06);cursor:pointer;transition:background 0.1s;}
+.lb-row:hover{background:rgba(155,92,246,0.07);}
+.lb-rank{font-family:'Exo 2',sans-serif;font-size:13px;font-weight:700;color:var(--muted);width:22px;text-align:center;flex-shrink:0;}
+.lb-rank.gold{color:#ffd700;}.lb-rank.silver{color:#c0c0c0;}.lb-rank.bronze{color:#cd7f32;}
+.lb-avatar{width:28px;height:28px;border-radius:2px;border:1px solid var(--border);flex-shrink:0;object-fit:cover;}
+.lb-info{flex:1;min-width:0;}
+.lb-name{font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.lb-floors{font-size:9px;color:var(--muted);}
+.lb-trend{font-size:10px;flex-shrink:0;width:28px;text-align:right;}
+.lb-trend.up{color:#22d3ee;}.lb-trend.down{color:#f87171;}.lb-trend.new{color:#a78bfa;}.lb-trend.same{color:var(--muted);}
+
+/* ── LEADERBOARD FULL PAGE ── */
+#leaderboardPage{position:fixed;inset:0;z-index:45;display:none;background:rgba(6,4,15,0.98);backdrop-filter:blur(20px);overflow-y:auto;}
+.lb-page-inner{max-width:800px;margin:0 auto;padding:80px 24px 60px;}
+.lb-page-title{font-family:'Exo 2',sans-serif;font-size:24px;font-weight:900;letter-spacing:3px;color:#fff;margin-bottom:4px;}
+.lb-page-title span{color:var(--cyan);}
+.lb-page-sub{font-size:10px;letter-spacing:2px;color:var(--muted);margin-bottom:28px;}
+.lb-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;}
+.lb-filter-btn{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:10px;letter-spacing:1px;padding:5px 14px;cursor:pointer;transition:all 0.15s;}
+.lb-filter-btn:hover,.lb-filter-btn.active{border-color:var(--cyan);color:var(--cyan);background:rgba(34,211,238,0.06);}
+.lb-full-row{display:flex;align-items:center;gap:14px;padding:10px 16px;border-bottom:1px solid rgba(155,92,246,0.08);cursor:pointer;transition:background 0.1s;}
+.lb-full-row:hover{background:rgba(155,92,246,0.06);}
+.lb-full-rank{font-family:'Exo 2',sans-serif;font-size:16px;font-weight:700;color:var(--muted);width:36px;text-align:center;flex-shrink:0;}
+.lb-full-rank.gold{color:#ffd700;}.lb-full-rank.silver{color:#c0c0c0;}.lb-full-rank.bronze{color:#cd7f32;}
+.lb-full-avatar{width:36px;height:36px;border-radius:2px;border:1px solid var(--border);flex-shrink:0;object-fit:cover;}
+.lb-full-info{flex:1;min-width:0;}
+.lb-full-name{font-family:'Exo 2',sans-serif;font-size:14px;font-weight:700;color:#fff;margin-bottom:2px;}
+.lb-full-district{font-size:9px;letter-spacing:2px;color:var(--cyan);opacity:0.7;}
+.lb-full-stats{display:flex;gap:20px;flex-shrink:0;}
+.lb-full-stat{text-align:right;}
+.lb-full-stat-val{font-family:'Exo 2',sans-serif;font-size:14px;font-weight:700;color:var(--purple);}
+.lb-full-stat-val.c{color:var(--cyan);}
+.lb-full-stat-lbl{font-size:8px;letter-spacing:1px;color:var(--muted);}
+.lb-full-trend{font-size:12px;width:40px;text-align:right;flex-shrink:0;}
+
+/* ── EDIT PROFILE PANEL ── */
+#editProfilePanel{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:46;width:480px;max-width:95vw;background:rgba(6,4,15,0.98);border:1px solid var(--border);padding:36px;display:none;box-shadow:0 0 60px rgba(155,92,246,0.15);backdrop-filter:blur(20px);max-height:90vh;overflow-y:auto;}
+.ep-title{font-family:'Exo 2',sans-serif;font-size:18px;font-weight:900;letter-spacing:2px;color:#fff;margin-bottom:4px;}
+.ep-title span{color:var(--purple);}
+.ep-sub{font-size:11px;color:var(--muted);margin-bottom:24px;}
+.ep-field{margin-bottom:14px;}
+.ep-label{font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:5px;display:block;}
+.ep-input{width:100%;background:rgba(13,8,32,0.9);border:1px solid var(--border);border-bottom:2px solid var(--purple2);color:var(--text);font-family:'Rajdhani',sans-serif;font-size:13px;padding:9px 12px;outline:none;transition:all 0.2s;letter-spacing:0.5px;}
+.ep-input:focus{border-color:var(--purple);border-bottom-color:var(--cyan);}
+.ep-input::placeholder{color:rgba(226,217,243,0.2);}
+textarea.ep-input{resize:vertical;min-height:70px;line-height:1.5;}
+.ep-actions{display:flex;gap:8px;margin-top:20px;}
+.btn-ep-save{flex:1;background:var(--purple2);border:1px solid var(--purple);color:#fff;font-family:'Exo 2',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;padding:11px;cursor:pointer;transition:all 0.15s;}
+.btn-ep-save:hover{background:var(--purple);box-shadow:0 0 16px rgba(155,92,246,0.3);}
+.btn-ep-cancel{flex:1;background:transparent;border:1px solid rgba(155,92,246,0.1);color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:10px;letter-spacing:2px;padding:11px;cursor:pointer;transition:all 0.15s;}
+.btn-ep-cancel:hover{border-color:var(--border);color:var(--text);}
+
+/* ── PIX DONATION ── */
+#pixBtn{position:fixed;bottom:16px;left:88px;z-index:50;display:none;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);color:#22c55e;font-family:'Exo 2',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;padding:5px 14px;cursor:pointer;transition:all 0.15s;border-radius:4px;}
+#pixBtn:hover{background:rgba(34,197,94,0.2);box-shadow:0 0 12px rgba(34,197,94,0.2);}
+#pixModal{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(6,4,15,0.88);backdrop-filter:blur(8px);}
+.pix-box{background:rgba(6,4,15,0.98);border:1px solid rgba(34,197,94,0.3);border-top:2px solid #22c55e;padding:36px;width:360px;max-width:95vw;text-align:center;}
+.pix-title{font-family:'Exo 2',sans-serif;font-size:18px;font-weight:900;letter-spacing:2px;color:#fff;margin-bottom:6px;}
+.pix-title span{color:#22c55e;}
+.pix-sub{font-size:11px;color:var(--muted);margin-bottom:24px;line-height:1.6;}
+.pix-key-wrap{background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2);padding:14px;margin-bottom:16px;}
+.pix-key-label{font-size:8px;letter-spacing:2px;color:rgba(34,197,94,0.6);margin-bottom:6px;}
+.pix-key{font-family:'Exo 2',sans-serif;font-size:15px;font-weight:700;color:#22c55e;word-break:break-all;cursor:pointer;}
+.pix-copy-hint{font-size:9px;color:var(--muted);margin-top:6px;}
+.pix-amounts{display:flex;gap:8px;justify-content:center;margin-bottom:20px;}
+.pix-amount{background:transparent;border:1px solid rgba(34,197,94,0.25);color:rgba(34,197,94,0.7);font-family:'Exo 2',sans-serif;font-size:11px;font-weight:700;padding:7px 14px;cursor:pointer;transition:all 0.15s;}
+.pix-amount:hover{border-color:#22c55e;color:#22c55e;background:rgba(34,197,94,0.08);}
+.btn-pix-close{width:100%;background:transparent;border:1px solid rgba(155,92,246,0.1);color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:10px;letter-spacing:2px;padding:9px;cursor:pointer;margin-top:8px;transition:all 0.15s;}
+.btn-pix-close:hover{border-color:var(--border);color:var(--text);}
+
+/* ── BIO / SOCIAL / VISITS / EDIT ── */
+.pc-bio{padding:10px 18px;border-bottom:1px solid var(--border);font-size:11px;color:var(--muted);line-height:1.6;}
+.pc-socials{padding:8px 18px;border-bottom:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;}
+.pc-social-link{font-size:10px;color:var(--cyan);letter-spacing:1px;text-decoration:none;padding:3px 8px;border:1px solid rgba(34,211,238,0.2);background:rgba(34,211,238,0.04);transition:all 0.15s;}
+.pc-social-link:hover{background:rgba(34,211,238,0.12);}
+.pc-visits{padding:6px 18px;font-size:9px;color:var(--muted);letter-spacing:1px;border-bottom:1px solid var(--border);}
+.pc-visits span{color:var(--purple);}
+.btn-edit-profile{width:100%;background:transparent;border:1px solid rgba(155,92,246,0.2);color:rgba(155,92,246,0.7);font-family:'Rajdhani',sans-serif;font-size:10px;letter-spacing:2px;padding:7px;cursor:pointer;transition:all 0.15s;}
+.btn-edit-profile:hover{border-color:var(--purple);color:var(--purple);background:rgba(155,92,246,0.06);}
+
+/* ── LEADERBOARD WIDGET ── */
+.lb-row{display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid rgba(155,92,246,0.08);transition:background 0.15s;}
+.lb-row:hover{background:rgba(155,92,246,0.08);}
+.lb-pos{font-size:13px;width:20px;text-align:center;}
+.lb-avatar{width:24px;height:24px;border-radius:2px;}
+.lb-name{flex:1;font-size:11px;font-weight:700;letter-spacing:1px;color:#e2d9f3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.lb-floors{font-size:11px;color:var(--cyan);font-weight:700;letter-spacing:1px;white-space:nowrap;}
+/* ── LEADERBOARD FULL PAGE ── */
+.lb-full-row{display:flex;align-items:center;gap:10px;padding:12px 24px;border-bottom:1px solid rgba(155,92,246,0.08);transition:background 0.15s;}
+.lb-full-row:hover{background:rgba(155,92,246,0.06);}
+.lb-full-pos{font-size:18px;width:32px;text-align:center;}
+
+/* ── PIX PANEL ── */
+#pixPanel{position:fixed;inset:0;z-index:60;background:rgba(4,2,8,0.92);display:none;align-items:center;justify-content:center;backdrop-filter:blur(12px);}
+.pix-inner{background:rgba(6,4,15,0.98);border:1px solid var(--border);border-top:2px solid #00c853;padding:32px;max-width:360px;width:90%;text-align:center;}
+.pix-title{font-family:'Exo 2',sans-serif;font-size:18px;font-weight:800;letter-spacing:3px;color:#00c853;margin-bottom:8px;}
+.pix-sub{font-size:12px;color:var(--muted);letter-spacing:1px;margin-bottom:24px;line-height:1.6;}
+.pix-placeholder{width:180px;height:180px;margin:0 auto 16px;background:rgba(255,255,255,0.05);border:2px dashed rgba(0,200,83,0.3);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);letter-spacing:1px;}
+.pix-key{font-size:12px;color:var(--cyan);letter-spacing:2px;padding:10px;border:1px solid rgba(34,211,238,0.2);margin-bottom:20px;word-break:break-all;}
+.btn-pix-close{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'Rajdhani',sans-serif;font-size:11px;letter-spacing:2px;padding:8px 24px;cursor:pointer;transition:all 0.15s;}
+.btn-pix-close:hover{border-color:var(--cyan);color:var(--cyan);}
+
+/* ── EDIT PROFILE PANEL ── */
+#editProfilePanel{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:62;background:rgba(6,4,15,0.99);border:1px solid var(--border);border-top:2px solid var(--purple);padding:28px;width:320px;display:none;flex-direction:column;gap:14px;backdrop-filter:blur(16px);box-shadow:0 8px 40px rgba(0,0,0,0.7);}
+.ep-title{font-family:'Exo 2',sans-serif;font-size:14px;font-weight:800;letter-spacing:3px;color:#e2d9f3;}
+.ep-title span{color:var(--purple);}
+.ep-sub{font-size:11px;color:var(--muted);letter-spacing:1px;line-height:1.5;}
+.ep-field{display:flex;flex-direction:column;gap:5px;}
+.ep-label{font-size:9px;letter-spacing:2px;color:var(--muted);}
+.ep-input{background:rgba(13,8,32,0.9);border:1px solid var(--border);color:#e2d9f3;font-family:'Rajdhani',sans-serif;font-size:13px;padding:8px 10px;resize:none;width:100%;box-sizing:border-box;}
+.ep-input:focus{outline:none;border-color:var(--purple);}
+textarea.ep-input{min-height:72px;}
+.ep-actions{display:flex;gap:10px;}
+.btn-ep-save{flex:1;background:var(--purple2);border:1px solid var(--purple);color:#fff;font-family:'Exo 2',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;padding:10px;cursor:pointer;transition:all 0.15s;}
+.btn-ep-save:hover{background:var(--purple);}
+.btn-ep-cancel{flex:1;background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'Exo 2',sans-serif;font-size:10px;letter-spacing:2px;padding:10px;cursor:pointer;transition:all 0.15s;}
+.btn-ep-cancel:hover{border-color:var(--muted);color:#e2d9f3;}
+
 </style>
 </head>
 <body>
@@ -197,11 +322,15 @@ input[type="text"]::placeholder{color:rgba(226,217,243,0.2);font-weight:400;}
     <div class="pc-stat"><span class="pc-stat-val" id="pcFloors">—</span><span class="pc-stat-lbl">FLOORS</span></div>
     <div class="pc-stat"><span class="pc-stat-val c" id="pcRank">—</span><span class="pc-stat-lbl">RANK</span></div>
   </div>
+  <div class="pc-bio" id="pcBio" style="display:none"></div>
+  <div class="pc-socials" id="pcSocials" style="display:none;flex-wrap:wrap;gap:6px;padding:8px 18px;border-bottom:1px solid var(--border)"></div>
+  <div class="pc-visits" id="pcVisits">👁 <span>0</span> visitas</div>
   <div class="pc-games" id="pcGamesWrap" style="display:none">
     <div class="pc-games-title">TOP GAMES</div>
     <div id="pcGamesList"></div>
   </div>
   <div class="pc-actions">
+    <button class="btn-edit-profile" id="pcEditBtn" style="display:none" onclick="openEditProfile(selectedBuilding&&selectedBuilding.steamid)">✏️ EDITAR MEU PERFIL</button>
     <button class="btn-profile" onclick="openProfilePage()">VER PERFIL COMPLETO →</button>
     <button class="btn-close-card" onclick="closePlayerCard()">FECHAR</button>
   </div>
@@ -883,8 +1012,34 @@ function selectBuilding(b){
     document.getElementById('pcGamesList').innerHTML=`<div style="font-size:10px;color:var(--muted);padding:4px 0">${t('noGamesData')}</div>`;
     document.getElementById('pcGamesWrap').style.display='block';
   }
+  // Bio
+  const bioEl = document.getElementById('pcBio');
+  if (bioEl) { bioEl.textContent = b.bio||''; bioEl.style.display = b.bio ? 'block':'none'; }
+
+  // Social links
+  const socialEl = document.getElementById('pcSocials');
+  if (socialEl) {
+    const links = [];
+    if (b.twitch)  links.push(`<a href="https://${b.twitch.replace(/^https?:\/\//,'')}" target="_blank" class="pc-social-link">🟣 Twitch</a>`);
+    if (b.youtube) links.push(`<a href="https://${b.youtube.replace(/^https?:\/\//,'')}" target="_blank" class="pc-social-link">🔴 YouTube</a>`);
+    if (b.discord) links.push(`<span class="pc-social-link">💬 ${b.discord}</span>`);
+    socialEl.innerHTML = links.join('');
+    socialEl.style.display = links.length ? 'flex' : 'none';
+  }
+
+  // Visit count
+  const visitEl = document.getElementById('pcVisits');
+  if (visitEl) visitEl.innerHTML = `👁 <span>${b.visit_count||0}</span> visitas`;
+
+  // Edit button — only for own building
+  const editBtn = document.getElementById('pcEditBtn');
+  if (editBtn) editBtn.style.display = (b.steamid === mySteamId && !b.steamid.startsWith('fake_')) ? 'block' : 'none';
+
   document.getElementById('playerCard').style.display='block';
   focusBuildingCamera(b);
+
+  // Increment visit count (async, non-blocking) — skip own building
+  if (b.steamid !== mySteamId) incrementVisit(b.steamid);
 }
 
 function closePlayerCard(){
@@ -1040,6 +1195,7 @@ async function refreshCity(){
     const allGamers=showFake?[...cityGamers,...FAKE_GAMERS]:cityGamers;
     buildCity(allGamers);
     document.getElementById('gamerCount').textContent=cityGamers.length;
+    renderLeaderboardWidget();
   }catch(e){console.error(e);}
 }
 
@@ -1052,6 +1208,182 @@ function showError(msg){
   const el=document.getElementById('errorMsg');
   el.textContent=msg; el.style.display=msg?'block':'none';
 }
+
+// ── STEAM API CACHE (24h) ─────────────────────────────────────────────────────
+// Stores Steam API responses in Supabase to avoid re-calling on every load.
+// Falls through to live API on cache miss or if data is stale (>24h).
+const STEAM_CACHE_TTL = 24 * 60 * 60 * 1000; // 24h in ms
+
+async function fetchSteamCached(steamid) {
+  // 1. Try Supabase cache first
+  try {
+    const cacheRes = await sbFetch(`steam_cache?steamid=eq.${encodeURIComponent(steamid)}&select=*`);
+    if (cacheRes.ok) {
+      const rows = await cacheRes.json();
+      if (rows.length > 0) {
+        const row = rows[0];
+        const age = Date.now() - new Date(row.cached_at).getTime();
+        if (age < STEAM_CACHE_TTL) {
+          return typeof row.data === 'string' ? JSON.parse(row.data) : row.data;
+        }
+      }
+    }
+  } catch(e) { /* cache miss — continue to live */ }
+
+  // 2. Live API call
+  const res = await fetch(`/api/steam?steamid=${encodeURIComponent(steamid)}`);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+
+  // 3. Store in cache (upsert)
+  try {
+    await sbFetch('steam_cache?on_conflict=steamid', {
+      method: 'POST',
+      headers: { 'Prefer': 'resolution=merge-duplicates' },
+      body: JSON.stringify({ steamid: data.steamid, data: JSON.stringify(data), cached_at: new Date().toISOString() }),
+    });
+  } catch(e) { /* cache write failure is non-fatal */ }
+
+  return data;
+}
+
+// ── LEADERBOARD ───────────────────────────────────────────────────────────────
+let lbAllGamers = [];
+let lbCurrentFilter = 'all';
+
+function renderLeaderboardWidget() {
+  const top5 = [...cityGamers].sort((a,b)=>(b.floors||0)-(a.floors||0)).slice(0,5);
+  const rows = document.getElementById('lbWidgetRows');
+  if (!rows) return;
+  rows.innerHTML = top5.map((g, i) => `
+    <div class="lb-row" onclick="searchFly('${g.steamid}')" style="cursor:pointer">
+      <span class="lb-pos">${['🥇','🥈','🥉','4','5'][i]}</span>
+      <img class="lb-avatar" src="${g.avatar||''}" onerror="this.src=''" alt="">
+      <span class="lb-name">${(g.name||'?').substring(0,16)}</span>
+      <span class="lb-floors">${g.floors||0} <small>floors</small></span>
+    </div>`).join('');
+  document.getElementById('leaderboardWidget').style.display = cityGamers.length ? 'block' : 'none';
+}
+
+function openLeaderboard() {
+  lbAllGamers = [...cityGamers].sort((a,b)=>(b.floors||0)-(a.floors||0));
+  renderLeaderboardFilters();
+  filterLeaderboard('all', null);
+  document.getElementById('leaderboardPage').style.display = 'block';
+}
+
+function closeLeaderboard() {
+  document.getElementById('leaderboardPage').style.display = 'none';
+}
+
+function renderLeaderboardFilters() {
+  // Build unique district list
+  const districts = [...new Set(cityGamers.map(g=>g.district).filter(Boolean))].sort();
+  const container = document.getElementById('lbFilters');
+  container.innerHTML = `<button class="lb-filter-btn active" data-filter="all" onclick="filterLeaderboard('all',this)">TODOS</button>` +
+    districts.map(d=>`<button class="lb-filter-btn" data-filter="${d}" onclick="filterLeaderboard('${d.replace(/'/g,"\\'")}',this)">${d.toUpperCase()}</button>`).join('');
+}
+
+function filterLeaderboard(filter, btn) {
+  lbCurrentFilter = filter;
+  document.querySelectorAll('.lb-filter-btn').forEach(b=>b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  else { const first = document.querySelector('.lb-filter-btn'); if(first) first.classList.add('active'); }
+
+  const filtered = filter === 'all' ? lbAllGamers : lbAllGamers.filter(g=>g.district===filter);
+  const medals = ['🥇','🥈','🥉'];
+  document.getElementById('lbFullRows').innerHTML = filtered.map((g,i) => `
+    <div class="lb-full-row" onclick="closeLeaderboard();searchFly('${g.steamid}')" style="cursor:pointer">
+      <span class="lb-full-pos">${medals[i]||('#'+(i+1))}</span>
+      <img class="lb-avatar" src="${g.avatar||''}" onerror="this.src=''" alt="" style="width:32px;height:32px;border-radius:2px;margin-right:10px;">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:700;letter-spacing:1px;color:#e2d9f3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${g.name||'?'}</div>
+        <div style="font-size:10px;color:var(--muted);letter-spacing:1px">${(g.district||'').toUpperCase()}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:14px;font-weight:700;color:var(--cyan)">${g.floors||0}</div>
+        <div style="font-size:9px;color:var(--muted);letter-spacing:1px">FLOORS</div>
+      </div>
+    </div>`).join('');
+}
+
+// ── VISIT COUNTER ─────────────────────────────────────────────────────────────
+async function incrementVisit(steamid) {
+  if (!steamid || steamid.startsWith('fake_')) return;
+  try {
+    // Use Supabase RPC to increment atomically, or a simple upsert workaround
+    await sbFetch(`gamers?steamid=eq.${steamid}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ visit_count: null }), // will be handled by DB trigger/default
+    });
+    // Fallback: fetch current count and patch +1
+    const res = await sbFetch(`gamers?steamid=eq.${steamid}&select=visit_count`);
+    if (res.ok) {
+      const rows = await res.json();
+      if (rows.length) {
+        const current = rows[0].visit_count || 0;
+        await sbFetch(`gamers?steamid=eq.${steamid}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ visit_count: current + 1 }),
+        });
+      }
+    }
+  } catch(e) { /* non-fatal */ }
+}
+
+// ── BIO / SOCIAL EDIT ─────────────────────────────────────────────────────────
+let editingForSteamid = null;
+
+function openEditProfile(steamid) {
+  editingForSteamid = steamid;
+  // Pre-fill with existing data from cityGamers
+  const gamer = cityGamers.find(g=>g.steamid===steamid) || {};
+  document.getElementById('epBio').value = gamer.bio || '';
+  document.getElementById('epTwitch').value = gamer.twitch || '';
+  document.getElementById('epYoutube').value = gamer.youtube || '';
+  document.getElementById('epDiscord').value = gamer.discord || '';
+  document.getElementById('epError').style.display = 'none';
+  document.getElementById('epSaveBtn').disabled = false;
+  document.getElementById('epSaveBtn').textContent = 'SALVAR';
+  document.getElementById('editProfilePanel').style.display = 'flex';
+}
+
+function closeEditProfile() {
+  document.getElementById('editProfilePanel').style.display = 'none';
+  editingForSteamid = null;
+}
+
+async function saveProfile() {
+  if (!editingForSteamid) return;
+  const btn = document.getElementById('epSaveBtn');
+  btn.disabled = true; btn.textContent = 'SALVANDO...';
+  const bio = document.getElementById('epBio').value.trim().substring(0, 160);
+  const twitch = document.getElementById('epTwitch').value.trim().substring(0, 100);
+  const youtube = document.getElementById('epYoutube').value.trim().substring(0, 100);
+  const discord = document.getElementById('epDiscord').value.trim().substring(0, 100);
+  try {
+    await sbFetch(`gamers?steamid=eq.${editingForSteamid}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ bio, twitch, youtube, discord }),
+    });
+    // Update local cache
+    const g = cityGamers.find(g=>g.steamid===editingForSteamid);
+    if (g) Object.assign(g, { bio, twitch, youtube, discord });
+    closeEditProfile();
+    // Refresh card if that player is selected
+    if (selectedBuilding && selectedBuilding.steamid === editingForSteamid) {
+      selectBuilding(selectedBuilding);
+    }
+  } catch(e) {
+    document.getElementById('epError').textContent = 'Erro ao salvar. Tente novamente.';
+    document.getElementById('epError').style.display = 'block';
+    btn.disabled = false; btn.textContent = 'SALVAR';
+  }
+}
+
+// ── PIX DONATION ──────────────────────────────────────────────────────────────
+function openPix() { document.getElementById('pixPanel').style.display='flex'; }
+function closePix() { document.getElementById('pixPanel').style.display='none'; }
 document.getElementById('steamInput').addEventListener('keydown',e=>{if(e.key==='Enter')loadProfile();});
 
 // ── SEARCH ────────────────────────────────────────────────────────────────────
@@ -1134,5 +1466,67 @@ document.querySelectorAll('.lang-btn').forEach(b=>{b.classList.toggle('active',b
 refreshCity();
 onResize();
 </script>
+
+<!-- PIX BUTTON + MODAL -->
+<button id="pixBtn" onclick="openPix()">💚 PIX</button>
+<div id="pixPanel">
+  <div class="pix-inner">
+    <div class="pix-title">APOIAR O PROJETO</div>
+    <p class="pix-sub">O BuildinGamer é gratuito e mantido com muito café.<br>Qualquer contribuição ajuda a manter os servidores no ar. 🙏</p>
+    <div class="pix-placeholder">QR CODE EM BREVE</div>
+    <div class="pix-key">CHAVE PIX EM BREVE</div>
+    <button class="btn-pix-close" onclick="closePix()">FECHAR</button>
+  </div>
+</div>
+
+<!-- LEADERBOARD WIDGET (bottom right) -->
+<div id="leaderboardWidget">
+  <div class="lb-header">
+    <span class="lb-title">🏆 TOP BUILDERS</span>
+    <button class="lb-see-all" onclick="openLeaderboard()">VER TODOS →</button>
+  </div>
+  <div id="lbWidgetRows"></div>
+</div>
+
+<!-- LEADERBOARD FULL PAGE -->
+<div id="leaderboardPage">
+  <div class="lb-page-inner">
+    <button class="profile-page-back" onclick="closeLeaderboard()">◀ &nbsp;VOLTAR À CIDADE</button>
+    <div class="lb-page-title">RANKING DA <span>CIDADE</span></div>
+    <div class="lb-page-sub">OS MAIORES PRÉDIOS DO BUILDINGAMER</div>
+    <div class="lb-filters" id="lbFilters">
+      <button class="lb-filter-btn active" data-filter="all" onclick="filterLeaderboard('all',this)">TODOS</button>
+    </div>
+    <div id="lbFullRows"></div>
+  </div>
+</div>
+
+<!-- EDIT PROFILE PANEL -->
+<div id="editProfilePanel">
+  <div class="ep-title">EDITAR <span>PERFIL</span></div>
+  <div class="ep-sub">Essas informações aparecem no seu card e no seu perfil.</div>
+  <div class="ep-field">
+    <label class="ep-label">BIO</label>
+    <textarea class="ep-input" id="epBio" placeholder="Conte um pouco sobre você como gamer..." maxlength="160"></textarea>
+  </div>
+  <div class="ep-field">
+    <label class="ep-label">TWITCH</label>
+    <input class="ep-input" type="text" id="epTwitch" placeholder="twitch.tv/seucanal"/>
+  </div>
+  <div class="ep-field">
+    <label class="ep-label">YOUTUBE</label>
+    <input class="ep-input" type="text" id="epYoutube" placeholder="youtube.com/@seucanal"/>
+  </div>
+  <div class="ep-field">
+    <label class="ep-label">DISCORD</label>
+    <input class="ep-input" type="text" id="epDiscord" placeholder="seuuser#0000 ou discord.gg/servidor"/>
+  </div>
+  <div class="ep-actions">
+    <button class="btn-ep-save" id="epSaveBtn" onclick="saveProfile()">SALVAR</button>
+    <button class="btn-ep-cancel" onclick="closeEditProfile()">CANCELAR</button>
+  </div>
+  <div id="epError" style="display:none;margin-top:10px;font-size:11px;color:#f87171;"></div>
+</div>
+
 </body>
 </html>
