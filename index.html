@@ -31,6 +31,9 @@ body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;ov
 #cityCount span{color:var(--cyan);font-weight:700;font-size:14px;}
 #welcomeScreen{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(6,4,15,0.92);backdrop-filter:blur(8px);}
 .welcome-box{width:540px;max-width:95vw;background:rgba(6,4,15,0.98);border:1px solid var(--border);padding:48px;box-shadow:0 0 80px rgba(155,92,246,0.1),0 0 160px rgba(34,211,238,0.04);}
+.welcome-logo{font-family:'Exo 2',sans-serif;font-weight:900;font-size:36px;letter-spacing:4px;margin-bottom:12px;line-height:1;}
+.welcome-logo .b{color:var(--cyan);text-shadow:0 0 24px rgba(34,211,238,0.6);}
+.welcome-logo .g{color:var(--purple);text-shadow:0 0 24px rgba(155,92,246,0.6);}
 .welcome-tag{font-size:9px;letter-spacing:4px;color:var(--cyan);margin-bottom:10px;opacity:0.6;}
 .welcome-box h1{font-family:'Exo 2',sans-serif;font-size:30px;font-weight:900;letter-spacing:2px;color:#fff;line-height:1.05;margin-bottom:8px;}
 .welcome-box h1 em{font-style:normal;color:var(--purple);text-shadow:0 0 20px rgba(155,92,246,0.4);}
@@ -285,6 +288,7 @@ textarea.ep-input{min-height:72px;}
 <button id="myBuildingBtn" onclick="focusMyBuilding()">◉ &nbsp;MEU PRÉDIO</button>
 <div id="welcomeScreen">
   <div class="welcome-box">
+    <div class="welcome-logo"><span class="b">BUILDIN</span><span class="g">GAMER</span></div>
     <div class="welcome-tag">// BUILDINGAMER v2.0</div>
     <h1>A CIDADE DOS<br><em>GAMERS</em></h1>
     <p>Cada gamer é um prédio. Quanto mais você jogou,<br>mais alto ele cresce. Explore a cidade ou adicione o seu.</p>
@@ -1081,6 +1085,7 @@ async function enterExplore(){
   showSearchBar(true);
   mode='explore';
   document.getElementById('welcomeScreen').style.display='none';
+  document.getElementById('pixBtn').style.display='block';
   showLoading(true,t('loadingCity'));
   await refreshCity();
   showLoading(false);
@@ -1137,6 +1142,7 @@ async function loadProfile(){
     showLoading(false);
     document.getElementById('registerPanel').style.display='none';
     document.getElementById('hud').style.display='flex';
+    document.getElementById('pixBtn').style.display='block';
     showSearchBar(true);
     document.getElementById('addBuildingBtn').style.display='none';
     document.getElementById('myBuildingBtn').style.display='block';
