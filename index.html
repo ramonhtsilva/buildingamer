@@ -283,9 +283,48 @@ input[type="text"]::placeholder { color:rgba(226,217,243,0.2); font-weight:400; 
 
 .pp-building-preview { border:1px solid var(--border); padding:20px; text-align:center; background:rgba(155,92,246,0.03); }
 .pp-building-canvas { width:100%; max-width:300px; height:200px; margin:0 auto; display:block; }
+
+/* Language toggle */
+#langToggle {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  z-index: 50;
+  display: flex;
+  gap: 2px;
+  background: rgba(6,4,15,0.85);
+  border: 1px solid rgba(155,92,246,0.25);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.lang-btn {
+  padding: 5px 10px;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: rgba(226,217,243,0.4);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+}
+.lang-btn:hover { color: rgba(226,217,243,0.8); }
+.lang-btn.active {
+  color: #22d3ee;
+  background: rgba(34,211,238,0.08);
+}
+
 </style>
 </head>
 <body>
+
+<!-- LANG TOGGLE -->
+<div id="langToggle">
+  <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+  <button class="lang-btn" data-lang="pt" onclick="setLang('pt')">PT</button>
+</div>
+
 
 <canvas id="cityCanvas"></canvas>
 <div id="scanlines"></div>
@@ -941,7 +980,7 @@ function draw(){
   drawDistrictBadges();
   if(buildings.length===0&&mode==='explore'){
     ctx.font='300 13px "Exo 2"';ctx.fillStyle='rgba(155,92,246,0.2)';ctx.textAlign='center';
-    ctx.fillText('A CIDADE ESTÁ VAZIA. SEJA O PRIMEIRO.',W/2,H/2+80);ctx.textAlign='left';
+    ctx.fillText(t('emptyCity'),W/2,H/2+80);ctx.textAlign='left';
   }
   requestAnimationFrame(draw);
 }
@@ -1138,7 +1177,7 @@ function selectBuilding(b){
       </div>`).join('');
     document.getElementById('pcGamesWrap').style.display='block';
   } else {
-    document.getElementById('pcGamesList').innerHTML='<div style="font-size:10px;color:var(--muted);padding:4px 0;line-height:1.6">Dados de jogos não disponíveis.<br><span style="color:rgba(155,92,246,0.6)">Re-registre seu SteamID para atualizar.</span></div>';
+    document.getElementById('pcGamesList').innerHTML=`<div style="font-size:10px;color:var(--muted);padding:4px 0;line-height:1.6">${t('noGamesData')}</div>`;
     document.getElementById('pcGamesWrap').style.display='block';
   }
   document.getElementById('playerCard').style.display='block';
@@ -1181,7 +1220,8 @@ function openProfilePage(){
   document.getElementById('ppAvatar').src=b.avatar||'';
   document.getElementById('ppName').textContent=b.name;
   document.getElementById('ppDistrict').textContent=(b.district||'UNKNOWN').toUpperCase();
-  document.getElementById('ppSince').textContent='Na cidade desde '+new Date(b.created_at||Date.now()).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  const sinceDateLocale = currentLang === 'pt' ? 'pt-BR' : 'en-US';
+  document.getElementById('ppSince').textContent = t('sincePrefix') + new Date(b.created_at||Date.now()).toLocaleDateString(sinceDateLocale,{month:'long',year:'numeric'});
   document.getElementById('ppGames').textContent=b.games||'?';
   document.getElementById('ppHours').textContent=b.hours>0?(b.hours>=1000?Math.floor(b.hours/1000)+'k':b.hours):'—';
   document.getElementById('ppFloors').textContent=b.floors||'?';
@@ -1212,7 +1252,7 @@ async function enterExplore(){
   showSearchBar(true);
   mode='explore';
   document.getElementById('welcomeScreen').style.display='none';
-  showLoading(true,'CARREGANDO A CIDADE...');
+  showLoading(true, t('loadingCity'));
   await refreshCity();
   showLoading(false);
   document.getElementById('hud').style.display='flex';
@@ -1255,7 +1295,7 @@ async function loadProfile(){
   const input=document.getElementById('steamInput').value.trim();
   if(!input)return;
   showError('');
-  showLoading(true,'BUSCANDO PERFIL...');
+  showLoading(true, t('loadingProfile'));
   document.getElementById('buildBtn').disabled=true;
 
   try {
@@ -1263,7 +1303,7 @@ async function loadProfile(){
     const data=await res.json();
     if(data.error)throw new Error(data.error);
 
-    showLoading(true,'REGISTRANDO NA CIDADE...');
+    showLoading(true, t('loadingRegister'));
     // Floors: 1 andar a cada 100h jogadas. Bônus pequeno por variedade de jogos (máx +15 andares)
     const floors=Math.max(3, Math.floor((data.totalHours||0)/100) + Math.min(15, Math.floor((data.gameCount||0)/20)));
     // District = game most played in last 2 weeks (fallback: all-time top game)
@@ -1286,7 +1326,7 @@ async function loadProfile(){
     mySteamId=data.steamid;
     localStorage.setItem('bg_steamid',mySteamId);
 
-    showLoading(true,'CONSTRUINDO A CIDADE...');
+    showLoading(true, t('loadingBuilding'));
     mode='city';
     await refreshCity();
 
@@ -1304,7 +1344,7 @@ async function loadProfile(){
 
   } catch(err){
     showLoading(false);
-    showError('Erro: '+(err.message||'Tente novamente.'));
+    showError(t('errorPrefix')+(err.message||t('tryAgain')));
   } finally {
     document.getElementById('buildBtn').disabled=false;
   }
@@ -1385,6 +1425,12 @@ function showError(msg){
 }
 
 document.getElementById('steamInput').addEventListener('keydown',e=>{if(e.key==='Enter')loadProfile();});
+
+// Apply initial translations and mark active lang button
+applyTranslations();
+document.querySelectorAll('.lang-btn').forEach(b => {
+  b.classList.toggle('active', b.dataset.lang === currentLang);
+});
 
 // ── URL: ?steamid=XXXX → auto-focus building ─────────────────────────────────
 (function handleURL(){
