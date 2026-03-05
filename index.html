@@ -931,10 +931,10 @@ function draw(){
 // ── CAMERA UPDATE (every frame) ───────────────────────────────────────────────
 function updateCamera(){
   if(mode==='welcome')return;
-  // Orbit inertia: damping 0.88 → longer coast after drag release
+  // Sem inércia de rotação — câmera direta e precisa
   camAngle += rotVelX;
-  rotVelX *= 0.88;
-  if(Math.abs(rotVelX)<0.00015) rotVelX=0;
+  rotVelX *= 0.75;
+  if(Math.abs(rotVelX)<0.001) rotVelX=0;
   // Pan inertia
   targetX += velX; targetY += velY;
   velX *= 0.82; velY *= 0.82;
@@ -1025,10 +1025,10 @@ window.addEventListener('mousemove',e=>{
   const dy=e.clientY-lastMouse.y;
 
   if(e.buttons===1){
-    // Horizontal drag → accumulate rotational velocity (inertia on release)
-    rotVelX -= dx * 0.006;
-    // Vertical → elevation, immediate (no inertia, feels more controlled)
-    camTilt = Math.max(0.10, Math.min(1.35, camTilt - dy * 0.003));
+    // Horizontal = orbit direto, sem inércia — controle preciso
+    camAngle -= dx * 0.007;
+    rotVelX = 0; // zera inércia enquanto arrasta
+    camTilt = Math.max(0.08, Math.min(1.20, camTilt - dy * 0.004));
   }
 
   if(e.buttons===2||e.buttons===4){
