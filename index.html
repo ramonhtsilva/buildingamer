@@ -1198,6 +1198,8 @@ async function enterExplore(){
   await refreshCity();
   showLoading(false);
   document.getElementById('hud').style.display='flex';
+  // Em background: atualiza floors/distrito do usuário logado
+  setTimeout(silentRefreshMyBuilding, 1500);
   document.getElementById('addBuildingBtn').style.display='block';
   if(mySteamId) document.getElementById('myBuildingBtn').style.display='block';
 }
@@ -1244,7 +1246,8 @@ async function loadProfile(){
     if(data.error)throw new Error(data.error);
 
     showLoading(true,'REGISTRANDO NA CIDADE...');
-    const floors=Math.max(3,Math.floor((data.totalHours||0)/50)+Math.floor((data.gameCount||0)/5));
+    // Floors: 1 andar a cada 100h jogadas. Bônus pequeno por variedade de jogos (máx +15 andares)
+    const floors=Math.max(3, Math.floor((data.totalHours||0)/100) + Math.min(15, Math.floor((data.gameCount||0)/20)));
     // District = game most played in last 2 weeks (fallback: all-time top game)
     const recentGame = data.recentGame || data.top3?.[0]?.name || 'INDEPENDENT';
     const district = recentGame;
@@ -1287,6 +1290,53 @@ async function loadProfile(){
   } finally {
     document.getElementById('buildBtn').disabled=false;
   }
+}
+
+// ── AUTO-UPDATE: recalcula floors do usuário logado em background ─────────────
+async function silentRefreshMyBuilding(){
+  if(!mySteamId) return;
+  try {
+    const res = await fetch(`/api/steam?steamid=${encodeURIComponent(mySteamId)}`);
+    const data = await res.json();
+    if(data.error || !data.totalHours) return;
+    const floors = Math.max(3, Math.floor((data.totalHours||0)/100) + Math.min(15, Math.floor((data.gameCount||0)/20)));
+    const recentGame = data.recentGame || data.top3?.[0]?.name || 'INDEPENDENT';
+    await sbFetch('gamers?on_conflict=steamid', {
+      method: 'POST',
+      headers: {'Prefer':'resolution=merge-duplicates,return=representation'},
+      body: JSON.stringify({
+        steamid: data.steamid, name: data.name, avatar: data.avatar||'',
+        hours: data.totalHours||0, games: data.gameCount||0, floors,
+        district: recentGame, district_appid: data.recentAppid||null,
+        top3: JSON.stringify(data.top3||[]),
+      })
+    });
+    // Reload city quietly after update
+    await refreshCity();
+  } catch(e){ console.warn('silentRefresh failed:', e); }
+}
+
+// ── AUTO-UPDATE: recalcula floors do usuário logado em background ─────────────
+async function silentRefreshMyBuilding(){
+  if(!mySteamId) return;
+  try {
+    const res = await fetch(`/api/steam?steamid=${encodeURIComponent(mySteamId)}`);
+    const data = await res.json();
+    if(data.error || !data.totalHours) return;
+    const floors = Math.max(3, Math.floor((data.totalHours||0)/100) + Math.min(15, Math.floor((data.gameCount||0)/20)));
+    const recentGame = data.recentGame || data.top3?.[0]?.name || 'INDEPENDENT';
+    await sbFetch('gamers?on_conflict=steamid', {
+      method: 'POST',
+      headers: {'Prefer':'resolution=merge-duplicates,return=representation'},
+      body: JSON.stringify({
+        steamid: data.steamid, name: data.name, avatar: data.avatar||'',
+        hours: data.totalHours||0, games: data.gameCount||0, floors,
+        district: recentGame, district_appid: data.recentAppid||null,
+        top3: JSON.stringify(data.top3||[]),
+      })
+    });
+    await refreshCity();
+  } catch(e){ console.warn('silentRefresh failed:', e); }
 }
 
 // ── SUPABASE ──────────────────────────────────────────────────────────────────
