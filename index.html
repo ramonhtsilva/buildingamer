@@ -918,9 +918,9 @@ function drawBuilding(b, hovered) {
   // Ordenar 4 faces do mais negativo (mais atrás) para o mais positivo (frente)
   const faces4 = [
     { dot: dFront, draw: () => drawFace(p[0],p[1],p[4],p[5], cF, 1.00, s,    true, b.wCols,     b.wRows) },
-    { dot: dBack,  draw: () => drawFace(p[2],p[3],p[6],p[7], cBk,0.40, s+30, true, b.wCols,     b.wRows) },
-    { dot: dLeft,  draw: () => drawFace(p[3],p[0],p[7],p[4], cL, 0.65, s+10, true, b.wColsSide, b.wRows) },
-    { dot: dRight, draw: () => drawFace(p[1],p[2],p[5],p[6], cR, 0.50, s+20, true, b.wColsSide, b.wRows) },
+    { dot: dBack,  draw: () => drawFace(p[2],p[3],p[6],p[7], cBk,0.85, s+30, true, b.wCols,     b.wRows) },
+    { dot: dLeft,  draw: () => drawFace(p[3],p[0],p[7],p[4], cL, 0.92, s+10, true, b.wColsSide, b.wRows) },
+    { dot: dRight, draw: () => drawFace(p[1],p[2],p[5],p[6], cR, 0.88, s+20, true, b.wColsSide, b.wRows) },
   ];
   // Ordenar: menor dot (mais longe da câmera) primeiro
   faces4.sort((a,b) => a.dot - b.dot);
