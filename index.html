@@ -717,79 +717,92 @@ function drawBuilding(b, hovered) {
     edgeColor = null; edgeW = 0;
   }
 
-  const rgb = (c) => `rgb(${c[0]},${c[1]},${c[2]})`;
+  // face() substituída por drawFace() com clip
 
-  const face = (idxs, color, stroke, sw) => {
-    ctx.beginPath();
-    ctx.moveTo(p[idxs[0]].x, p[idxs[0]].y);
-    for (let i = 1; i < idxs.length; i++) ctx.lineTo(p[idxs[i]].x, p[idxs[i]].y);
-    ctx.closePath();
-    ctx.fillStyle = rgb(color); ctx.fill();
-    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = sw; ctx.stroke(); }
-  };
-
-  // Desenha faces sólidas — ordem painter: fundo → lados → frente → topo
-  face([2,3,7,6], base.back,  null, 0);
-  face([0,3,7,4], base.left,  edgeColor, edgeW);
-  face([1,2,6,5], base.right, edgeColor, edgeW);
-  face([0,1,5,4], base.front, edgeColor, edgeW);
-  face([4,5,6,7], base.top,   edgeColor, edgeW);
-
-  // ── JANELAS — 4 faces verticais, topo sólido ─────────────────────────────
-  // Cada janela = paralelogramo via interpolação bilinear da face
-  // Paleta GitCity: dominância de azuis, brancos, roxos, com acentos raros
+  // Paleta de janelas — tons de azul dominantes, acentos raros
   const PAL = [
     [180,210,255],[140,175,255],[220,235,255],[255,255,255],
     [110,155,240],[200,160,255],[130,240,215],[255,230,120],
     [160,195,255],[210,225,255],
   ];
 
-  const drawFaceWindows = (BL, BR, TL, TR, dimF, seed) => {
+  // Desenha uma face sólida + suas janelas com clip — janelas nunca vazam para outras faces
+  const drawFace = (idxs, color, dimF, seed, stroke, sw) => {
+    // 1) Monta o path da face
+    ctx.beginPath();
+    ctx.moveTo(p[idxs[0]].x, p[idxs[0]].y);
+    for (let i = 1; i < idxs.length; i++) ctx.lineTo(p[idxs[i]].x, p[idxs[i]].y);
+    ctx.closePath();
+
+    // 2) Preenche sólido
+    ctx.fillStyle = `rgb(${color[0]},${color[1]},${color[2]})`;
+    ctx.fill();
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = sw; ctx.stroke(); }
+
+    // 3) Sem janelas nessa face? Sai
+    if (dimF <= 0) return;
+
+    // 4) Clippa para a face — janelas desenhadas aqui ficam DENTRO da face
+    ctx.save();
+    ctx.clip();
+
+    const BL=p[idxs[0]], BR=p[idxs[1]], TL=p[idxs[2]], TR=p[idxs[3]];
     const faceW = Math.hypot(BR.x-BL.x, BR.y-BL.y);
     const faceH = Math.hypot(TL.x-BL.x, TL.y-BL.y);
-    if (faceW < 6 || faceH < 8) return;
 
-    // ~1 janela por 15px — ajuste com zoom
-    const cols = Math.max(1, Math.round(faceW / 15));
-    const rows = Math.max(1, Math.round(faceH / 15));
-    const GAP = 0.28; // 28% preto, 72% janela
+    if (faceW >= 6 && faceH >= 8) {
+      const cols = Math.max(1, Math.round(faceW / 15));
+      const rows = Math.max(1, Math.round(faceH / 15));
+      const GAP = 0.28;
 
-    for (let c = 0; c < cols; c++) {
-      for (let r = 0; r < rows; r++) {
-        // Lit/unlit determinístico
-        const ls = Math.sin(seed*1.3 + c*127.1 + r*311.7);
-        if (ls < (dimF < 0.7 ? 0.15 : -0.55)) continue;
+      for (let c = 0; c < cols; c++) {
+        for (let r = 0; r < rows; r++) {
+          const ls = Math.sin(seed*1.3 + c*127.1 + r*311.7);
+          if (ls < (dimF < 0.7 ? 0.15 : -0.55)) continue;
 
-        // UV dos 4 cantos da janela
-        const u0 = (c + GAP*0.5) / cols,  u1 = (c + 1 - GAP*0.5) / cols;
-        const v0 = 1-(r + 1 - GAP*0.5)/rows, v1 = 1-(r + GAP*0.5)/rows;
+          const u0=(c+GAP*.5)/cols, u1=(c+1-GAP*.5)/cols;
+          const v0=1-(r+1-GAP*.5)/rows, v1=1-(r+GAP*.5)/rows;
 
-        const P = (u,v) => ({
-          x: lerp(lerp(BL.x,BR.x,u), lerp(TL.x,TR.x,u), v),
-          y: lerp(lerp(BL.y,BR.y,u), lerp(TL.y,TR.y,u), v),
-        });
+          const P=(u,v)=>({
+            x:lerp(lerp(BL.x,BR.x,u),lerp(TL.x,TR.x,u),v),
+            y:lerp(lerp(BL.y,BR.y,u),lerp(TL.y,TR.y,u),v),
+          });
 
-        const ci = Math.abs(Math.floor(Math.sin(seed*0.7+c*47+r*83)*999)) % PAL.length;
-        let [R,G,B] = isMe ? [210,160,255] : PAL[ci];
-        R=(R*dimF)|0; G=(G*dimF)|0; B=(B*dimF)|0;
+          const ci=Math.abs(Math.floor(Math.sin(seed*.7+c*47+r*83)*999))%PAL.length;
+          let [R,G,B]=isMe?[210,160,255]:PAL[ci];
+          R=(R*dimF)|0; G=(G*dimF)|0; B=(B*dimF)|0;
 
-        const flk = 0.88 + Math.sin(seed+c*13+r*19+animFrame*0.0007)*0.09;
-        ctx.fillStyle = `rgba(${R},${G},${B},${flk.toFixed(2)})`;
+          const flk=0.88+Math.sin(seed+c*13+r*19+animFrame*.0007)*.09;
+          ctx.fillStyle=`rgba(${R},${G},${B},${flk.toFixed(2)})`;
 
-        const q0=P(u0,v0),q1=P(u1,v0),q2=P(u1,v1),q3=P(u0,v1);
-        ctx.beginPath();
-        ctx.moveTo(q0.x,q0.y); ctx.lineTo(q1.x,q1.y);
-        ctx.lineTo(q2.x,q2.y); ctx.lineTo(q3.x,q3.y);
-        ctx.closePath(); ctx.fill();
+          const q0=P(u0,v0),q1=P(u1,v0),q2=P(u1,v1),q3=P(u0,v1);
+          ctx.beginPath();
+          ctx.moveTo(q0.x,q0.y); ctx.lineTo(q1.x,q1.y);
+          ctx.lineTo(q2.x,q2.y); ctx.lineTo(q3.x,q3.y);
+          ctx.closePath(); ctx.fill();
+        }
       }
     }
+
+    ctx.restore();
   };
 
+  // Ordem painter + clip por face. idxs para drawFace: [BL, BR, TL, TR]
+  // face() antiga removida — tudo via drawFace agora
   const s = b.x*0.031 + b.seed;
-  drawFaceWindows(p[0],p[1],p[4],p[5], 1.00, s);       // frente
-  drawFaceWindows(p[3],p[0],p[7],p[4], 0.65, s+10);    // esquerda
-  drawFaceWindows(p[1],p[2],p[5],p[6], 0.50, s+20);    // direita
-  drawFaceWindows(p[2],p[3],p[6],p[7], 0.40, s+30);    // fundo
+  // Fundo (sem janelas — geralmente oculto)
+  ctx.beginPath(); ctx.moveTo(p[2].x,p[2].y); ctx.lineTo(p[3].x,p[3].y); ctx.lineTo(p[7].x,p[7].y); ctx.lineTo(p[6].x,p[6].y); ctx.closePath();
+  ctx.fillStyle=`rgb(${base.back[0]},${base.back[1]},${base.back[2]})`; ctx.fill();
+  // Esquerda
+  drawFace([3,0,7,4], base.left,  0.65, s+10, edgeColor, edgeW);
+  // Direita
+  drawFace([1,2,5,6], base.right, 0.50, s+20, edgeColor, edgeW);
+  // Frente
+  drawFace([0,1,4,5], base.front, 1.00, s,    edgeColor, edgeW);
+  // Topo — sólido sem janelas
+  ctx.beginPath(); ctx.moveTo(p[4].x,p[4].y); ctx.lineTo(p[5].x,p[5].y); ctx.lineTo(p[6].x,p[6].y); ctx.lineTo(p[7].x,p[7].y); ctx.closePath();
+  ctx.fillStyle=`rgb(${base.top[0]},${base.top[1]},${base.top[2]})`; ctx.fill();
+  if(edgeColor){ctx.strokeStyle=edgeColor;ctx.lineWidth=edgeW;ctx.stroke();}
 
   // ── PINÁCULO ──────────────────────────────────────────────────────────────
   const rc = { x:(p[4].x+p[5].x+p[6].x+p[7].x)/4, y:(p[4].y+p[5].y+p[6].y+p[7].y)/4 };
