@@ -682,234 +682,168 @@ function getScreenBounds(b) {
 
 function drawBuilding(b, hovered) {
   const p = getScreenBounds(b);
-  // p[0..3] = bottom corners, p[4..7] = top corners
-  // bottom: 0=FL, 1=FR, 2=BR, 3=BL  (front-left, front-right, back-right, back-left)
-  // top:    4=FL, 5=FR, 6=BR, 7=BL
   const isMe = b.isPlayer;
   const selected = b === selectedBuilding;
-  const t = 0.65+Math.sin(animFrame*.035)*.08;
 
-  // ── COLOUR PALETTE per building ──────────────────────────────────────────
-  let cFront, cLeft, cRight, cBack, cTop, edgeColor, edgeW;
+  // ── CORES BASE ─────────────────────────────────────────────────────────────
+  // GitCity: prédios são caixas escuras sólidas. Cada face tem um tom.
+  // Frente = mais clara, esquerda = média, direita = escura, topo = destaque.
+  let base, edgeColor, edgeW;
+
   if (isMe) {
-    cFront = `rgba(120,50,230,${t})`; cLeft  = `rgba(85,30,180,${t})`;
-    cRight = `rgba(70,22,160,${t})`; cBack  = `rgba(55,15,130,${t})`;
-    cTop   = `rgb(90,45,160)`;
+    base = { front:[90,35,180], left:[65,25,135], right:[48,18,105], back:[32,12,70], top:[110,55,200] };
     edgeColor = 'rgba(155,92,246,0.95)'; edgeW = 1.5;
   } else if (selected) {
-    cFront = `rgba(22,95,140,0.92)`; cLeft  = `rgba(16,75,115,0.92)`;
-    cRight = `rgba(10,55,90,0.92)`;  cBack  = `rgba(7,38,68,0.92)`;
-    cTop   = `rgb(20,130,155)`;
+    base = { front:[18,80,120], left:[13,60,95], right:[9,44,72], back:[6,28,48], top:[22,140,170] };
     edgeColor = 'rgba(34,211,238,0.95)'; edgeW = 1.5;
   } else if (hovered) {
-    cFront = `rgba(18,75,115,0.9)`; cLeft  = `rgba(13,58,95,0.9)`;
-    cRight = `rgba(9,44,76,0.9)`;   cBack  = `rgba(6,32,58,0.9)`;
-    cTop   = `rgb(16,100,120)`;
-    edgeColor = 'rgba(34,211,238,0.55)'; edgeW = 0.8;
+    base = { front:[15,65,105], left:[11,50,82], right:[8,36,62], back:[5,22,40], top:[18,110,138] };
+    edgeColor = 'rgba(34,211,238,0.6)'; edgeW = 0.8;
   } else {
-    const v = 0.30 + (b.seed%40)/100;
-    const hue = b.seed % 3;
-    if (hue===0) {
-      // Purple/dark blue — 100% opaque, distinct face shading
-      cFront=`rgb(${38*v|0},${16*v|0},${105*v|0})`;
-      cLeft =`rgb(${28*v|0},${11*v|0},${78*v|0})`;
-      cRight=`rgb(${20*v|0},${8*v|0},${60*v|0})`;
-      cBack =`rgb(${13*v|0},${5*v|0},${42*v|0})`;
-      cTop  =`rgb(${70*v|0},${55*v|0},${160*v|0})`; // topo: mais claro que frente
-    } else if (hue===1) {
-      // Dark teal/blue
-      cFront=`rgb(${16*v|0},${52*v|0},${95*v|0})`;
-      cLeft =`rgb(${11*v|0},${38*v|0},${72*v|0})`;
-      cRight=`rgb(${8*v|0},${28*v|0},${55*v|0})`;
-      cBack =`rgb(${5*v|0},${18*v|0},${38*v|0})`;
-      cTop  =`rgb(${35*v|0},${90*v|0},${170*v|0})`; // topo mais claro
-    } else {
-      // Dark magenta/indigo
-      cFront=`rgb(${68*v|0},${10*v|0},${80*v|0})`;
-      cLeft =`rgb(${50*v|0},${7*v|0},${60*v|0})`;
-      cRight=`rgb(${36*v|0},${5*v|0},${44*v|0})`;
-      cBack =`rgb(${22*v|0},${3*v|0},${28*v|0})`;
-      cTop  =`rgb(${115*v|0},${35*v|0},${140*v|0})`; // topo mais claro
+    // Paleta variada — 5 tipos de prédio, todos com contraste claro entre faces
+    const type = b.seed % 5;
+    const s = 0.55 + (b.seed % 30) / 100; // brightness variation 0.55..0.85
+    if (type === 0) { // azul escuro
+      base = { front:[Math.round(20*s),Math.round(50*s),Math.round(120*s)], left:[Math.round(14*s),Math.round(36*s),Math.round(90*s)], right:[Math.round(10*s),Math.round(26*s),Math.round(65*s)], back:[Math.round(6*s),Math.round(16*s),Math.round(42*s)], top:[Math.round(28*s),Math.round(68*s),Math.round(150*s)] };
+    } else if (type === 1) { // roxo
+      base = { front:[Math.round(55*s),Math.round(18*s),Math.round(130*s)], left:[Math.round(40*s),Math.round(13*s),Math.round(98*s)], right:[Math.round(28*s),Math.round(9*s),Math.round(72*s)], back:[Math.round(18*s),Math.round(6*s),Math.round(48*s)], top:[Math.round(72*s),Math.round(28*s),Math.round(160*s)] };
+    } else if (type === 2) { // cinza azulado (igual gitcity)
+      base = { front:[Math.round(30*s),Math.round(35*s),Math.round(60*s)], left:[Math.round(22*s),Math.round(26*s),Math.round(46*s)], right:[Math.round(15*s),Math.round(18*s),Math.round(34*s)], back:[Math.round(9*s),Math.round(11*s),Math.round(22*s)], top:[Math.round(42*s),Math.round(50*s),Math.round(80*s)] };
+    } else if (type === 3) { // verde escuro
+      base = { front:[Math.round(12*s),Math.round(55*s),Math.round(75*s)], left:[Math.round(9*s),Math.round(40*s),Math.round(58*s)], right:[Math.round(6*s),Math.round(28*s),Math.round(42*s)], back:[Math.round(4*s),Math.round(18*s),Math.round(28*s)], top:[Math.round(16*s),Math.round(72*s),Math.round(95*s)] };
+    } else { // azul médio
+      base = { front:[Math.round(18*s),Math.round(42*s),Math.round(100*s)], left:[Math.round(13*s),Math.round(30*s),Math.round(75*s)], right:[Math.round(9*s),Math.round(22*s),Math.round(55*s)], back:[Math.round(6*s),Math.round(14*s),Math.round(36*s)], top:[Math.round(24*s),Math.round(56*s),Math.round(125*s)] };
     }
     edgeColor = null; edgeW = 0;
   }
 
-  const face = (idxs, fill, stroke, sw) => {
-    ctx.beginPath(); ctx.moveTo(p[idxs[0]].x, p[idxs[0]].y);
-    for (let i=1; i<idxs.length; i++) ctx.lineTo(p[idxs[i]].x, p[idxs[i]].y);
-    ctx.closePath(); ctx.fillStyle = fill; ctx.fill();
-    if (stroke) { ctx.strokeStyle=stroke; ctx.lineWidth=sw; ctx.stroke(); }
+  const rgb = (c) => `rgb(${c[0]},${c[1]},${c[2]})`;
+
+  const face = (idxs, color, stroke, sw) => {
+    ctx.beginPath();
+    ctx.moveTo(p[idxs[0]].x, p[idxs[0]].y);
+    for (let i = 1; i < idxs.length; i++) ctx.lineTo(p[idxs[i]].x, p[idxs[i]].y);
+    ctx.closePath();
+    ctx.fillStyle = rgb(color); ctx.fill();
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = sw; ctx.stroke(); }
   };
 
-  // 4 vertical faces + roof
-  // Indices: bottom 0=FL,1=FR,2=BR,3=BL / top 4=FL,5=FR,6=BR,7=BL
-  face([0,1,5,4], cFront, edgeColor, edgeW);  // front face
-  face([0,3,7,4], cLeft,  edgeColor, edgeW);  // left face
-  face([1,2,6,5], cRight, edgeColor ? 'rgba(100,60,200,0.3)' : null, 0.5); // right face
-  face([2,3,7,6], cBack,  null, 0);            // back face (darkest, usually hidden)
-  face([4,5,6,7], cTop,   edgeColor, edgeW);  // roof
+  // Desenha faces sólidas — ordem painter: fundo → lados → frente → topo
+  face([2,3,7,6], base.back,  null, 0);
+  face([0,3,7,4], base.left,  edgeColor, edgeW);
+  face([1,2,6,5], base.right, edgeColor, edgeW);
+  face([0,1,5,4], base.front, edgeColor, edgeW);
+  face([4,5,6,7], base.top,   edgeColor, edgeW);
 
-  // ── WINDOWS — GitCity style ──────────────────────────────────────────────────
-  // Key insight: cada janela é um paralelogramo definido por interpolação bilinear
-  // dos 4 cantos da face. Isso garante que ficam dentro da face isométrica.
-  const drawWindows = (BL, BR, TL, TR, dimFactor, bSeed) => {
-    // Tamanho da face em pixels (approximado pelo lado mais longo)
+  // ── JANELAS — 4 faces verticais, topo sólido ─────────────────────────────
+  // Cada janela = paralelogramo via interpolação bilinear da face
+  // Paleta GitCity: dominância de azuis, brancos, roxos, com acentos raros
+  const PAL = [
+    [180,210,255],[140,175,255],[220,235,255],[255,255,255],
+    [110,155,240],[200,160,255],[130,240,215],[255,230,120],
+    [160,195,255],[210,225,255],
+  ];
+
+  const drawFaceWindows = (BL, BR, TL, TR, dimF, seed) => {
     const faceW = Math.hypot(BR.x-BL.x, BR.y-BL.y);
     const faceH = Math.hypot(TL.x-BL.x, TL.y-BL.y);
     if (faceW < 6 || faceH < 8) return;
 
-    // Grid de janelas — ~1 janela por 16px de face
-    const cols = Math.max(1, Math.round(faceW / 16));
-    const rows = Math.max(1, Math.round(faceH / 16));
-
-    // Margem: 15% em cada borda, janela ocupa 70% da célula
-    const GAP = 0.30; // fração do cell que é gap (preto)
-    const WIN = 1.0 - GAP; // fração que é janela
-
-    // Paleta GitCity: azuis dominantes, acentos raros
-    // índice 0-9: 0-4 = tons de azul/branco, 5-7 = acentos, 8-9 = mais azul
-    const PAL = [
-      [180, 210, 255], // azul claro
-      [120, 170, 255], // azul médio
-      [220, 235, 255], // quase branco-azulado
-      [255, 255, 255], // branco puro
-      [100, 150, 240], // azul saturado
-      [200, 160, 255], // lilás/roxo
-      [120, 240, 210], // ciano
-      [255, 230, 120], // amarelo
-      [160, 200, 255], // azul pastel
-      [200, 220, 255], // azul pálido
-    ];
+    // ~1 janela por 15px — ajuste com zoom
+    const cols = Math.max(1, Math.round(faceW / 15));
+    const rows = Math.max(1, Math.round(faceH / 15));
+    const GAP = 0.28; // 28% preto, 72% janela
 
     for (let c = 0; c < cols; c++) {
       for (let r = 0; r < rows; r++) {
-        // UV dos 4 cantos da janela dentro da célula (com margens)
-        const u0 = (c + GAP/2) / cols;
-        const u1 = (c + GAP/2 + WIN) / cols;
-        const v0 = 1 - (r + GAP/2 + WIN) / rows; // v invertido (0=topo)
-        const v1 = 1 - (r + GAP/2) / rows;
+        // Lit/unlit determinístico
+        const ls = Math.sin(seed*1.3 + c*127.1 + r*311.7);
+        if (ls < (dimF < 0.7 ? 0.15 : -0.55)) continue;
 
-        // Deterministic lit/unlit
-        const litS = Math.sin(bSeed * 1.3 + c * 127.1 + r * 311.7);
-        if (litS < (dimFactor > 1 ? 0.2 : -0.5)) continue; // apagada
+        // UV dos 4 cantos da janela
+        const u0 = (c + GAP*0.5) / cols,  u1 = (c + 1 - GAP*0.5) / cols;
+        const v0 = 1-(r + 1 - GAP*0.5)/rows, v1 = 1-(r + GAP*0.5)/rows;
 
-        // Escolhe cor
-        const ci = Math.abs(Math.floor(Math.sin(bSeed*0.7 + c*47 + r*83) * 999)) % PAL.length;
-        let [wR, wG, wB] = isMe ? [210, 160, 255] : PAL[ci];
-
-        // Faces laterais: mais escuras
-        wR = (wR * dimFactor) | 0;
-        wG = (wG * dimFactor) | 0;
-        wB = (wB * dimFactor) | 0;
-
-        // Flicker muito sutil
-        const bright = 0.88 + Math.sin(bSeed + c*13 + r*19 + animFrame*0.0007) * 0.09;
-        ctx.fillStyle = `rgba(${wR},${wG},${wB},${bright.toFixed(2)})`;
-
-        // Os 4 cantos do paralelogramo da janela via bilinear interp
-        const P = (u, v) => ({
+        const P = (u,v) => ({
           x: lerp(lerp(BL.x,BR.x,u), lerp(TL.x,TR.x,u), v),
           y: lerp(lerp(BL.y,BR.y,u), lerp(TL.y,TR.y,u), v),
         });
-        const p0=P(u0,v0), p1=P(u1,v0), p2=P(u1,v1), p3=P(u0,v1);
 
+        const ci = Math.abs(Math.floor(Math.sin(seed*0.7+c*47+r*83)*999)) % PAL.length;
+        let [R,G,B] = isMe ? [210,160,255] : PAL[ci];
+        R=(R*dimF)|0; G=(G*dimF)|0; B=(B*dimF)|0;
+
+        const flk = 0.88 + Math.sin(seed+c*13+r*19+animFrame*0.0007)*0.09;
+        ctx.fillStyle = `rgba(${R},${G},${B},${flk.toFixed(2)})`;
+
+        const q0=P(u0,v0),q1=P(u1,v0),q2=P(u1,v1),q3=P(u0,v1);
         ctx.beginPath();
-        ctx.moveTo(p0.x, p0.y);
-        ctx.lineTo(p1.x, p1.y);
-        ctx.lineTo(p2.x, p2.y);
-        ctx.lineTo(p3.x, p3.y);
-        ctx.closePath();
-        ctx.fill();
+        ctx.moveTo(q0.x,q0.y); ctx.lineTo(q1.x,q1.y);
+        ctx.lineTo(q2.x,q2.y); ctx.lineTo(q3.x,q3.y);
+        ctx.closePath(); ctx.fill();
       }
     }
   };
 
-  // Janelas nas 4 faces verticais. Topo é sólido (sem janelas).
-  drawWindows(p[0], p[1], p[4], p[5], 1.00, b.x*0.031 + b.seed);      // frente
-  drawWindows(p[3], p[0], p[7], p[4], 0.62, b.y*0.031 + b.seed + 10); // esquerda
-  drawWindows(p[1], p[2], p[5], p[6], 0.52, b.y*0.031 + b.seed + 20); // direita
-  drawWindows(p[2], p[3], p[6], p[7], 0.42, b.x*0.031 + b.seed + 30); // fundo
-
-  // Player beacon
-  if(isMe){
-    const tc={x:(p[4].x+p[5].x+p[6].x+p[7].x)/4,y:(p[4].y+p[5].y+p[6].y+p[7].y)/4};
-    const pr=5+Math.sin(animFrame*.07)*4;
-    ctx.beginPath();ctx.arc(tc.x,tc.y,pr,0,Math.PI*2);ctx.fillStyle=`rgba(34,211,238,${.25+Math.sin(animFrame*.07)*.15})`;ctx.fill();
-    ctx.beginPath();ctx.arc(tc.x,tc.y,2.5,0,Math.PI*2);ctx.fillStyle='#22d3ee';ctx.fill();
-    const bg2=ctx.createLinearGradient(0,tc.y-70,0,tc.y);bg2.addColorStop(0,'transparent');bg2.addColorStop(1,'rgba(34,211,238,0.3)');
-    ctx.beginPath();ctx.moveTo(tc.x,tc.y);ctx.lineTo(tc.x,tc.y-70);ctx.strokeStyle=bg2;ctx.lineWidth=1;ctx.stroke();
-  }
+  const s = b.x*0.031 + b.seed;
+  drawFaceWindows(p[0],p[1],p[4],p[5], 1.00, s);       // frente
+  drawFaceWindows(p[3],p[0],p[7],p[4], 0.65, s+10);    // esquerda
+  drawFaceWindows(p[1],p[2],p[5],p[6], 0.50, s+20);    // direita
+  drawFaceWindows(p[2],p[3],p[6],p[7], 0.40, s+30);    // fundo
 
   // ── PINÁCULO ──────────────────────────────────────────────────────────────
-  // roof center = avg of top 4 corners
-  const rc = {
-    x: (p[4].x+p[5].x+p[6].x+p[7].x)/4,
-    y: (p[4].y+p[5].y+p[6].y+p[7].y)/4
-  };
-  // pináculo height proportional to building, min 12px max 40px
-  const pinH = Math.max(12, Math.min(40, b.h * camZoom * 0.18));
-  // pináculo tip (top of spire in screen space)
-  const tipX = rc.x;
-  const tipY = rc.y - pinH;
-
-  // base corners of pináculo (diamond on roof)
-  const pinW = Math.max(5, b.w * camZoom * 0.13);
+  const rc = { x:(p[4].x+p[5].x+p[6].x+p[7].x)/4, y:(p[4].y+p[5].y+p[6].y+p[7].y)/4 };
+  const pinH = Math.max(10, Math.min(36, b.h * camZoom * 0.16));
+  const tipX = rc.x, tipY = rc.y - pinH;
+  const pinW = Math.max(4, b.w * camZoom * 0.12);
   const pb = [
-    { x: rc.x - pinW * 0.9, y: rc.y + pinW * 0.3 }, // left
-    { x: rc.x,               y: rc.y - pinW * 0.2 }, // front
-    { x: rc.x + pinW * 0.9, y: rc.y + pinW * 0.3 }, // right
-    { x: rc.x,               y: rc.y + pinW * 0.8 }, // back
+    { x:rc.x-pinW*0.9, y:rc.y+pinW*0.3 },
+    { x:rc.x,          y:rc.y-pinW*0.2 },
+    { x:rc.x+pinW*0.9, y:rc.y+pinW*0.3 },
+    { x:rc.x,          y:rc.y+pinW*0.8 },
   ];
-
-  const pinColor = isMe ? '155,92,246' : selected ? '34,211,238' : '130,80,220';
-  const pinAlpha = isMe ? 0.9 : selected ? 1.0 : 0.7;
-
-  // left face
+  const pC = isMe?'155,92,246':selected?'34,211,238':'120,75,210';
+  const pA = isMe?0.9:selected?1.0:0.65;
   ctx.beginPath(); ctx.moveTo(tipX,tipY); ctx.lineTo(pb[0].x,pb[0].y); ctx.lineTo(pb[3].x,pb[3].y); ctx.closePath();
-  ctx.fillStyle=`rgba(${pinColor},${pinAlpha*0.55})`; ctx.fill();
-  // right face
+  ctx.fillStyle=`rgba(${pC},${pA*0.55})`; ctx.fill();
   ctx.beginPath(); ctx.moveTo(tipX,tipY); ctx.lineTo(pb[2].x,pb[2].y); ctx.lineTo(pb[3].x,pb[3].y); ctx.closePath();
-  ctx.fillStyle=`rgba(${pinColor},${pinAlpha*0.4})`; ctx.fill();
-  // front face
+  ctx.fillStyle=`rgba(${pC},${pA*0.4})`; ctx.fill();
   ctx.beginPath(); ctx.moveTo(tipX,tipY); ctx.lineTo(pb[0].x,pb[0].y); ctx.lineTo(pb[1].x,pb[1].y); ctx.lineTo(pb[2].x,pb[2].y); ctx.closePath();
-  ctx.fillStyle=`rgba(${pinColor},${pinAlpha*0.8})`; ctx.fill();
-  // outline
-  ctx.beginPath(); ctx.moveTo(tipX,tipY);
-  pb.forEach(pt=>ctx.lineTo(pt.x,pt.y));
-  ctx.lineTo(tipX,tipY);
-  ctx.strokeStyle=`rgba(${pinColor},${pinAlpha*0.6})`; ctx.lineWidth=0.6; ctx.stroke();
+  ctx.fillStyle=`rgba(${pC},${pA*0.8})`; ctx.fill();
+  b._tipX=tipX; b._tipY=tipY;
 
-  // Store tip position on building object for camera focus
-  b._tipX = tipX; b._tipY = tipY;
-
-  // ── SELEÇÃO: efeito ao redor do pináculo ─────────────────────────────────
-  if(selected){
+  // ── SELEÇÃO ───────────────────────────────────────────────────────────────
+  if (selected) {
     const pulse = Math.sin(animFrame*.08);
-    // Anel pulsante ao redor da base do pináculo
-    const ringR = pinW * 1.4 + pulse * 3;
-    ctx.beginPath(); ctx.arc(rc.x, rc.y, ringR, 0, Math.PI*2);
+    const ringR = pinW*1.4+pulse*3;
+    ctx.beginPath(); ctx.arc(rc.x,rc.y,ringR,0,Math.PI*2);
     ctx.strokeStyle=`rgba(34,211,238,${0.55+pulse*0.2})`; ctx.lineWidth=1.5; ctx.stroke();
-    // Segundo anel mais largo e transparente
-    ctx.beginPath(); ctx.arc(rc.x, rc.y, ringR*1.7, 0, Math.PI*2);
+    ctx.beginPath(); ctx.arc(rc.x,rc.y,ringR*1.7,0,Math.PI*2);
     ctx.strokeStyle=`rgba(34,211,238,${0.2+pulse*0.1})`; ctx.lineWidth=0.8; ctx.stroke();
-    // Raio de luz subindo da ponta
-    const beamLen = 60 + pulse * 15;
-    const beamGrad = ctx.createLinearGradient(tipX, tipY, tipX, tipY - beamLen);
-    beamGrad.addColorStop(0, `rgba(34,211,238,${0.6+pulse*0.2})`);
-    beamGrad.addColorStop(1, 'rgba(34,211,238,0)');
-    ctx.beginPath(); ctx.moveTo(tipX-1, tipY); ctx.lineTo(tipX+1, tipY); ctx.lineTo(tipX, tipY-beamLen); ctx.closePath();
-    ctx.fillStyle=beamGrad; ctx.fill();
-    // Brilho na ponta
-    ctx.beginPath(); ctx.arc(tipX, tipY, 2.5+pulse*1.5, 0, Math.PI*2);
+    const bLen=60+pulse*15;
+    const bGrad=ctx.createLinearGradient(0,tipY,0,tipY-bLen);
+    bGrad.addColorStop(0,`rgba(34,211,238,${0.6+pulse*0.2})`); bGrad.addColorStop(1,'rgba(34,211,238,0)');
+    ctx.beginPath(); ctx.moveTo(tipX-1,tipY); ctx.lineTo(tipX+1,tipY); ctx.lineTo(tipX,tipY-bLen); ctx.closePath();
+    ctx.fillStyle=bGrad; ctx.fill();
+    ctx.beginPath(); ctx.arc(tipX,tipY,2.5+pulse*1.5,0,Math.PI*2);
     ctx.fillStyle=`rgba(34,211,238,${0.8+pulse*0.2})`; ctx.fill();
   }
 
-  // ── NOME no hover/selecionado ─────────────────────────────────────────────
-  if((hovered||selected)&&!isMe){
+  // ── PLAYER BEACON ─────────────────────────────────────────────────────────
+  if (isMe) {
+    const tc={x:(p[4].x+p[5].x+p[6].x+p[7].x)/4, y:(p[4].y+p[5].y+p[6].y+p[7].y)/4};
+    const pr=5+Math.sin(animFrame*.07)*4;
+    ctx.beginPath(); ctx.arc(tc.x,tc.y,pr,0,Math.PI*2);
+    ctx.fillStyle=`rgba(34,211,238,${.25+Math.sin(animFrame*.07)*.15})`; ctx.fill();
+    ctx.beginPath(); ctx.arc(tc.x,tc.y,2.5,0,Math.PI*2); ctx.fillStyle='#22d3ee'; ctx.fill();
+  }
+
+  // ── NOME ──────────────────────────────────────────────────────────────────
+  if ((hovered||selected) && !isMe) {
     ctx.font='600 11px Rajdhani'; ctx.fillStyle='rgba(34,211,238,0.9)'; ctx.textAlign='center';
     ctx.fillText(b.name, tipX, tipY-8); ctx.textAlign='left';
   }
-  if(isMe){
+  if (isMe) {
     ctx.font='700 11px Rajdhani'; ctx.fillStyle='rgba(155,92,246,0.9)'; ctx.textAlign='center';
     ctx.fillText(b.name, tipX, tipY-8); ctx.textAlign='left';
   }
