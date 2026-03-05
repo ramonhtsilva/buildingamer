@@ -386,11 +386,11 @@ input[type="text"]::placeholder { color:rgba(226,217,243,0.2); font-weight:400; 
   <h2>INSIRA SEU<br><em>STEAM ID</em></h2>
   <p>Seu prédio será gerado com base na sua biblioteca Steam e ficará visível para todos na cidade.</p>
   <div class="input-wrap">
-    <input type="text" id="steamInput" placeholder="username ou SteamID64" autocomplete="off"/>
+    <input type="text" id="steamInput" placeholder="username, URL ou SteamID64" autocomplete="off"/>
     <button class="btn-build" id="buildBtn" onclick="loadProfile()">BUILD</button>
   </div>
   <div id="errorMsg"></div>
-  <div class="hint">Como encontrar: <a href="https://steamid.io" target="_blank">steamid.io</a> · Perfil deve ser <strong style="color:rgba(34,211,238,0.55)">público</strong></div>
+  <div class="hint">Ex: <strong>hakamzinho</strong> ou steamcommunity.com/id/hakamzinho · Perfil deve ser <strong style="color:rgba(34,211,238,0.55)">público</strong></div>
   <button class="btn-back" onclick="backToWelcome()">◀ &nbsp;VOLTAR</button>
 </div>
 
@@ -1458,9 +1458,9 @@ const TRANSLATIONS = {
     registerTag:    '// BUILD MY BUILDING',
     registerTitle:  'ENTER YOUR<br><em>STEAM ID</em>',
     registerDesc:   'Your building will be generated based on your Steam library and will be visible to everyone in the city.',
-    steamPlaceholder: 'username or SteamID64',
+    steamPlaceholder: 'username, URL or SteamID64',
     buildBtn:       'BUILD',
-    hint:           'How to find it: <a href="https://steamid.io" target="_blank">steamid.io</a> · Profile must be <strong style="color:rgba(34,211,238,0.55)">public</strong>',
+    hint:           'Ex: <strong>hakamzinho</strong> or steamcommunity.com/id/hakamzinho · Profile must be <strong style="color:rgba(34,211,238,0.55)">public</strong>',
     back:           '◀  BACK',
     loadingInit:    'INITIALIZING...',
     loadingCity:    'LOADING THE CITY...',
@@ -1500,9 +1500,9 @@ const TRANSLATIONS = {
     registerTag:    '// CONSTRUIR MEU PRÉDIO',
     registerTitle:  'INSIRA SEU<br><em>STEAM ID</em>',
     registerDesc:   'Seu prédio será gerado com base na sua biblioteca Steam e ficará visível para todos na cidade.',
-    steamPlaceholder: 'username ou SteamID64',
+    steamPlaceholder: 'username, URL ou SteamID64',
     buildBtn:       'BUILD',
-    hint:           'Como encontrar: <a href="https://steamid.io" target="_blank">steamid.io</a> · Perfil deve ser <strong style="color:rgba(34,211,238,0.55)">público</strong>',
+    hint:           'Ex: <strong>hakamzinho</strong> ou steamcommunity.com/id/hakamzinho · Perfil deve ser <strong style="color:rgba(34,211,238,0.55)">público</strong>',
     back:           '◀  VOLTAR',
     loadingInit:    'INICIALIZANDO...',
     loadingCity:    'CARREGANDO A CIDADE...',
