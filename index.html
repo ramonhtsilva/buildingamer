@@ -300,24 +300,49 @@ let camZoom=1.0;           // ortho scale
 let camDist=1200;          // radius from target
 let targetX=0, targetZ=0;  // pan target (world X/Z)
 let velX=0, velZ=0;        // pan inertia
-let rotVel=0;              // rotation inertia
+let rotVel=0;              // rotation inertia (from drag release)
 let isDragging=false;
 let lastMouse={x:0,y:0};
 let clickStart={x:0,y:0};
 
+// ── Auto-rotate (GitCity style) ───────────────────────────────────────────────
+const AUTO_ROTATE_SPEED = 0.00018;  // radians/frame — very gentle
+let autoRotating = true;            // always on unless user is interacting
+
+function resetAutoRotate(){
+  autoRotating = false;
+}
+
 function updateCamera(){
   if(mode==='welcome') return;
+
   // Pan inertia
   targetX+=velX; targetZ+=velZ;
-  velX*=0.82; velZ*=0.82;
-  if(Math.abs(velX)<0.1) velX=0;
-  if(Math.abs(velZ)<0.1) velZ=0;
+  velX*=0.88; velZ*=0.88;
+  if(Math.abs(velX)<0.05) velX=0;
+  if(Math.abs(velZ)<0.05) velZ=0;
+
+  // Rotation inertia (from drag release — feels like momentum)
+  camAngle += rotVel;
+  rotVel *= 0.92;
+  if(Math.abs(rotVel)<0.00005) rotVel=0;
+
+  // Auto-rotate: always on unless user is actively interacting
+  if(!isDragging && autoRotating){
+    camAngle += AUTO_ROTATE_SPEED;
+  }
+  // Resume auto-rotate when all motion has settled
+  if(!isDragging && rotVel===0 && velX===0 && velZ===0){
+    autoRotating = true;
+  }
+
   // Camera position on sphere around target
   const cx=targetX+camDist*Math.sin(camElevation)*Math.sin(camAngle);
   const cy=camDist*Math.cos(camElevation);
   const cz=targetZ+camDist*Math.sin(camElevation)*Math.cos(camAngle);
   camera.position.set(cx,cy,cz);
   camera.lookAt(targetX,0,targetZ);
+
   // Update ortho frustum based on zoom
   const hs=ORTHO_SIZE*camZoom;
   camera.left=-hs*aspect; camera.right=hs*aspect;
@@ -528,6 +553,7 @@ function buildCity(gamers){
   // Clear old meshes
   buildingObjects.forEach(obj=>{
     obj.meshes.forEach(m=>{m.geometry.dispose(); m.material.dispose(); scene.remove(m);});
+    if(obj.hitbox){obj.hitbox.geometry.dispose();obj.hitbox.material.dispose();scene.remove(obj.hitbox);}
     if(obj.outline){obj.outline.geometry.dispose();obj.outline.material.dispose();scene.remove(obj.outline);}
   });
   buildingObjects=[];
@@ -569,13 +595,12 @@ function buildCity(gamers){
     const wColsSide=Math.max(2,Math.round(bw*0.8/18));
     const wRows=Math.min(40,Math.max(3,Math.round(bh/14)));
 
-    // Create 5 faces as separate meshes (front,back,left,right,top)
+    // Visual faces (planes)
     const meshes=[];
 
     function makeface(w,h,color,winCols,winRows,winSeed){
       const geo=new THREE.PlaneGeometry(w,h);
       const winTex=makeWindowTexture(winCols,winRows,winSeed,isMe,color);
-      // color=0xffffff so texture shows unmodified — face bg is baked into texture
       const mat=new THREE.MeshBasicMaterial({
         color:0xffffff, map:winTex, side:THREE.DoubleSide,
         transparent:false
@@ -622,18 +647,23 @@ function buildCity(gamers){
     pin.position.set(pos.x,bh+pinH/2,pos.z);
     meshes.push(pin); scene.add(pin);
 
+    // ── HITBOX: invisible BoxGeometry — raycaster always hits this, from any angle
+    const hitGeo=new THREE.BoxGeometry(bw,bh,bd);
+    const hitMat=new THREE.MeshBasicMaterial({visible:false,side:THREE.FrontSide});
+    const hitbox=new THREE.Mesh(hitGeo,hitMat);
+    hitbox.position.set(pos.x,bh/2,pos.z);
+    scene.add(hitbox);
+
     // Selection/hover outline using EdgesGeometry on a box
-    const boxGeo=new THREE.BoxGeometry(bw+2,bh+2,bd+2);
-    const edgesGeo=new THREE.EdgesGeometry(boxGeo);
+    const edgesGeo=new THREE.EdgesGeometry(new THREE.BoxGeometry(bw+2,bh+2,bd+2));
     const edgesMat=new THREE.LineBasicMaterial({color:0x22d3ee,transparent:true,opacity:0,linewidth:2});
     const outline=new THREE.LineSegments(edgesGeo,edgesMat);
     outline.position.set(pos.x,bh/2,pos.z);
     scene.add(outline);
-    boxGeo.dispose();
 
     buildingObjects.push({
       ...g, x:pos.x, z:pos.z, h:bh, w:bw, d:bd,
-      isPlayer:isMe, seed, meshes, outline,
+      isPlayer:isMe, seed, meshes, hitbox, outline,
       pinH, tipY:bh+pinH
     });
   });
@@ -649,13 +679,12 @@ function getBuildingAt(mx,my){
   mouse2d.x=(mx/W)*2-1;
   mouse2d.y=-(my/H)*2+1;
   raycaster.setFromCamera(mouse2d,camera);
-  // Collect all meshes from all buildings
-  const allMeshes=[];
-  buildingObjects.forEach(b=>b.meshes.slice(0,4).forEach(m=>allMeshes.push({mesh:m,b}))); // only box faces, not pin
-  const hits=raycaster.intersectObjects(allMeshes.map(x=>x.mesh));
+  // Use dedicated hitboxes — one box per building, always hittable from any angle
+  const hitMeshes=buildingObjects.map(b=>({mesh:b.hitbox,b})).filter(x=>x.mesh);
+  const hits=raycaster.intersectObjects(hitMeshes.map(x=>x.mesh));
   if(!hits.length) return null;
   const hitMesh=hits[0].object;
-  return allMeshes.find(x=>x.mesh===hitMesh)?.b||null;
+  return hitMeshes.find(x=>x.mesh===hitMesh)?.b||null;
 }
 
 // ── HOVER / SELECT VISUAL STATE ───────────────────────────────────────────────
@@ -742,6 +771,7 @@ canvas.addEventListener('mousedown',e=>{
   clickStart={x:e.clientX,y:e.clientY};
   lastMouse={x:e.clientX,y:e.clientY};
   isDragging=true;
+  resetAutoRotate();
   canvas.style.cursor='grabbing';
   document.getElementById('tooltip').style.display='none';
 });
@@ -761,8 +791,11 @@ window.addEventListener('mousemove',e=>{
   const dx=e.clientX-lastMouse.x;
   const dy=e.clientY-lastMouse.y;
   if(e.buttons===1){
-    camAngle-=dx*0.007;
+    const dAngle = dx*0.007;
+    camAngle -= dAngle;
+    rotVel = -dAngle * 0.3;  // carry momentum into inertia on release
     camElevation=Math.max(0.15,Math.min(1.4,camElevation+dy*0.003));
+    resetAutoRotate();
   }
   if(e.buttons===2||e.buttons===4){
     const panS=camZoom*1.8;
@@ -776,12 +809,14 @@ canvas.addEventListener('contextmenu',e=>e.preventDefault());
 canvas.addEventListener('wheel',e=>{
   e.preventDefault();
   camZoom=Math.max(0.08,Math.min(3,camZoom*(e.deltaY>0?1.10:0.91)));
+  resetAutoRotate();
 },{passive:false});
 
 // ── TOUCH ─────────────────────────────────────────────────────────────────────
 let lastTD=0, touchMoved=false, lastTouchCenter={x:0,y:0};
 canvas.addEventListener('touchstart',e=>{
   touchMoved=false;
+  resetAutoRotate();
   if(e.touches.length===1){lastMouse={x:e.touches[0].clientX,y:e.touches[0].clientY};clickStart={x:e.touches[0].clientX,y:e.touches[0].clientY};}
   if(e.touches.length===2){lastTD=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);lastTouchCenter={x:(e.touches[0].clientX+e.touches[1].clientX)/2,y:(e.touches[0].clientY+e.touches[1].clientY)/2};}
 },{passive:true});
