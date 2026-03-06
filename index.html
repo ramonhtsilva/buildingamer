@@ -523,55 +523,89 @@ function assignDistricts(gamers){
 
 // Deterministic grid: each district gets its own shuffled slot list.
 // Guarantees every building occupies a unique cell — no overlaps.
-const _districtSlots = {}; // district name → {slots:[], nextIdx:int}
+// ── BUILDING LOT SYSTEM ──────────────────────────────────────────────────────
+// 3 lot sizes based on game count (width tiers).
+// Buildings are packed into rows inside each district — no overlaps, uniform streets.
+const LOT_STREET = 20;   // gap between every building (street width)
+const LOT_MARGIN = 55;   // margin from district edge
+const LOT_S = 52;        // small  building width  (< 80 games)
+const LOT_M = 76;        // medium building width  (< 200 games)
+const LOT_L = 104;       // large  building width  (>= 200 games)
+const LOT_DEPTH_RATIO = 0.82; // building depth = width * ratio
 
-function _buildDistrictSlots(districtName) {
-  // Grid fits inside DSIZE with MARGIN on each edge
-  const MARGIN = 60;
-  const CELL   = 105;           // cell size (building width ~40 + gap ~65)
-  const COLS   = Math.floor((DSIZE * 2 - MARGIN * 2) / CELL); // ~12
-  const slots  = [];
-  for (let r = 0; r < COLS; r++) {
-    for (let c = 0; c < COLS; c++) {
-      slots.push({
-        gx: -DSIZE + MARGIN + CELL * c + CELL / 2,
-        gz: -DSIZE + MARGIN + CELL * r + CELL / 2
-      });
-    }
-  }
-  // Seeded shuffle so layout is deterministic per district
-  let seed = Math.abs(hashStr(districtName)) | 1;
-  for (let i = slots.length - 1; i > 0; i--) {
-    seed = (seed * 1664525 + 1013904223) & 0xffffffff;
-    const j = Math.abs(seed) % (i + 1);
-    [slots[i], slots[j]] = [slots[j], slots[i]];
-  }
-  _districtSlots[districtName] = { slots, nextIdx: 0 };
+function lotWidthForGames(games) {
+  if (games < 80)  return LOT_S;
+  if (games < 200) return LOT_M;
+  return LOT_L;
 }
 
-// Map steamid → assigned slot offset (so same id always gets same spot)
-const _idSlotMap = {};
+// Per-district packing state: list of placed {gx, gz, lotW} entries
+const _districtPlacements = {}; // district → { rows:[], curRowX, curRowZ, curRowH, seed }
+
+function _initDistrictPacking(districtName) {
+  // Seeded LCG for row-height randomisation
+  let seed = Math.abs(hashStr(districtName)) | 1;
+  const usable = DSIZE * 2 - LOT_MARGIN * 2; // 1290
+  _districtPlacements[districtName] = {
+    placed: [],           // {gx, gz, lotW} — relative to district centre
+    curRowX: -DSIZE + LOT_MARGIN,
+    curRowZ: -DSIZE + LOT_MARGIN,
+    curRowH: 0,           // tallest lot depth in current row
+    usable,
+    seed
+  };
+}
+
+// Register a building with given games count and get back its local (gx, gz)
+function _assignLot(districtName, id, games) {
+  if (!_districtPlacements[districtName]) _initDistrictPacking(districtName);
+  const p  = _districtPlacements[districtName];
+  const lw = lotWidthForGames(games);
+  const ld = Math.round(lw * LOT_DEPTH_RATIO);
+
+  // Check if this id was already placed (city rebuild calls idToPos per gamer)
+  const existing = p.placed.find(e => e.id === id);
+  if (existing) return { gx: existing.gx, gz: existing.gz, lotW: lw };
+
+  // Would this lot overflow the current row?
+  const rightEdge = p.curRowX + lw;
+  if (rightEdge > DSIZE - LOT_MARGIN && p.placed.length > 0) {
+    // Start new row
+    p.curRowZ += p.curRowH + LOT_STREET;
+    p.curRowX  = -DSIZE + LOT_MARGIN;
+    p.curRowH  = 0;
+  }
+
+  // Wrap vertically if we've run out of district space (shouldn't happen with ~50/district)
+  if (p.curRowZ + ld > DSIZE - LOT_MARGIN) {
+    p.curRowZ = -DSIZE + LOT_MARGIN;
+    p.curRowX = -DSIZE + LOT_MARGIN;
+    p.curRowH = 0;
+  }
+
+  const gx = p.curRowX + lw / 2;   // centre of this lot
+  const gz = p.curRowZ + ld / 2;
+
+  // Advance cursor
+  p.curRowX += lw + LOT_STREET;
+  if (ld > p.curRowH) p.curRowH = ld;
+
+  p.placed.push({ id, gx, gz, lotW: lw });
+  return { gx, gz, lotW: lw };
+}
 
 function idToPos(id, district) {
   const key = district || 'UNKNOWN';
   const d   = districtMap[key];
   const cx  = d ? d.cx : 0, cz = d ? d.cz : 0;
-
-  if (!_districtSlots[key]) _buildDistrictSlots(key);
-  const ds = _districtSlots[key];
-
-  if (_idSlotMap[id] === undefined) {
-    // Assign next available slot (wrap if exhausted — rare with 300 buildings / 144 slots)
-    _idSlotMap[id] = ds.nextIdx % ds.slots.length;
-    ds.nextIdx++;
-  }
-  const slot = ds.slots[_idSlotMap[id]];
-  // Tiny deterministic jitter within the cell (max ±15px)
-  const h = hashStr(id);
-  const jx = ((Math.abs(h * 7) % 30) - 15);
-  const jz = ((Math.abs(h * 13) % 30) - 15);
-  return { x: cx + slot.gx + jx, z: cz + slot.gz + jz };
+  // games count looked up from cityGamers (may not be available during first pass)
+  // We pass games via a side-channel set just before calling idToPos
+  const games = _pendingGames[id] !== undefined ? _pendingGames[id] : 150;
+  const { gx, gz } = _assignLot(key, id, games);
+  return { x: cx + gx, z: cz + gz };
 }
+
+const _pendingGames = {};  // steamid → games, set before each idToPos call
 
 // ── WINDOW TEXTURE CACHE ──────────────────────────────────────────────────────
 const _texCache=new Map();
@@ -806,18 +840,19 @@ function buildCity(gamers){
     }
   });
   Object.keys(districtMap).forEach(k=>delete districtMap[k]);
-  Object.keys(_districtSlots).forEach(k=>delete _districtSlots[k]);
-  Object.keys(_idSlotMap).forEach(k=>delete _idSlotMap[k]);
+  Object.keys(_districtPlacements).forEach(k=>delete _districtPlacements[k]);
+  Object.keys(_pendingGames).forEach(k=>delete _pendingGames[k]);
   assignDistricts(gamers);
   rebuildDistrictFloors();
   rebuildDistrictLabels();
 
   gamers.forEach(g=>{
+    _pendingGames[g.steamid]=g.games||0;
     const pos=idToPos(g.steamid,g.district);
     const isMe=g.steamid===mySteamId;
     const bh=Math.max(40,Math.min(900,g.floors*7));
-    const bw=Math.max(55,Math.min(130,44+g.games*0.65));
-    const bd=bw*0.8;
+    const bw=lotWidthForGames(g.games||0);
+    const bd=Math.round(bw*LOT_DEPTH_RATIO);
 
     let seedN=0;
     for(let k=0;k<g.steamid.length;k++) seedN=(seedN*31+g.steamid.charCodeAt(k))|0;
