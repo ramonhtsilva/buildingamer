@@ -521,20 +521,56 @@ function assignDistricts(gamers){
   });
 }
 
-function idToPos(id,district){
-  let h=hashStr(id);
-  const d=districtMap[district||'UNKNOWN'];
-  const cx=d?d.cx:0, cz=d?d.cz:0;
-  // SLOTS*SPACING must stay within DSIZE (700)
-  // 12 slots * 110 = 660 half-span + 20 jitter = 680 < 700 ✓
-  const SPACING=110, SLOTS=12, JITTER=20;
-  const idx=Math.abs(h)%(SLOTS*SLOTS);
-  const gx=(idx%SLOTS)-SLOTS/2+0.5;
-  const gz=Math.floor(idx/SLOTS)-SLOTS/2+0.5;
-  return {
-    x:cx+gx*SPACING+((Math.abs(h*7)%(JITTER*2))-JITTER),
-    z:cz+gz*SPACING+((Math.abs(h*13)%(JITTER*2))-JITTER)
-  };
+// Deterministic grid: each district gets its own shuffled slot list.
+// Guarantees every building occupies a unique cell — no overlaps.
+const _districtSlots = {}; // district name → {slots:[], nextIdx:int}
+
+function _buildDistrictSlots(districtName) {
+  // Grid fits inside DSIZE with MARGIN on each edge
+  const MARGIN = 60;
+  const CELL   = 105;           // cell size (building width ~40 + gap ~65)
+  const COLS   = Math.floor((DSIZE * 2 - MARGIN * 2) / CELL); // ~12
+  const slots  = [];
+  for (let r = 0; r < COLS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      slots.push({
+        gx: -DSIZE + MARGIN + CELL * c + CELL / 2,
+        gz: -DSIZE + MARGIN + CELL * r + CELL / 2
+      });
+    }
+  }
+  // Seeded shuffle so layout is deterministic per district
+  let seed = Math.abs(hashStr(districtName)) | 1;
+  for (let i = slots.length - 1; i > 0; i--) {
+    seed = (seed * 1664525 + 1013904223) & 0xffffffff;
+    const j = Math.abs(seed) % (i + 1);
+    [slots[i], slots[j]] = [slots[j], slots[i]];
+  }
+  _districtSlots[districtName] = { slots, nextIdx: 0 };
+}
+
+// Map steamid → assigned slot offset (so same id always gets same spot)
+const _idSlotMap = {};
+
+function idToPos(id, district) {
+  const key = district || 'UNKNOWN';
+  const d   = districtMap[key];
+  const cx  = d ? d.cx : 0, cz = d ? d.cz : 0;
+
+  if (!_districtSlots[key]) _buildDistrictSlots(key);
+  const ds = _districtSlots[key];
+
+  if (_idSlotMap[id] === undefined) {
+    // Assign next available slot (wrap if exhausted — rare with 300 buildings / 144 slots)
+    _idSlotMap[id] = ds.nextIdx % ds.slots.length;
+    ds.nextIdx++;
+  }
+  const slot = ds.slots[_idSlotMap[id]];
+  // Tiny deterministic jitter within the cell (max ±15px)
+  const h = hashStr(id);
+  const jx = ((Math.abs(h * 7) % 30) - 15);
+  const jz = ((Math.abs(h * 13) % 30) - 15);
+  return { x: cx + slot.gx + jx, z: cz + slot.gz + jz };
 }
 
 // ── WINDOW TEXTURE CACHE ──────────────────────────────────────────────────────
@@ -770,6 +806,8 @@ function buildCity(gamers){
     }
   });
   Object.keys(districtMap).forEach(k=>delete districtMap[k]);
+  Object.keys(_districtSlots).forEach(k=>delete _districtSlots[k]);
+  Object.keys(_idSlotMap).forEach(k=>delete _idSlotMap[k]);
   assignDistricts(gamers);
   rebuildDistrictFloors();
   rebuildDistrictLabels();
@@ -922,20 +960,26 @@ animate();
 // ── CAMERA FOCUS LERP ─────────────────────────────────────────────────────────
 // Focus so pin tip appears at screen center, viewed from diagonal+above
 function focusBuildingCamera(b){
-  const startX=targetX, startZ=targetZ;
-  const startZoom=camZoom;
-  // Zoom level based on building height
-  const targetZoom=Math.min(camZoom, Math.max(0.35, 0.55 - b.h*0.00015));
+  const startX=targetX, startZ=targetZ, startZoom=camZoom;
+  const startElev=camElevation;
 
-  // Offset target so pin tip (top of building) lands at screen center.
-  // The camera orbits around (targetX, 0, targetZ) — we need to shift the
-  // target backward along the camera's look direction by the building height,
-  // so the top of the building projects to the center of the screen.
-  const pinTipY = b.h + (b.pinH || 20);
-  // How far back to offset: pinTipY / tan(elevation) along ground plane
-  const offsetDist = pinTipY / Math.tan(camElevation);
-  const focusX = b.x - Math.sin(camAngle) * offsetDist * 0.5;
-  const focusZ = b.z - Math.cos(camAngle) * offsetDist * 0.5;
+  // Building total height (body + pin)
+  const totalH = b.h + (b.pinH || 20);
+
+  // Target zoom: tall buildings need more zoom-out so full height is visible.
+  // Base zoom ~ 0.45, decreasing for tall buildings; floor at 0.18
+  const targetZoom = Math.max(0.18, Math.min(camZoom, 0.48 - totalH * 0.00025));
+
+  // Target elevation: tilt slightly upward for taller buildings so the top is visible
+  const targetElev = Math.max(0.55, Math.min(1.1, 0.72 + totalH * 0.00008));
+
+  // With ortho projection the camera "looks at" (targetX, 0, targetZ).
+  // To see the pinnacle, we shift the look-at point downward along the
+  // camera's forward direction by half the building height.
+  // offset = h / (2 * tan(elevation))  → shifts the midpoint of the view to ~h/2
+  const offsetDist = (totalH * 0.5) / Math.tan(targetElev);
+  const focusX = b.x - Math.sin(camAngle) * offsetDist;
+  const focusZ = b.z - Math.cos(camAngle) * offsetDist;
 
   let t=0;
   function step(){
@@ -944,9 +988,10 @@ function focusBuildingCamera(b){
     targetX=startX+(focusX-startX)*k;
     targetZ=startZ+(focusZ-startZ)*k;
     camZoom=startZoom+(targetZoom-startZoom)*k;
+    camElevation=startElev+(targetElev-startElev)*k;
     velX=0; velZ=0; rotVel=0;
     if(t<1) requestAnimationFrame(step);
-    else { autoRotating=false; } // keep camera locked after focus
+    else { autoRotating=false; }
   }
   step();
 }
